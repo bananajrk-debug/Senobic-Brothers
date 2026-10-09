@@ -1,12 +1,13 @@
 {
   "name": "senobic-brothers",
-  "version": "1.0.0",
-  "description": "2D Fighting Game - Senobic Brothers",
+  "version": "2.0.0",
+  "description": "2D Online Fighting Game - Senobic Brothers",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   }
 }
