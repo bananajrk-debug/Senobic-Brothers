@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>セノビックブラザーズ - SENOBIC BROTHERS</title>
+  <title>セノビックブラザーズ (Senobic Brothers)</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
     body {
-      background-color: #1a1a2e;
+      background-color: #0f0f15;
       color: #fff;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
@@ -17,492 +22,740 @@
       min-height: 100vh;
       overflow: hidden;
     }
-
     h1 {
-      margin-bottom: 10px;
-      color: #e94560;
-      text-shadow: 2px 2px 4px #000;
-      font-size: 28px;
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: #f39c12;
+      text-shadow: 0 0 10px rgba(243, 156, 18, 0.5), 3px 3px #c0392b;
+      letter-spacing: 2px;
     }
-
     #game-container {
       position: relative;
-      border: 4px solid #0f3460;
-      box-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+      width: 1000px;
+      height: 500px;
+      border: 4px solid #333;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(243, 156, 18, 0.2);
       background-color: #000;
+      overflow: hidden;
     }
-
     canvas {
       display: block;
-      background: linear-gradient(to bottom, #16213e, #0f3460);
+      width: 1000px;
+      height: 500px;
     }
-
-    .controls-info {
-      margin-top: 15px;
-      display: flex;
-      gap: 20px;
-      font-size: 13px;
-      background: rgba(15, 52, 96, 0.8);
-      padding: 10px 20px;
-      border-radius: 8px;
-    }
-
-    .player-controls {
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 15, 0.88);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      backdrop-filter: blur(4px);
     }
-
-    .player-controls span {
+    .hidden {
+      display: none !important;
+    }
+    .btn {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      border: none;
+      padding: 14px 32px;
+      font-size: 20px;
       font-weight: bold;
-      color: #e94560;
+      cursor: pointer;
+      border-radius: 30px;
+      margin-top: 25px;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+    }
+    #select-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+    }
+    .char-list {
+      display: flex;
+      gap: 18px;
+      margin-top: 25px;
+    }
+    .char-card {
+      width: 160px;
+      height: 240px;
+      border: 2px solid #444;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, #2c3e50, #1a252f);
+      transition: all 0.2s;
+    }
+    .char-card.active {
+      border-color: #f1c40f;
+      transform: scale(1.08);
+      box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+    }
+    .char-card.p1-choice {
+      border-color: #3498db;
+      box-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
+    }
+    .char-card.p2-choice {
+      border-color: #e74c3c;
+      box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    }
+    .char-preview-box {
+      width: 100%;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+    }
+    .char-stats {
+      font-size: 12px;
+      width: 100%;
+      text-align: left;
+      line-height: 1.6;
+      color: #ddd;
+    }
+    .status-badge {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    #controls-guide {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #888;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <h1>🔥 セノビックブラザーズ 🔥</h1>
+  <h1>セノビックブラザーズ (Senobic Brothers)</h1>
 
   <div id="game-container">
-    <canvas id="gameCanvas" width="800" height="450"></canvas>
+    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+
+    <!-- 待機画面 -->
+    <div id="screen-waiting" class="overlay">
+      <h2>対戦相手を探しています...</h2>
+      <p style="margin-top: 15px; color: #aaa;">Player 2 の接続を待機中</p>
+    </div>
+
+    <!-- キャラ選択画面 -->
+    <div id="screen-select" class="overlay hidden">
+      <h2>CHARACTER SELECT</h2>
+      <p style="color: #aaa; font-size: 14px; margin-top: 5px;">[A] / [D] で選択 ｜ [Enter] で確定</p>
+      
+      <div class="char-list" id="char-list"></div>
+
+      <div class="status-badge" id="select-status">選択してください</div>
+    </div>
+
+    <!-- 勝敗決着画面 -->
+    <div id="screen-gameover" class="overlay hidden">
+      <h2 id="winner-text" style="font-size: 42px; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);">PLAYER 1 WIN!</h2>
+      <button class="btn" onclick="requestRematch()">もう一度遊ぶ (Enter)</button>
+    </div>
   </div>
 
-  <div class="controls-info">
-    <div class="player-controls">
-      <span>1P (左) 操作:</span>
-      <div>移動: [A]左 [D]右 / ジャンプ: [W]</div>
-      <div>攻撃: [F] パンチ / [G] キック</div>
-    </div>
-    <div class="player-controls">
-      <span>2P (右) 操作 (CPU可):</span>
-      <div>移動: [←]左 [→]右 / ジャンプ: [↑]</div>
-      <div>攻撃: [K] パンチ / [L] キック</div>
-    </div>
+  <div id="controls-guide">
+    操作方法: [A] 左移動 ｜ [D] 右移動 ｜ [W] ジャンプ ｜ [F] パンチ (短・標準) ｜ [G] キック (長・高威力)
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // ゲーム状態 (SELECTION, FIGHT, GAMEOVER)
-    let gameState = 'SELECTION';
+    const screenWaiting = document.getElementById('screen-waiting');
+    const screenSelect = document.getElementById('screen-select');
+    const screenGameover = document.getElementById('screen-gameover');
+    const charListContainer = document.getElementById('char-list');
+    const selectStatus = document.getElementById('select-status');
+    const winnerText = document.getElementById('winner-text');
 
-    // キャラクター定義
-    const CHARACTERS = [
-      {
-        id: 'futsu',
-        name: 'フツオ (普通)',
-        color: '#3498db',
-        width: 40,
-        height: 80,
-        speed: 5,
-        jumpPower: 14,
-        maxHp: 100,
-        power: 10,
-        desc: 'バランス型の標準ファイター'
-      },
-      {
-        id: 'debu',
-        name: 'デブゴン (デブ)',
-        color: '#e74c3c',
-        width: 70,
-        height: 90,
-        speed: 3,
-        jumpPower: 11,
-        maxHp: 150,
-        power: 18,
-        desc: '高耐久・高火力だが足が遅い'
-      },
-      {
-        id: 'gari',
-        name: 'ガリノシン (ガリ)',
-        color: '#2ecc71',
-        width: 25,
-        height: 95,
-        speed: 8,
-        jumpPower: 17,
-        maxHp: 70,
-        power: 8,
-        desc: '超高速移動＆ハイジャンプ'
-      },
-      {
-        id: 'chibi_debu',
-        name: 'チビコロ (チビデブ)',
-        color: '#f1c40f',
-        width: 55,
-        height: 50,
-        speed: 4.5,
-        jumpPower: 13,
-        maxHp: 120,
-        power: 12,
-        desc: '背が低く当たり判定が小さい'
-      },
-      {
-        id: 'onna',
-        name: 'ヒメ (女)',
-        color: '#9b59b6',
-        width: 35,
-        height: 75,
-        speed: 6.5,
-        jumpPower: 15,
-        maxHp: 85,
-        power: 14,
-        desc: '攻撃力が高いスピードタイプ'
+    let myPlayerNum = null;
+    let roomId = null;
+    let characters = {};
+    let characterKeys = [];
+    let selectedIndex = 0;
+    let isConfirmed = false;
+    let currentGameState = 'WAITING';
+    let playersData = {};
+    let screenShake = 0;
+
+    const keys = {
+      left: false,
+      right: false,
+      jump: false,
+      attack: false,
+      attackType: null
+    };
+
+    socket.on('init', (data) => {
+      roomId = data.roomId;
+      myPlayerNum = data.playerNum;
+      characters = data.characters;
+      characterKeys = Object.keys(characters);
+      renderCharSelectCards();
+    });
+
+    socket.on('gameState', (data) => {
+      currentGameState = data.state;
+      playersData = data.players;
+      updateUI();
+    });
+
+    socket.on('characterUpdated', (data) => {
+      playersData = data.players;
+      updateCharSelectUI();
+    });
+
+    socket.on('gameStart', (data) => {
+      currentGameState = 'PLAYING';
+      playersData = data.players;
+      updateUI();
+    });
+
+    socket.on('updateState', (data) => {
+      if (currentGameState === 'PLAYING') {
+        playersData = data.players;
+        renderGame();
       }
-    ];
+    });
 
-    let p1SelectIndex = 0;
-    let p2SelectIndex = 1;
-    let isCpuMode = true;
+    socket.on('gameOver', (data) => {
+      currentGameState = 'FINISHED';
+      winnerText.textContent = `PLAYER ${data.winnerNum} WIN!`;
+      updateUI();
+    });
 
-    // キー入力状況
-    const keys = {};
+    socket.on('playerLeft', () => {
+      alert('対戦相手が切断されました。待機画面に戻ります。');
+      currentGameState = 'WAITING';
+      isConfirmed = false;
+      updateUI();
+    });
+
     window.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
-      handleMenuInput(e.key);
+      if (e.repeat) return;
+
+      if (currentGameState === 'SELECTING' && !isConfirmed) {
+        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
+          selectedIndex = (selectedIndex - 1 + characterKeys.length) % characterKeys.length;
+          sendSelectUpdate();
+        } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+          selectedIndex = (selectedIndex + 1) % characterKeys.length;
+          sendSelectUpdate();
+        } else if (e.key === 'Enter') {
+          isConfirmed = true;
+          sendSelectUpdate();
+        }
+      } else if (currentGameState === 'PLAYING') {
+        if (e.key === 'a' || e.key === 'A') keys.left = true;
+        if (e.key === 'd' || e.key === 'D') keys.right = true;
+        if (e.key === 'w' || e.key === 'W') keys.jump = true;
+        if (e.key === 'f' || e.key === 'F') {
+          keys.attack = true;
+          keys.attackType = 'punch';
+        }
+        if (e.key === 'g' || e.key === 'G') {
+          keys.attack = true;
+          keys.attackType = 'kick';
+        }
+        sendInputs();
+      } else if (currentGameState === 'FINISHED') {
+        if (e.key === 'Enter') {
+          requestRematch();
+        }
+      }
     });
+
     window.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
+      if (currentGameState === 'PLAYING') {
+        if (e.key === 'a' || e.key === 'A') keys.left = false;
+        if (e.key === 'd' || e.key === 'D') keys.right = false;
+        if (e.key === 'w' || e.key === 'W') keys.jump = false;
+        if (e.key === 'f' || e.key === 'F' || e.key === 'g' || e.key === 'G') {
+          keys.attack = false;
+          keys.attackType = null;
+        }
+        sendInputs();
+      }
     });
 
-    // プレイヤーオブジェクト
-    class Fighter {
-      constructor(charConfig, x, isP1) {
-        this.config = charConfig;
-        this.x = x;
-        this.y = 250;
-        this.vx = 0;
-        this.vy = 0;
-        this.width = charConfig.width;
-        this.height = charConfig.height;
-        this.hp = charConfig.maxHp;
-        this.maxHp = charConfig.maxHp;
-        this.isP1 = isP1;
-        this.isGrounded = false;
-        this.facing = isP1 ? 'right' : 'left';
-        this.isAttacking = false;
-        this.attackTimer = 0;
-        this.attackBox = { x: 0, y: 0, width: 0, height: 0, damage: 0 };
-        this.hitStun = 0;
+    function sendInputs() {
+      socket.emit('playerInput', keys);
+    }
+
+    function sendSelectUpdate() {
+      const charKey = characterKeys[selectedIndex];
+      socket.emit('selectCharacter', {
+        characterKey: charKey,
+        confirmed: isConfirmed
+      });
+      updateCharSelectUI();
+    }
+
+    function requestRematch() {
+      isConfirmed = false;
+      socket.emit('requestRematch');
+    }
+
+    function updateUI() {
+      screenWaiting.classList.add('hidden');
+      screenSelect.classList.add('hidden');
+      screenGameover.classList.add('hidden');
+
+      if (currentGameState === 'WAITING') {
+        screenWaiting.classList.remove('hidden');
+      } else if (currentGameState === 'SELECTING') {
+        screenSelect.classList.remove('hidden');
+        updateCharSelectUI();
+      } else if (currentGameState === 'FINISHED') {
+        screenGameover.classList.remove('hidden');
       }
+    }
 
-      update(opponent) {
-        if (this.hitStun > 0) {
-          this.hitStun--;
-          return;
+    function renderCharSelectCards() {
+      charListContainer.innerHTML = '';
+      characterKeys.forEach((key, index) => {
+        const char = characters[key];
+        const card = document.createElement('div');
+        card.className = `char-card ${index === selectedIndex ? 'active' : ''}`;
+        card.id = `char-card-${key}`;
+
+        card.innerHTML = `
+          <div style="font-weight:bold; font-size:14px; text-align:center;">${char.name}</div>
+          <div class="char-preview-box" id="preview-${key}"></div>
+          <div class="char-stats">
+            HP: ${char.hp}<br>
+            ATK: ${char.atk}<br>
+            SPD: ${char.speed}
+          </div>
+        `;
+        charListContainer.appendChild(card);
+
+        // 各カードにミニキャンバスでプレビュー描画
+        setTimeout(() => drawPreviewCharacter(key), 0);
+      });
+    }
+
+    function drawPreviewCharacter(key) {
+      const container = document.getElementById(`preview-${key}`);
+      if (!container) return;
+      const char = characters[key];
+      const pCanvas = document.createElement('canvas');
+      pCanvas.width = 100;
+      pCanvas.height = 100;
+      const pCtx = pCanvas.getContext('2d');
+
+      const dummyPlayer = {
+        x: 50 - char.width / 2,
+        y: 80 - char.height,
+        facing: 'right',
+        characterKey: key,
+        invincibleFrames: 0,
+        stunFrames: 0
+      };
+
+      drawGraphicCharacter(pCtx, dummyPlayer, char);
+      container.appendChild(pCanvas);
+    }
+
+    function updateCharSelectUI() {
+      characterKeys.forEach((key, index) => {
+        const card = document.getElementById(`char-card-${key}`);
+        if (!card) return;
+
+        card.classList.remove('active', 'p1-choice', 'p2-choice');
+
+        if (index === selectedIndex) {
+          card.classList.add('active');
         }
 
-        // 重力適用
-        this.vy += 0.8;
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // 地面衝突
-        const groundY = 380 - this.height;
-        if (this.y >= groundY) {
-          this.y = groundY;
-          this.vy = 0;
-          this.isGrounded = true;
-        }
-
-        // 画面端処理
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
-
-        // 向き
-        if (opponent) {
-          this.facing = (this.x < opponent.x) ? 'right' : 'left';
-        }
-
-        // 攻撃タイマー
-        if (this.isAttacking) {
-          this.attackTimer--;
-          if (this.attackTimer <= 0) {
-            this.isAttacking = false;
+        Object.values(playersData).forEach(p => {
+          if (p.characterKey === key) {
+            if (p.playerNum === 1) card.classList.add('p1-choice');
+            if (p.playerNum === 2) card.classList.add('p2-choice');
           }
-        }
-      }
-
-      jump() {
-        if (this.isGrounded) {
-          this.vy = -this.config.jumpPower;
-          this.isGrounded = false;
-        }
-      }
-
-      attack(type, opponent) {
-        if (this.isAttacking || this.hitStun > 0) return;
-
-        this.isAttacking = true;
-        this.attackTimer = 15;
-
-        const range = type === 'punch' ? 40 : 60;
-        const dmgMultiplier = type === 'punch' ? 1.0 : 1.3;
-
-        this.attackBox = {
-          x: this.facing === 'right' ? this.x + this.width : this.x - range,
-          y: this.y + 15,
-          width: range,
-          height: 30,
-          damage: Math.round(this.config.power * dmgMultiplier)
-        };
-
-        // 判定チェック
-        if (opponent && checkOverlap(this.attackBox, opponent)) {
-          opponent.takeDamage(this.attackBox.damage, this.facing);
-        }
-      }
-
-      takeDamage(damage, attackDirection) {
-        this.hp = Math.max(0, this.hp - damage);
-        this.hitStun = 12;
-        this.vx = attackDirection === 'right' ? 8 : -8;
-        setTimeout(() => { this.vx = 0; }, 100);
-      }
-
-      draw() {
-        ctx.save();
-
-        // 被弾中の赤フラッシュ
-        if (this.hitStun > 0) {
-          ctx.fillStyle = '#ffffff';
-        } else {
-          ctx.fillStyle = this.config.color;
-        }
-
-        // 本体描画
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-
-        // 目線
-        ctx.fillStyle = '#000';
-        const eyeX = this.facing === 'right' ? this.x + this.width - 10 : this.x + 5;
-        ctx.fillRect(eyeX, this.y + 10, 6, 6);
-
-        // 攻撃描画
-        if (this.isAttacking) {
-          ctx.fillStyle = 'rgba(255, 230, 0, 0.7)';
-          ctx.fillRect(
-            this.attackBox.x,
-            this.attackBox.y,
-            this.attackBox.width,
-            this.attackBox.height
-          );
-        }
-
-        ctx.restore();
-      }
-    }
-
-    let p1, p2;
-
-    function handleMenuInput(key) {
-      if (gameState === 'SELECTION') {
-        // P1選択
-        if (key === 'a' || key === 'A') p1SelectIndex = (p1SelectIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
-        if (key === 'd' || key === 'D') p1SelectIndex = (p1SelectIndex + 1) % CHARACTERS.length;
-
-        // P2選択
-        if (key === 'ArrowLeft') p2SelectIndex = (p2SelectIndex - 1 + CHARACTERS.length) % CHARACTERS.length;
-        if (key === 'ArrowRight') p2SelectIndex = (p2SelectIndex + 1) % CHARACTERS.length;
-
-        // モード切替
-        if (key === 'm' || key === 'M') isCpuMode = !isCpuMode;
-
-        // 決定 (Enter)
-        if (key === 'Enter') {
-          p1 = new Fighter(CHARACTERS[p1SelectIndex], 150, true);
-          p2 = new Fighter(CHARACTERS[p2SelectIndex], 600, false);
-          gameState = 'FIGHT';
-        }
-      } else if (gameState === 'GAMEOVER') {
-        if (key === 'Enter') {
-          gameState = 'SELECTION';
-        }
-      }
-    }
-
-    function checkOverlap(r1, r2) {
-      return !(r1.x + r1.width < r2.x ||
-               r1.x > r2.x + r2.width ||
-               r1.y + r1.height < r2.y ||
-               r1.y > r2.y + r2.height);
-    }
-
-    function updateCPU() {
-      if (!p2 || !isCpuMode || gameState !== 'FIGHT') return;
-
-      const dist = p1.x - p2.x;
-      const absDist = Math.abs(dist);
-
-      // 移動AI
-      if (absDist > 60) {
-        p2.vx = dist > 0 ? p2.config.speed * 0.7 : -p2.config.speed * 0.7;
-      } else {
-        p2.vx = 0;
-        // 攻撃判定
-        if (Math.random() < 0.05) {
-          p2.attack(Math.random() > 0.5 ? 'punch' : 'kick', p1);
-        }
-      }
-
-      // ランダムジャンプ
-      if (Math.random() < 0.01) {
-        p2.jump();
-      }
-    }
-
-    function processInput() {
-      if (gameState !== 'FIGHT') return;
-
-      // P1 移動
-      p1.vx = 0;
-      if (keys['a'] || keys['A']) p1.vx = -p1.config.speed;
-      if (keys['d'] || keys['D']) p1.vx = p1.config.speed;
-      if (keys['w'] || keys['W']) p1.jump();
-      if (keys['f'] || keys['F']) p1.attack('punch', p2);
-      if (keys['g'] || keys['G']) p1.attack('kick', p2);
-
-      // P2 移動（CPUでない場合のみ）
-      if (!isCpuMode) {
-        p2.vx = 0;
-        if (keys['ArrowLeft']) p2.vx = -p2.config.speed;
-        if (keys['ArrowRight']) p2.vx = p2.config.speed;
-        if (keys['ArrowUp']) p2.jump();
-        if (keys['k'] || keys['K']) p2.attack('punch', p1);
-        if (keys['l'] || keys['L']) p2.attack('kick', p1);
-      }
-    }
-
-    // ゲームループ
-    function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (gameState === 'SELECTION') {
-        drawSelectionScreen();
-      } else if (gameState === 'FIGHT') {
-        processInput();
-        updateCPU();
-
-        p1.update(p2);
-        p2.update(p1);
-
-        // 背景・ステージ
-        ctx.fillStyle = '#222';
-        ctx.fillRect(0, 380, canvas.width, 70);
-
-        p1.draw();
-        p2.draw();
-
-        drawUI();
-
-        if (p1.hp <= 0 || p2.hp <= 0) {
-          gameState = 'GAMEOVER';
-        }
-      } else if (gameState === 'GAMEOVER') {
-        drawUI();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 36px sans-serif';
-        ctx.textAlign = 'center';
-
-        let winnerText = 'DRAW!';
-        if (p1.hp > 0) winnerText = '1P WIN!';
-        if (p2.hp > 0) winnerText = isCpuMode ? 'CPU WIN!' : '2P WIN!';
-
-        ctx.fillText(winnerText, canvas.width / 2, 200);
-        ctx.font = '20px sans-serif';
-        ctx.fillText('Press [Enter] to Restart', canvas.width / 2, 260);
-      }
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    function drawSelectionScreen() {
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 24px sans-serif';
-      ctx.fillText('CHARACTER SELECT', canvas.width / 2, 50);
-
-      ctx.font = '16px sans-serif';
-      ctx.fillText(`モード: [M]キーで変更 (${isCpuMode ? '1P vs CPU' : '1P vs 2P'})`, canvas.width / 2, 80);
-
-      // P1 選択情報
-      const p1Char = CHARACTERS[p1SelectIndex];
-      ctx.fillStyle = '#3498db';
-      ctx.fillText('【 1P (A/Dキー) 】', 200, 130);
-      ctx.fillText(p1Char.name, 200, 160);
-      ctx.font = '14px sans-serif';
-      ctx.fillText(p1Char.desc, 200, 190);
-      ctx.fillText(`HP: ${p1Char.maxHp} / PWR: ${p1Char.power} / SPD: ${p1Char.speed}`, 200, 210);
-
-      // P2 選択情報
-      const p2Char = CHARACTERS[p2SelectIndex];
-      ctx.fillStyle = '#e74c3c';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.fillText(`【 ${isCpuMode ? 'CPU' : '2P'} (←/→キー) 】`, 600, 130);
-      ctx.fillText(p2Char.name, 600, 160);
-      ctx.font = '14px sans-serif';
-      ctx.fillText(p2Char.desc, 600, 190);
-      ctx.fillText(`HP: ${p2Char.maxHp} / PWR: ${p2Char.power} / SPD: ${p2Char.speed}`, 600, 210);
-
-      // キャラクラー一覧プレビュー
-      CHARACTERS.forEach((c, index) => {
-        const cx = 120 + index * 140;
-        const cy = 280;
-
-        ctx.fillStyle = c.color;
-        ctx.fillRect(cx - c.width / 2, cy + (90 - c.height), c.width, c.height);
-
-        // 枠表示
-        if (index === p1SelectIndex) {
-          ctx.strokeStyle = '#3498db';
-          ctx.lineWidth = 4;
-          ctx.strokeRect(cx - 35, cy - 10, 70, 110);
-        }
-        if (index === p2SelectIndex) {
-          ctx.strokeStyle = '#e74c3c';
-          ctx.lineWidth = 4;
-          ctx.strokeRect(cx - 40, cy - 15, 80, 120);
-        }
+        });
       });
 
+      const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
+      if (myData && myData.selected) {
+        selectStatus.textContent = '相手の選択を待っています...';
+        selectStatus.style.color = '#f1c40f';
+      } else {
+        selectStatus.textContent = '選択してください (Enterで確定)';
+        selectStatus.style.color = '#fff';
+      }
+    }
+
+    // ゲーム画面の描画処理
+    function renderGame() {
+      ctx.save();
+
+      // ヒット時の画面シェイク処理
+      let hitActive = false;
+      Object.values(playersData).forEach(p => {
+        if (p.hitEffect) hitActive = true;
+      });
+      if (hitActive) {
+        const shakeX = (Math.random() - 0.5) * 12;
+        const shakeY = (Math.random() - 0.5) * 12;
+        ctx.translate(shakeX, shakeY);
+      }
+
+      // 背景（グラデーションの格闘ステージ）
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bgGradient.addColorStop(0, '#111325');
+      bgGradient.addColorStop(0.8, '#1e2038');
+      bgGradient.addColorStop(1, '#000');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
+
+      // ステージ背景グリッドライン（レトロ感強化）
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 500);
+        ctx.stroke();
+      }
+
+      // 地面
+      const groundGrad = ctx.createLinearGradient(0, 500, 0, 600);
+      groundGrad.addColorStop(0, '#2c3e50');
+      groundGrad.addColorStop(1, '#0f171e');
+      ctx.fillStyle = groundGrad;
+      ctx.fillRect(0, 500, canvas.width, 100);
+
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(0, 500);
+      ctx.lineTo(canvas.width, 500);
+      ctx.stroke();
+
+      // 各プレイヤー描画
+      Object.values(playersData).forEach(p => {
+        const char = characters[p.characterKey];
+        if (!char) return;
+
+        // 無敵時点滅
+        if (p.invincibleFrames % 4 > 2) return;
+
+        ctx.save();
+
+        // キャラクター影（足元の丸い陰影）
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.beginPath();
+        ctx.ellipse(p.x + char.width / 2, 500, char.width * 0.6, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 丸形・楕円ベースのイラスト描写
+        drawGraphicCharacter(ctx, p, char);
+
+        // 攻撃領域＆エフェクトを描画
+        if (p.attackBox) {
+          drawAttackEffect(ctx, p, char);
+        }
+
+        // ヒット時スパーキングエフェクト
+        if (p.hitEffect) {
+          drawHitSpark(ctx, p.hitEffect.x, p.hitEffect.y);
+        }
+
+        // プレイヤー1P/2Pマーカー
+        ctx.fillStyle = p.playerNum === 1 ? '#3498db' : '#e74c3c';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`P${p.playerNum}`, p.x + char.width / 2, p.y - 15);
+
+        ctx.restore();
+      });
+
+      // HUD UI (HPバー & 情報)
+      drawHUD();
+
+      ctx.restore();
+    }
+
+    // 円形・楕円形を用いたグラフィックキャラクターの描画関数
+    function drawGraphicCharacter(targetCtx, p, char) {
+      targetCtx.save();
+
+      const cx = p.x + char.width / 2;
+      const isRight = p.facing === 'right';
+      const dir = isRight ? 1 : -1;
+
+      // ダメージ硬直（赤く点滅）
+      if (p.stunFrames > 0) {
+        targetCtx.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5)';
+      }
+
+      // キャラクタータイプ別グラフィック定義
+      switch (char.type) {
+        case 'futsuo': // フツオ (バランス型・丸顔・標準体型)
+          // 胴体 (楕円)
+          targetCtx.fillStyle = '#2980b9';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.45, char.height * 0.3, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 頭部 (真円)
+          targetCtx.fillStyle = '#f1c40f';
+          targetCtx.beginPath();
+          targetCtx.arc(cx, p.y + char.height * 0.28, char.width * 0.4, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 目
+          targetCtx.fillStyle = '#2c3e50';
+          targetCtx.beginPath();
+          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.25, 5, 0, Math.PI * 2);
+          targetCtx.fill();
+          break;
+
+        case 'debugon': // デブゴン (巨漢・超広範囲の楕円胴体)
+          // 巨大な胴体 (大きな楕円)
+          targetCtx.fillStyle = '#d35400';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.48, char.height * 0.38, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 頭部 (やや埋まり気味の丸)
+          targetCtx.fillStyle = '#f39c12';
+          targetCtx.beginPath();
+          targetCtx.arc(cx, p.y + char.height * 0.22, char.width * 0.28, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 目
+          targetCtx.fillStyle = '#000';
+          targetCtx.beginPath();
+          targetCtx.arc(cx + dir * 12, p.y + char.height * 0.2, 6, 0, Math.PI * 2);
+          targetCtx.fill();
+          break;
+
+        case 'garinoshin': // ガリノシン (細長スリムな長楕円)
+          // 胴体 (縦長の超細身楕円)
+          targetCtx.fillStyle = '#8e44ad';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.35, char.height * 0.36, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 頭部 (縦長楕円)
+          targetCtx.fillStyle = '#ecf0f1';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.2, char.width * 0.38, char.height * 0.15, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // シャープな目
+          targetCtx.fillStyle = '#2c3e50';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx + dir * 6, p.y + char.height * 0.18, 5, 2, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+          break;
+
+        case 'chibikoro': // チビコロ (低身長・横に広がる楕円球体)
+          // 球体に等しい低身長ボディ
+          targetCtx.fillStyle = '#c0392b';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.55, char.width * 0.46, char.height * 0.42, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 大きな可愛い目
+          targetCtx.fillStyle = '#fff';
+          targetCtx.beginPath();
+          targetCtx.arc(cx + dir * 12, p.y + char.height * 0.4, 10, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          targetCtx.fillStyle = '#000';
+          targetCtx.beginPath();
+          targetCtx.arc(cx + dir * 14, p.y + char.height * 0.4, 5, 0, Math.PI * 2);
+          targetCtx.fill();
+          break;
+
+        case 'hime': // ヒメ (女性型・スマートな曲線デザイン)
+          // ドレス調の胴体
+          targetCtx.fillStyle = '#fd79a8';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.4, char.height * 0.3, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 頭部
+          targetCtx.fillStyle = '#ffeaa7';
+          targetCtx.beginPath();
+          targetCtx.arc(cx, p.y + char.height * 0.26, char.width * 0.35, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // リボン (頭上の飾り楕円)
+          targetCtx.fillStyle = '#e84393';
+          targetCtx.beginPath();
+          targetCtx.ellipse(cx, p.y + char.height * 0.08, 12, 6, 0, 0, Math.PI * 2);
+          targetCtx.fill();
+
+          // 目
+          targetCtx.fillStyle = '#6c5ce7';
+          targetCtx.beginPath();
+          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.25, 4, 0, Math.PI * 2);
+          targetCtx.fill();
+          break;
+      }
+
+      targetCtx.restore();
+    }
+
+    // 攻撃動作・アークエフェクト描画
+    function drawAttackEffect(targetCtx, p, char) {
+      targetCtx.save();
+      const ab = p.attackBox;
+      const isRight = p.facing === 'right';
+
+      if (ab.type === 'punch') {
+        // パンチ: 高速なスラッシュ波＆拳エフェクト
+        const grad = targetCtx.createLinearGradient(ab.x, ab.y, ab.x + ab.width, ab.y);
+        grad.addColorStop(0, 'rgba(241, 196, 15, 0)');
+        grad.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
+
+        targetCtx.fillStyle = grad;
+        targetCtx.beginPath();
+        targetCtx.ellipse(
+          ab.x + ab.width / 2,
+          ab.y + ab.height / 2,
+          ab.width / 2,
+          ab.height / 2,
+          0, 0, Math.PI * 2
+        );
+        targetCtx.fill();
+
+        // 先端の光輪
+        targetCtx.fillStyle = '#fff';
+        targetCtx.beginPath();
+        targetCtx.arc(isRight ? ab.x + ab.width : ab.x, ab.y + ab.height / 2, 14, 0, Math.PI * 2);
+        targetCtx.fill();
+
+      } else if (ab.type === 'kick') {
+        // キック: 強力な扇状の残像エフェクト
+        targetCtx.strokeStyle = 'rgba(231, 76, 60, 0.9)';
+        targetCtx.lineWidth = 12;
+        targetCtx.lineCap = 'round';
+
+        targetCtx.beginPath();
+        const startAngle = isRight ? -Math.PI * 0.3 : Math.PI * 0.8;
+        const endAngle = isRight ? Math.PI * 0.3 : Math.PI * 1.3;
+
+        targetCtx.arc(
+          p.x + char.width / 2,
+          p.y + char.height * 0.5,
+          ab.width,
+          startAngle,
+          endAngle,
+          !isRight
+        );
+        targetCtx.stroke();
+      }
+
+      targetCtx.restore();
+    }
+
+    // ヒット時の火花・スパークエフェクト
+    function drawHitSpark(targetCtx, x, y) {
+      targetCtx.save();
+      targetCtx.fillStyle = '#f1c40f';
+      targetCtx.strokeStyle = '#e74c3c';
+      targetCtx.lineWidth = 3;
+
+      for (let i = 0; i < 8; i++) {
+        const angle = (Math.PI * 2 / 8) * i;
+        const len = 25 + Math.random() * 15;
+        targetCtx.beginPath();
+        targetCtx.moveTo(x, y);
+        targetCtx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
+        targetCtx.stroke();
+      }
+
+      targetCtx.beginPath();
+      targetCtx.arc(x, y, 15, 0, Math.PI * 2);
+      targetCtx.fill();
+      targetCtx.restore();
+    }
+
+    // HUD (HPバー等) の描画
+    function drawHUD() {
+      const p1 = Object.values(playersData).find(p => p.playerNum === 1);
+      const p2 = Object.values(playersData).find(p => p.playerNum === 2);
+
+      // 1P HPバー
+      if (p1 && characters[p1.characterKey]) {
+        const char1 = characters[p1.characterKey];
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(30, 30, 450, 30);
+        const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 450);
+        
+        const grad1 = ctx.createLinearGradient(30, 0, 480, 0);
+        grad1.addColorStop(0, '#2ecc71');
+        grad1.addColorStop(1, '#27ae60');
+        ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : grad1;
+        ctx.fillRect(30, 30, hp1Width, 30);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(30, 30, 450, 30);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`1P: ${char1.name}`, 30, 22);
+      }
+
+      // 2P HPバー
+      if (p2 && characters[p2.characterKey]) {
+        const char2 = characters[p2.characterKey];
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(1200 - 30 - 450, 30, 450, 30);
+        const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 450);
+
+        const grad2 = ctx.createLinearGradient(1200 - 480, 0, 1200 - 30, 0);
+        grad2.addColorStop(0, '#2ecc71');
+        grad2.addColorStop(1, '#27ae60');
+        ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : grad2;
+        ctx.fillRect(1200 - 30 - hp2Width, 30, hp2Width, 30);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1200 - 30 - 450, 30, 450, 30);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`2P: ${char2.name}`, 1200 - 30, 22);
+      }
+
+      // VS マーク
       ctx.fillStyle = '#f1c40f';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.fillText('Press [ENTER] to Fight!', canvas.width / 2, 420);
+      ctx.font = 'italic bold 28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('VS', 600, 52);
     }
-
-    function drawUI() {
-      // 1P HPゲージ
-      ctx.fillStyle = '#333';
-      ctx.fillRect(20, 20, 300, 25);
-      const p1HpRatio = Math.max(0, p1.hp / p1.maxHp);
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillRect(20, 20, 300 * p1HpRatio, 25);
-      ctx.strokeStyle = '#fff';
-      ctx.strokeRect(20, 20, 300, 25);
-
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`1P: ${p1.config.name}`, 20, 15);
-
-      // 2P HPゲージ
-      ctx.fillStyle = '#333';
-      ctx.fillRect(480, 20, 300, 25);
-      const p2HpRatio = Math.max(0, p2.hp / p2.maxHp);
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillRect(480 + (300 * (1 - p2HpRatio)), 20, 300 * p2HpRatio, 25);
-      ctx.strokeStyle = '#fff';
-      ctx.strokeRect(480, 20, 300, 25);
-
-      ctx.textAlign = 'right';
-      ctx.fillText(`${isCpuMode ? 'CPU' : '2P'}: ${p2.config.name}`, 780, 15);
-    }
-
-    // ループ開始
-    gameLoop();
   </script>
 </body>
 </html>
