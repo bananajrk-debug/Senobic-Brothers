@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,21 +15,24 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// カレントディレクトリの静的ファイルを公開
 app.use(express.static(__dirname));
 
-// トップページアクセス時に index.html を返す
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+app.get('/', (req, res) => {
+  const filePath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('index.html が見つかりません。');
+  }
 });
 
-// ゲームマスターデータ（全5キャラクターのステータス）
+// ステージとキャラクターのパラメーター定義（解像度 1200x600 に合わせて調整）
 const CHARACTERS = {
-  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 6, jumpPower: 15, width: 40, height: 80, color: '#3498db' },
-  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 3.5, jumpPower: 12, width: 65, height: 90, color: '#e67e22' },
-  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 9, jumpPower: 20, width: 25, height: 95, color: '#9b59b6' },
-  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 4.5, jumpPower: 13, width: 55, height: 50, color: '#e74c3c' },
-  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 7.5, jumpPower: 16, width: 35, height: 75, color: '#e84393' }
+  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 8, jumpPower: 18, width: 60, height: 100, type: 'futsuo', color: '#3498db' },
+  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4.5, jumpPower: 14, width: 90, height: 110, type: 'debugon', color: '#e67e22' },
+  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 12, jumpPower: 23, width: 40, height: 120, type: 'garinoshin', color: '#9b59b6' },
+  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 6, jumpPower: 15, width: 75, height: 65, type: 'chibikoro', color: '#e74c3c' },
+  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 10, jumpPower: 19, width: 50, height: 95, type: 'hime', color: '#e84393' }
 };
 
 let rooms = {};
@@ -37,15 +41,11 @@ function createRoom(roomId) {
   return {
     id: roomId,
     players: {},
-    gameState: 'WAITING',
-    timer: 99,
-    interval: null
+    gameState: 'WAITING'
   };
 }
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   let assignedRoomId = null;
   for (let id in rooms) {
     if (Object.keys(rooms[id].players).length < 2 && rooms[id].gameState === 'WAITING') {
@@ -67,8 +67,8 @@ io.on('connection', (socket) => {
     playerNum: playerNum,
     characterKey: 'futsuo',
     selected: false,
-    x: playerNum === 1 ? 150 : 610,
-    y: 300,
+    x: playerNum === 1 ? 250 : 950,
+    y: 400,
     vx: 0,
     vy: 0,
     facing: playerNum === 1 ? 'right' : 'left',
@@ -78,9 +78,9 @@ io.on('connection', (socket) => {
     attacking: false,
     attackType: null,
     attackBox: null,
-    hitCount: 0,
     stunFrames: 0,
-    invincibleFrames: 0
+    invincibleFrames: 0,
+    hitEffect: null
   };
 
   socket.join(assignedRoomId);
@@ -109,13 +109,14 @@ io.on('connection', (socket) => {
           const char = CHARACTERS[p.characterKey];
           p.hp = char.hp;
           p.maxHp = char.hp;
-          p.x = p.playerNum === 1 ? 150 : 800 - 150 - char.width;
-          p.y = 400 - char.height;
+          p.x = p.playerNum === 1 ? 250 : 1200 - 250 - char.width;
+          p.y = 500 - char.height;
           p.vx = 0;
           p.vy = 0;
           p.facing = p.playerNum === 1 ? 'right' : 'left';
           p.stunFrames = 0;
           p.invincibleFrames = 0;
+          p.hitEffect = null;
         });
 
         io.to(assignedRoomId).emit('gameStart', { players: room.players });
@@ -150,21 +151,22 @@ io.on('connection', (socket) => {
       p.attackType = input.attackType;
       
       const isPunch = input.attackType === 'punch';
-      const reach = isPunch ? 45 : 70;
-      const attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
-      const attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.5;
+      const reach = isPunch ? 70 : 100;
+      const attackHeight = isPunch ? char.height * 0.5 : char.height * 0.4;
+      const attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
 
       p.attackBox = {
         x: p.facing === 'right' ? p.x + char.width : p.x - reach,
         y: p.y + attackYOffset,
         width: reach,
         height: attackHeight,
-        damage: isPunch ? char.atk : Math.round(char.atk * 1.3)
+        damage: isPunch ? char.atk : Math.round(char.atk * 1.3),
+        type: input.attackType
       };
 
       setTimeout(() => {
         p.attackBox = null;
-      }, 120);
+      }, 150);
 
       setTimeout(() => {
         p.attacking = false;
@@ -197,9 +199,9 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => {
-  const STAGE_WIDTH = 800;
-  const GROUND_Y = 400;
-  const GRAVITY = 0.8;
+  const STAGE_WIDTH = 1200;
+  const GROUND_Y = 500;
+  const GRAVITY = 0.9;
 
   for (let roomId in rooms) {
     const room = rooms[roomId];
@@ -214,6 +216,11 @@ setInterval(() => {
 
     playersArr.forEach(p => {
       const char = CHARACTERS[p.characterKey];
+
+      if (p.hitEffect) {
+        p.hitEffect.timer--;
+        if (p.hitEffect.timer <= 0) p.hitEffect = null;
+      }
 
       if (p.stunFrames > 0) {
         p.stunFrames--;
@@ -262,10 +269,17 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
-          defender.stunFrames = 12;
-          defender.invincibleFrames = 25;
-          defender.vy = -4;
-          defender.vx = attacker.facing === 'right' ? 8 : -8;
+          defender.stunFrames = 15;
+          defender.invincibleFrames = 28;
+          defender.vy = -6;
+          defender.vx = attacker.facing === 'right' ? 12 : -12;
+
+          defender.hitEffect = {
+            x: ab.x + ab.width / 2,
+            y: ab.y + ab.height / 2,
+            timer: 12
+          };
+
           attacker.attackBox = null;
 
           if (defender.hp <= 0) {
