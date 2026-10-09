@@ -12,9 +12,9 @@
       user-select: none;
     }
     body {
-      background-color: #0b0c10;
+      background-color: #1e1e24;
       color: #fff;
-      font-family: 'Segoe UI', Impact, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -25,17 +25,17 @@
     #game-container {
       position: relative;
       width: 1000px;
-      height: 550px;
-      border: 4px solid #1f2833;
-      border-radius: 16px;
-      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(69, 162, 158, 0.3);
-      background-color: #000;
+      height: 500px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      background-color: #121216;
       overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     canvas {
       display: block;
       width: 1000px;
-      height: 550px;
+      height: 500px;
     }
     .overlay {
       position: absolute;
@@ -43,160 +43,141 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(11, 12, 16, 0.92);
+      background: #121216;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 10;
-      backdrop-filter: blur(8px);
     }
     .hidden {
       display: none !important;
     }
     .btn {
-      background: linear-gradient(135deg, #45a29e, #66fcf1);
-      color: #0b0c10;
+      background: #3498db;
+      color: #fff;
       border: none;
-      padding: 16px 40px;
-      font-size: 22px;
-      font-weight: 900;
+      padding: 12px 30px;
+      font-size: 18px;
+      font-weight: bold;
       cursor: pointer;
-      border-radius: 40px;
-      margin-top: 20px;
-      letter-spacing: 2px;
-      box-shadow: 0 4px 20px rgba(102, 252, 241, 0.4);
-      transition: all 0.2s;
-      text-transform: uppercase;
+      border-radius: 6px;
+      margin-top: 15px;
+      transition: background 0.2s;
     }
     .btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 30px rgba(102, 252, 241, 0.8);
+      background: #2980b9;
     }
     .btn-ready {
-      background: linear-gradient(135deg, #2ecc71, #27ae60);
-      color: #fff;
+      background: #2ecc71;
+    }
+    .btn-ready:hover {
+      background: #27ae60;
     }
     .btn-cancel {
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
-      color: #fff;
+      background: #e74c3c;
+    }
+    .btn-cancel:hover {
+      background: #c0392b;
     }
 
-    /* タイトル画面 */
-    #title-title {
-      font-size: 56px;
-      font-weight: 900;
-      color: #66fcf1;
-      text-shadow: 0 0 20px rgba(102, 252, 241, 0.6), 4px 4px #1f2833;
-      letter-spacing: 4px;
-      margin-bottom: 30px;
-      font-style: italic;
-    }
-
-    /* フォートナイト風ロビー */
-    #lobby-container {
-      position: relative;
+    /* ロビー画面 UI */
+    #lobby-ui {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 30px;
+      padding: 24px;
+      pointer-events: none;
     }
-    .lobby-header {
+    .interactive {
+      pointer-events: auto;
+    }
+    .lobby-top {
       display: flex;
       justify-content: space-between;
-      width: 100%;
-      z-index: 2;
+      align-items: center;
     }
     .lobby-title {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: bold;
-      color: #66fcf1;
-      text-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+      color: #fff;
     }
-    .lobby-footer {
+    .badge {
+      background: #2a2a35;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #aaa;
+    }
+    .lobby-bottom {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      width: 100%;
-      z-index: 2;
-    }
-    .character-change-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid #66fcf1;
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s;
-    }
-    .character-change-btn:hover {
-      background: rgba(102, 252, 241, 0.3);
     }
 
-    /* キャラクタースレクトモーダル */
+    /* キャラ選択モーダル (修正版) */
     #select-modal {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      height: 80%;
-      background: rgba(15, 15, 25, 0.95);
-      border: 3px solid #66fcf1;
-      border-radius: 16px;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 18, 22, 0.95);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
       z-index: 20;
     }
     .char-list {
       display: flex;
-      gap: 15px;
-      margin-top: 15px;
+      gap: 12px;
+      margin: 20px 0;
     }
     .char-card {
       width: 140px;
-      height: 220px;
+      height: 200px;
       border: 2px solid #333;
-      border-radius: 12px;
+      border-radius: 8px;
       padding: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      background: #1f2833;
+      background: #1e1e24;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: border-color 0.2s, transform 0.2s;
     }
     .char-card:hover, .char-card.active {
-      border-color: #66fcf1;
-      transform: translateY(-8px);
-      box-shadow: 0 0 20px rgba(102, 252, 241, 0.6);
+      border-color: #3498db;
+      transform: translateY(-4px);
     }
     .char-preview-box {
-      width: 100px;
+      width: 100%;
       height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
+      background: #121216;
+      border-radius: 4px;
+      overflow: hidden;
     }
     .char-stats {
       font-size: 11px;
       width: 100%;
-      color: #c5c6c7;
-      line-height: 1.5;
+      color: #888;
+      line-height: 1.4;
     }
 
     #controls-guide {
       margin-top: 12px;
       font-size: 13px;
-      color: #66fcf1;
+      color: #666;
       text-align: center;
     }
   </style>
@@ -204,52 +185,50 @@
 <body>
 
   <div id="game-container">
-    <canvas id="gameCanvas" width="1200" height="660"></canvas>
+    <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
-      <div id="title-title">SENOBIC BROTHERS</div>
-      <p style="color: #c5c6c7; font-size: 18px; margin-bottom: 20px;">2D MULTIPLAYER FIGHTING GAME</p>
-      <button class="btn" onclick="goToLobby()">PRESS ENTER TO START</button>
+      <h1 style="font-size: 40px; margin-bottom: 10px;">セノビックブラザーズ</h1>
+      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">2D ONLINE FIGHTING GAME</p>
+      <button class="btn" onclick="goToLobby()">ENTER LOBBY</button>
     </div>
 
-    <!-- 2. フォートナイト風 ロビー画面 -->
-    <div id="screen-lobby" class="overlay hidden">
-      <div id="lobby-container">
-        <div class="lobby-header">
+    <!-- 2. シンプルロビー画面 -->
+    <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
+      <div id="lobby-ui">
+        <div class="lobby-top">
           <div class="lobby-title">LOBBY</div>
-          <div id="player-count-badge" style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px;">
-            MATCHMAKING: 1/2
-          </div>
+          <div id="player-count-badge" class="badge">対戦相手を探しています... (1/2)</div>
         </div>
 
-        <div class="lobby-footer">
-          <div>
-            <div id="current-char-name" style="font-size: 24px; font-weight: bold; color: #fff;">フツオ (普通)</div>
-            <button class="character-change-btn" onclick="openCharSelect()" style="margin-top: 8px;">CHANGE CHARACTER</button>
+        <div class="lobby-bottom">
+          <div class="interactive">
+            <div id="current-char-name" style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">フツオ (普通)</div>
+            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; padding: 8px 16px; background: #333;">キャラを変更</button>
           </div>
 
-          <button id="ready-btn" class="btn" onclick="toggleReady()">PLAY / READY</button>
+          <button id="ready-btn" class="btn btn-ready interactive" onclick="toggleReady()">対戦準備完了</button>
         </div>
       </div>
     </div>
 
-    <!-- キャラクター選択モーダル -->
+    <!-- 3. キャラクター選択画面 -->
     <div id="select-modal" class="hidden">
-      <h2 style="color: #66fcf1;">SELECT YOUR HERO</h2>
+      <h2 style="font-size: 20px;">キャラクターを選択</h2>
       <div class="char-list" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 24px; font-size: 16px; margin-top: 15px;">CONFIRM</button>
+      <button class="btn" onclick="closeCharSelect()">決定</button>
     </div>
 
-    <!-- 勝敗画面 -->
+    <!-- 4. 勝敗決着画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 48px; color: #66fcf1;">PLAYER 1 WIN!</h2>
-      <button class="btn" onclick="requestRematch()">BACK TO LOBBY (ENTER)</button>
+      <h2 id="winner-text" style="font-size: 36px; color: #f1c40f;">PLAYER 1 WIN!</h2>
+      <button class="btn" onclick="requestRematch()">ロビーに戻る (Enter)</button>
     </div>
   </div>
 
   <div id="controls-guide">
-    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ [F] パンチ ｜ [G] キック
+    操作方法: [A] 左移動 | [D] 右移動 | [W] ジャンプ | [F] パンチ | [G] キック
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -277,13 +256,7 @@
     let playersData = {};
     let isReady = false;
 
-    const keys = {
-      left: false,
-      right: false,
-      jump: false,
-      attack: false,
-      attackType: null
-    };
+    const keys = { left: false, right: false, jump: false, attack: false, attackType: null };
 
     socket.on('init', (data) => {
       roomId = data.roomId;
@@ -321,7 +294,7 @@
 
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
-      winnerText.textContent = `PLAYER ${data.winnerNum} VICTORY!`;
+      winnerText.textContent = `PLAYER ${data.winnerNum} WIN!`;
       updateUI();
     });
 
@@ -337,10 +310,8 @@
 
       if (currentGameState === 'TITLE' && e.key === 'Enter') {
         goToLobby();
-      } else if (currentGameState === 'LOBBY') {
-        if (e.key === 'Enter') {
-          toggleReady();
-        }
+      } else if (currentGameState === 'LOBBY' && e.key === 'Enter') {
+        toggleReady();
       } else if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
@@ -415,7 +386,7 @@
 
     function updateLobbyUI() {
       const pCount = Object.keys(playersData).length;
-      playerCountBadge.textContent = `MATCHMAKING: ${pCount}/2 PLAYERS`;
+      playerCountBadge.textContent = `接続中プレイヤー: ${pCount} / 2`;
 
       const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
       if (myData) {
@@ -423,16 +394,16 @@
         if (char) currentCharName.textContent = char.name;
 
         if (myData.ready) {
-          readyBtn.textContent = 'CANCEL READY';
-          readyBtn.className = 'btn btn-cancel';
+          readyBtn.textContent = '準備完了を解除';
+          readyBtn.className = 'btn btn-cancel interactive';
         } else {
-          readyBtn.textContent = 'PLAY / READY';
-          readyBtn.className = 'btn btn-ready';
+          readyBtn.textContent = '対戦準備完了';
+          readyBtn.className = 'btn btn-ready interactive';
         }
       }
     }
 
-    // キャラクタースレクトカード描画
+    // カード描画処理 (完全に画面比率を固定してバグ回避)
     function renderCharCards() {
       charListContainer.innerHTML = '';
       characterKeys.forEach((key, index) => {
@@ -456,7 +427,7 @@
         `;
         charListContainer.appendChild(card);
 
-        // 各枠内にサイズ調整したSVG/Canvasを描画
+        // ミニキャンバス生成
         setTimeout(() => drawCardMiniPreview(key), 0);
       });
     }
@@ -465,16 +436,17 @@
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
 
+      box.innerHTML = '';
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 100;
+      pCanvas.width = 120;
       pCanvas.height = 100;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
-      // スケールを最適化して枠内に納める
+      // スケール計算: ミニキャンバスにしっかり収まるように調整
       pCtx.save();
-      pCtx.translate(50, 80);
-      const scale = 0.5;
+      pCtx.translate(60, 85);
+      const scale = 0.55;
       pCtx.scale(scale, scale);
 
       const dummyPlayer = {
@@ -491,7 +463,7 @@
       box.appendChild(pCanvas);
     }
 
-    // ロビー画面の3D背景＆ポーズキャラクターの動的アニメーション描画
+    // ロビーアニメーション処理
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
@@ -499,35 +471,26 @@
       function loop() {
         if (currentGameState !== 'LOBBY') return;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // フォートナイト風3Dロビー背景
-        const grad = ctx.createRadialGradient(600, 300, 50, 600, 300, 600);
-        grad.addColorStop(0, '#1f2833');
-        grad.addColorStop(1, '#0b0c10');
-        ctx.fillStyle = grad;
+        ctx.fillStyle = '#18181c';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 立ち台（ペデスタル）
-        ctx.save();
-        ctx.fillStyle = '#45a29e';
+        // シンプルな円形ステージ足場
+        ctx.fillStyle = '#22222a';
         ctx.beginPath();
-        ctx.ellipse(600, 520, 220, 45, 0, 0, Math.PI * 2);
+        ctx.ellipse(500, 420, 160, 30, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#66fcf1';
-        ctx.beginPath();
-        ctx.ellipse(600, 520, 180, 35, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        ctx.strokeStyle = '#333340';
+        ctx.lineWidth = 3;
+        ctx.stroke();
 
-        // 自分の選択中のキャラクターを中央に大きく表示
+        // 自分のキャラクターを立ち表示
         const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
         if (myData && characters[myData.characterKey]) {
           const char = characters[myData.characterKey];
           ctx.save();
-          ctx.translate(600, 500);
-          ctx.scale(1.8, 1.8);
+          ctx.translate(500, 410);
+          ctx.scale(1.5, 1.5);
 
           const lobbyPlayer = {
             x: -char.width / 2,
@@ -547,29 +510,22 @@
       loop();
     }
 
-    // 対戦画面描画
+    // 戦闘画面の描画処理
     function renderGame() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 背景
-      const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGradient.addColorStop(0, '#0b0c10');
-      bgGradient.addColorStop(0.8, '#1f2833');
-      bgGradient.addColorStop(1, '#000');
-      ctx.fillStyle = bgGradient;
+      ctx.fillStyle = '#121216';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 地面
-      ctx.fillStyle = '#1f2833';
-      ctx.fillRect(0, 500, canvas.width, 160);
-      ctx.strokeStyle = '#66fcf1';
-      ctx.lineWidth = 4;
+      ctx.fillStyle = '#1e1e24';
+      ctx.fillRect(0, 450, canvas.width, 50);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, 500);
-      ctx.lineTo(canvas.width, 500);
+      ctx.moveTo(0, 450);
+      ctx.lineTo(canvas.width, 450);
       ctx.stroke();
 
-      // プレイヤー描画
+      // キャラクター
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
@@ -578,30 +534,25 @@
 
         ctx.save();
 
-        // 足元影
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        // 影
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.beginPath();
-        ctx.ellipse(p.x + char.width / 2, 500, char.width * 0.6, 10, 0, 0, Math.PI * 2);
+        ctx.ellipse(p.x + char.width / 2, 450, char.width * 0.5, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // キャラクター描画
+        // 本体
         drawGraphicCharacter(ctx, p, char);
 
-        // 攻撃描画
+        // 攻撃判定
         if (p.attackBox) {
           drawAttackEffect(ctx, p, char);
         }
 
-        // ヒットエフェクト
-        if (p.hitEffect) {
-          drawHitSpark(ctx, p.hitEffect.x, p.hitEffect.y);
-        }
-
-        // プレイヤー表示
+        // 1P/2P表示
         ctx.fillStyle = p.playerNum === 1 ? '#3498db' : '#e74c3c';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`P${p.playerNum}`, p.x + char.width / 2, p.y - 15);
+        ctx.fillText(`P${p.playerNum}`, p.x + char.width / 2, p.y - 10);
 
         ctx.restore();
       });
@@ -609,7 +560,7 @@
       drawHUD();
     }
 
-    // 円・楕円精密描画ロジック
+    // キャラクター描画（円・楕円）
     function drawGraphicCharacter(targetCtx, p, char) {
       targetCtx.save();
 
@@ -618,12 +569,12 @@
       const dir = isRight ? 1 : -1;
 
       if (p.stunFrames > 0) {
-        targetCtx.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg)';
+        targetCtx.filter = 'brightness(1.5) sepia(1)';
       }
 
       switch (char.type) {
-        case 'futsuo':
-          targetCtx.fillStyle = '#2980b9';
+        case 'futsuo': // 普通
+          targetCtx.fillStyle = '#3498db';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.45, char.height * 0.3, 0, 0, Math.PI * 2);
           targetCtx.fill();
@@ -635,12 +586,12 @@
 
           targetCtx.fillStyle = '#2c3e50';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.25, 4, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 6, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'debugon':
-          targetCtx.fillStyle = '#d35400';
+        case 'debugon': // デブ
+          targetCtx.fillStyle = '#e67e22';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.48, char.height * 0.38, 0, 0, Math.PI * 2);
           targetCtx.fill();
@@ -652,12 +603,12 @@
 
           targetCtx.fillStyle = '#000';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.2, 5, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.2, 4, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'garinoshin':
-          targetCtx.fillStyle = '#8e44ad';
+        case 'garinoshin': // ガリ
+          targetCtx.fillStyle = '#9b59b6';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.35, char.height * 0.36, 0, 0, Math.PI * 2);
           targetCtx.fill();
@@ -669,29 +620,29 @@
 
           targetCtx.fillStyle = '#2c3e50';
           targetCtx.beginPath();
-          targetCtx.ellipse(cx + dir * 6, p.y + char.height * 0.18, 4, 2, 0, 0, Math.PI * 2);
+          targetCtx.ellipse(cx + dir * 5, p.y + char.height * 0.18, 3, 2, 0, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'chibikoro':
-          targetCtx.fillStyle = '#c0392b';
+        case 'chibikoro': // チビデブ
+          targetCtx.fillStyle = '#e74c3c';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.55, char.width * 0.46, char.height * 0.42, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
           targetCtx.fillStyle = '#fff';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.4, 8, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.4, 6, 0, Math.PI * 2);
           targetCtx.fill();
 
           targetCtx.fillStyle = '#000';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 11, p.y + char.height * 0.4, 4, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 9, p.y + char.height * 0.4, 3, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'hime':
-          targetCtx.fillStyle = '#fd79a8';
+        case 'hime': // 女
+          targetCtx.fillStyle = '#e84393';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.4, char.height * 0.3, 0, 0, Math.PI * 2);
           targetCtx.fill();
@@ -701,14 +652,14 @@
           targetCtx.arc(cx, p.y + char.height * 0.26, char.width * 0.35, 0, Math.PI * 2);
           targetCtx.fill();
 
-          targetCtx.fillStyle = '#e84393';
+          targetCtx.fillStyle = '#fd79a8';
           targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.08, 10, 5, 0, 0, Math.PI * 2);
+          targetCtx.ellipse(cx, p.y + char.height * 0.08, 8, 4, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
           targetCtx.fillStyle = '#6c5ce7';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 6, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 5, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
           targetCtx.fill();
           break;
       }
@@ -716,76 +667,48 @@
       targetCtx.restore();
     }
 
+    // 攻撃エフェクト (シンプル化)
     function drawAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
-      const isRight = p.facing === 'right';
 
-      if (ab.type === 'punch') {
-        const grad = targetCtx.createLinearGradient(ab.x, ab.y, ab.x + ab.width, ab.y);
-        grad.addColorStop(0, 'rgba(241, 196, 15, 0)');
-        grad.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
-
-        targetCtx.fillStyle = grad;
-        targetCtx.beginPath();
-        targetCtx.ellipse(ab.x + ab.width / 2, ab.y + ab.height / 2, ab.width / 2, ab.height / 2, 0, 0, Math.PI * 2);
-        targetCtx.fill();
-      } else if (ab.type === 'kick') {
-        targetCtx.strokeStyle = 'rgba(231, 76, 60, 0.9)';
-        targetCtx.lineWidth = 10;
-        targetCtx.beginPath();
-        const startAngle = isRight ? -Math.PI * 0.3 : Math.PI * 0.8;
-        const endAngle = isRight ? Math.PI * 0.3 : Math.PI * 1.3;
-        targetCtx.arc(p.x + char.width / 2, p.y + char.height * 0.5, ab.width, startAngle, endAngle, !isRight);
-        targetCtx.stroke();
-      }
+      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.6)' : 'rgba(231, 76, 60, 0.6)';
+      targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
 
       targetCtx.restore();
     }
 
-    function drawHitSpark(targetCtx, x, y) {
-      targetCtx.save();
-      targetCtx.fillStyle = '#f1c40f';
-      targetCtx.beginPath();
-      targetCtx.arc(x, y, 15, 0, Math.PI * 2);
-      targetCtx.fill();
-      targetCtx.restore();
-    }
-
+    // HUD 描画
     function drawHUD() {
       const p1 = Object.values(playersData).find(p => p.playerNum === 1);
       const p2 = Object.values(playersData).find(p => p.playerNum === 2);
 
       if (p1 && characters[p1.characterKey]) {
         const char1 = characters[p1.characterKey];
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(30, 30, 450, 24);
-        const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 450);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(20, 20, 350, 20);
+        const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 350);
         ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(30, 30, hp1Width, 24);
-        ctx.strokeStyle = '#fff';
-        ctx.strokeRect(30, 30, 450, 24);
+        ctx.fillRect(20, 20, hp1Width, 20);
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`1P: ${char1.name}`, 30, 22);
+        ctx.fillText(`1P: ${char1.name}`, 20, 15);
       }
 
       if (p2 && characters[p2.characterKey]) {
         const char2 = characters[p2.characterKey];
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(1200 - 30 - 450, 30, 450, 24);
-        const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 450);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(1000 - 20 - 350, 20, 350, 20);
+        const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 350);
         ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(1200 - 30 - hp2Width, 30, hp2Width, 24);
-        ctx.strokeStyle = '#fff';
-        ctx.strokeRect(1200 - 30 - 450, 30, 450, 24);
+        ctx.fillRect(1000 - 20 - hp2Width, 20, hp2Width, 20);
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`2P: ${char2.name}`, 1200 - 30, 22);
+        ctx.fillText(`2P: ${char2.name}`, 1000 - 20, 15);
       }
     }
   </script>
