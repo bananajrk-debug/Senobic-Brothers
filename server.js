@@ -7,10 +7,7 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
 const PORT = process.env.PORT || 3000;
@@ -26,13 +23,13 @@ app.get('/', (req, res) => {
   }
 });
 
-// ゲームマスターデータ
+// キャラクターデータ (比率と性能の標準化)
 const CHARACTERS = {
-  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 8, jumpPower: 18, width: 60, height: 100, type: 'futsuo', color: '#3498db' },
-  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4.5, jumpPower: 14, width: 90, height: 110, type: 'debugon', color: '#e67e22' },
-  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 12, jumpPower: 23, width: 40, height: 120, type: 'garinoshin', color: '#9b59b6' },
-  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 6, jumpPower: 15, width: 75, height: 65, type: 'chibikoro', color: '#e74c3c' },
-  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 10, jumpPower: 19, width: 50, height: 95, type: 'hime', color: '#e84393' }
+  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo' },
+  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon' },
+  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 11, jumpPower: 22, width: 35, height: 105, type: 'garinoshin' },
+  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro' },
+  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime' }
 };
 
 let rooms = {};
@@ -48,7 +45,7 @@ function createRoom(roomId) {
 io.on('connection', (socket) => {
   let assignedRoomId = null;
   for (let id in rooms) {
-    if (Object.keys(rooms[id].players).length < 2 && (rooms[id].gameState === 'LOBBY' || rooms[id].gameState === 'WAITING')) {
+    if (Object.keys(rooms[id].players).length < 2 && rooms[id].gameState === 'LOBBY') {
       assignedRoomId = id;
       break;
     }
@@ -66,9 +63,8 @@ io.on('connection', (socket) => {
     id: socket.id,
     playerNum: playerNum,
     characterKey: 'futsuo',
-    selected: false,
     ready: false,
-    x: playerNum === 1 ? 250 : 950,
+    x: playerNum === 1 ? 200 : 900,
     y: 400,
     vx: 0,
     vy: 0,
@@ -80,20 +76,17 @@ io.on('connection', (socket) => {
     attackType: null,
     attackBox: null,
     stunFrames: 0,
-    invincibleFrames: 0,
-    hitEffect: null
+    invincibleFrames: 0
   };
 
   socket.join(assignedRoomId);
   socket.emit('init', { roomId: assignedRoomId, playerNum: playerNum, characters: CHARACTERS });
-
   io.to(assignedRoomId).emit('gameState', { state: room.gameState, players: room.players });
 
   socket.on('selectCharacter', (data) => {
     const p = room.players[socket.id];
     if (p) {
       p.characterKey = data.characterKey;
-      p.selected = true;
       io.to(assignedRoomId).emit('characterUpdated', { players: room.players });
     }
   });
@@ -113,14 +106,13 @@ io.on('connection', (socket) => {
           const char = CHARACTERS[p.characterKey];
           p.hp = char.hp;
           p.maxHp = char.hp;
-          p.x = p.playerNum === 1 ? 250 : 1200 - 250 - char.width;
-          p.y = 500 - char.height;
+          p.x = p.playerNum === 1 ? 200 : 1000 - 200 - char.width;
+          p.y = 450 - char.height;
           p.vx = 0;
           p.vy = 0;
           p.facing = p.playerNum === 1 ? 'right' : 'left';
           p.stunFrames = 0;
           p.invincibleFrames = 0;
-          p.hitEffect = null;
         });
 
         io.to(assignedRoomId).emit('gameStart', { players: room.players });
@@ -155,8 +147,8 @@ io.on('connection', (socket) => {
       p.attackType = input.attackType;
       
       const isPunch = input.attackType === 'punch';
-      const reach = isPunch ? 70 : 100;
-      const attackHeight = isPunch ? char.height * 0.5 : char.height * 0.4;
+      const reach = isPunch ? 50 : 80;
+      const attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
       const attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
 
       p.attackBox = {
@@ -168,29 +160,21 @@ io.on('connection', (socket) => {
         type: input.attackType
       };
 
-      setTimeout(() => {
-        p.attackBox = null;
-      }, 150);
-
-      setTimeout(() => {
-        p.attacking = false;
-      }, 350);
+      setTimeout(() => { p.attackBox = null; }, 120);
+      setTimeout(() => { p.attacking = false; }, 300);
     }
   });
 
   socket.on('requestRematch', () => {
     if (room.gameState === 'FINISHED') {
       room.gameState = 'LOBBY';
-      Object.values(room.players).forEach(p => {
-        p.ready = false;
-      });
+      Object.values(room.players).forEach(p => { p.ready = false; });
       io.to(assignedRoomId).emit('gameState', { state: 'LOBBY', players: room.players });
     }
   });
 
   socket.on('disconnect', () => {
     delete room.players[socket.id];
-
     if (Object.keys(room.players).length === 0) {
       delete rooms[assignedRoomId];
     } else {
@@ -203,9 +187,9 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => {
-  const STAGE_WIDTH = 1200;
-  const GROUND_Y = 500;
-  const GRAVITY = 0.9;
+  const STAGE_WIDTH = 1000;
+  const GROUND_Y = 450;
+  const GRAVITY = 0.8;
 
   for (let roomId in rooms) {
     const room = rooms[roomId];
@@ -220,11 +204,6 @@ setInterval(() => {
 
     playersArr.forEach(p => {
       const char = CHARACTERS[p.characterKey];
-
-      if (p.hitEffect) {
-        p.hitEffect.timer--;
-        if (p.hitEffect.timer <= 0) p.hitEffect = null;
-      }
 
       if (p.stunFrames > 0) {
         p.stunFrames--;
@@ -259,12 +238,7 @@ setInterval(() => {
 
       if (attacker.attackBox && defender.invincibleFrames === 0) {
         const ab = attacker.attackBox;
-        const db = {
-          x: defender.x,
-          y: defender.y,
-          width: defenderChar.width,
-          height: defenderChar.height
-        };
+        const db = { x: defender.x, y: defender.y, width: defenderChar.width, height: defenderChar.height };
 
         if (
           ab.x < db.x + db.width &&
@@ -273,16 +247,10 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
-          defender.stunFrames = 15;
-          defender.invincibleFrames = 28;
-          defender.vy = -6;
-          defender.vx = attacker.facing === 'right' ? 12 : -12;
-
-          defender.hitEffect = {
-            x: ab.x + ab.width / 2,
-            y: ab.y + ab.height / 2,
-            timer: 12
-          };
+          defender.stunFrames = 12;
+          defender.invincibleFrames = 24;
+          defender.vy = -5;
+          defender.vx = attacker.facing === 'right' ? 10 : -10;
 
           attacker.attackBox = null;
 
@@ -295,9 +263,7 @@ setInterval(() => {
       }
     });
 
-    io.to(roomId).emit('updateState', {
-      players: room.players
-    });
+    io.to(roomId).emit('updateState', { players: room.players });
   }
 }, 1000 / 60);
 
