@@ -12,9 +12,9 @@
       user-select: none;
     }
     body {
-      background-color: #0f0f15;
+      background-color: #0b0c10;
       color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', Impact, Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -22,27 +22,20 @@
       min-height: 100vh;
       overflow: hidden;
     }
-    h1 {
-      font-size: 32px;
-      margin-bottom: 12px;
-      color: #f39c12;
-      text-shadow: 0 0 10px rgba(243, 156, 18, 0.5), 3px 3px #c0392b;
-      letter-spacing: 2px;
-    }
     #game-container {
       position: relative;
       width: 1000px;
-      height: 500px;
-      border: 4px solid #333;
-      border-radius: 12px;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(243, 156, 18, 0.2);
+      height: 550px;
+      border: 4px solid #1f2833;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(69, 162, 158, 0.3);
       background-color: #000;
       overflow: hidden;
     }
     canvas {
       display: block;
       width: 1000px;
-      height: 500px;
+      height: 550px;
     }
     .overlay {
       position: absolute;
@@ -50,134 +43,213 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(10, 10, 15, 0.88);
+      background: rgba(11, 12, 16, 0.92);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 10;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(8px);
     }
     .hidden {
       display: none !important;
     }
     .btn {
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
-      color: #fff;
+      background: linear-gradient(135deg, #45a29e, #66fcf1);
+      color: #0b0c10;
       border: none;
-      padding: 14px 32px;
-      font-size: 20px;
-      font-weight: bold;
+      padding: 16px 40px;
+      font-size: 22px;
+      font-weight: 900;
       cursor: pointer;
-      border-radius: 30px;
-      margin-top: 25px;
-      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+      border-radius: 40px;
+      margin-top: 20px;
+      letter-spacing: 2px;
+      box-shadow: 0 4px 20px rgba(102, 252, 241, 0.4);
       transition: all 0.2s;
+      text-transform: uppercase;
     }
     .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
+      transform: scale(1.05);
+      box-shadow: 0 6px 30px rgba(102, 252, 241, 0.8);
     }
-    #select-screen {
+    .btn-ready {
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff;
+    }
+    .btn-cancel {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+    }
+
+    /* タイトル画面 */
+    #title-title {
+      font-size: 56px;
+      font-weight: 900;
+      color: #66fcf1;
+      text-shadow: 0 0 20px rgba(102, 252, 241, 0.6), 4px 4px #1f2833;
+      letter-spacing: 4px;
+      margin-bottom: 30px;
+      font-style: italic;
+    }
+
+    /* フォートナイト風ロビー */
+    #lobby-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 30px;
+    }
+    .lobby-header {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      z-index: 2;
+    }
+    .lobby-title {
+      font-size: 32px;
+      font-weight: bold;
+      color: #66fcf1;
+      text-shadow: 0 0 10px rgba(102, 252, 241, 0.5);
+    }
+    .lobby-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+      z-index: 2;
+    }
+    .character-change-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #66fcf1;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .character-change-btn:hover {
+      background: rgba(102, 252, 241, 0.3);
+    }
+
+    /* キャラクタースレクトモーダル */
+    #select-modal {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      height: 80%;
+      background: rgba(15, 15, 25, 0.95);
+      border: 3px solid #66fcf1;
+      border-radius: 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 100%;
-      height: 100%;
+      justify-content: center;
       padding: 20px;
+      z-index: 20;
     }
     .char-list {
       display: flex;
-      gap: 18px;
-      margin-top: 25px;
+      gap: 15px;
+      margin-top: 15px;
     }
     .char-card {
-      width: 160px;
-      height: 240px;
-      border: 2px solid #444;
+      width: 140px;
+      height: 220px;
+      border: 2px solid #333;
       border-radius: 12px;
-      padding: 12px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      background: linear-gradient(180deg, #2c3e50, #1a252f);
+      background: #1f2833;
+      cursor: pointer;
       transition: all 0.2s;
     }
-    .char-card.active {
-      border-color: #f1c40f;
-      transform: scale(1.08);
-      box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
-    }
-    .char-card.p1-choice {
-      border-color: #3498db;
-      box-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
-    }
-    .char-card.p2-choice {
-      border-color: #e74c3c;
-      box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    .char-card:hover, .char-card.active {
+      border-color: #66fcf1;
+      transform: translateY(-8px);
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.6);
     }
     .char-preview-box {
-      width: 100%;
-      height: 110px;
+      width: 100px;
+      height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
+      position: relative;
     }
     .char-stats {
-      font-size: 12px;
+      font-size: 11px;
       width: 100%;
-      text-align: left;
-      line-height: 1.6;
-      color: #ddd;
+      color: #c5c6c7;
+      line-height: 1.5;
     }
-    .status-badge {
-      font-size: 16px;
-      font-weight: bold;
-      margin-top: 20px;
-    }
+
     #controls-guide {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #888;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #66fcf1;
       text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <h1>セノビックブラザーズ (Senobic Brothers)</h1>
-
   <div id="game-container">
-    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+    <canvas id="gameCanvas" width="1200" height="660"></canvas>
 
-    <!-- 待機画面 -->
-    <div id="screen-waiting" class="overlay">
-      <h2>対戦相手を探しています...</h2>
-      <p style="margin-top: 15px; color: #aaa;">Player 2 の接続を待機中</p>
+    <!-- 1. タイトル画面 -->
+    <div id="screen-title" class="overlay">
+      <div id="title-title">SENOBIC BROTHERS</div>
+      <p style="color: #c5c6c7; font-size: 18px; margin-bottom: 20px;">2D MULTIPLAYER FIGHTING GAME</p>
+      <button class="btn" onclick="goToLobby()">PRESS ENTER TO START</button>
     </div>
 
-    <!-- キャラ選択画面 -->
-    <div id="screen-select" class="overlay hidden">
-      <h2>CHARACTER SELECT</h2>
-      <p style="color: #aaa; font-size: 14px; margin-top: 5px;">[A] / [D] で選択 ｜ [Enter] で確定</p>
-      
+    <!-- 2. フォートナイト風 ロビー画面 -->
+    <div id="screen-lobby" class="overlay hidden">
+      <div id="lobby-container">
+        <div class="lobby-header">
+          <div class="lobby-title">LOBBY</div>
+          <div id="player-count-badge" style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px;">
+            MATCHMAKING: 1/2
+          </div>
+        </div>
+
+        <div class="lobby-footer">
+          <div>
+            <div id="current-char-name" style="font-size: 24px; font-weight: bold; color: #fff;">フツオ (普通)</div>
+            <button class="character-change-btn" onclick="openCharSelect()" style="margin-top: 8px;">CHANGE CHARACTER</button>
+          </div>
+
+          <button id="ready-btn" class="btn" onclick="toggleReady()">PLAY / READY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- キャラクター選択モーダル -->
+    <div id="select-modal" class="hidden">
+      <h2 style="color: #66fcf1;">SELECT YOUR HERO</h2>
       <div class="char-list" id="char-list"></div>
-
-      <div class="status-badge" id="select-status">選択してください</div>
+      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 24px; font-size: 16px; margin-top: 15px;">CONFIRM</button>
     </div>
 
-    <!-- 勝敗決着画面 -->
+    <!-- 勝敗画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 42px; color: #f1c40f; text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);">PLAYER 1 WIN!</h2>
-      <button class="btn" onclick="requestRematch()">もう一度遊ぶ (Enter)</button>
+      <h2 id="winner-text" style="font-size: 48px; color: #66fcf1;">PLAYER 1 WIN!</h2>
+      <button class="btn" onclick="requestRematch()">BACK TO LOBBY (ENTER)</button>
     </div>
   </div>
 
   <div id="controls-guide">
-    操作方法: [A] 左移動 ｜ [D] 右移動 ｜ [W] ジャンプ ｜ [F] パンチ (短・標準) ｜ [G] キック (長・高威力)
+    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ [F] パンチ ｜ [G] キック
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -186,22 +258,24 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    const screenWaiting = document.getElementById('screen-waiting');
-    const screenSelect = document.getElementById('screen-select');
+    const screenTitle = document.getElementById('screen-title');
+    const screenLobby = document.getElementById('screen-lobby');
     const screenGameover = document.getElementById('screen-gameover');
+    const selectModal = document.getElementById('select-modal');
     const charListContainer = document.getElementById('char-list');
-    const selectStatus = document.getElementById('select-status');
     const winnerText = document.getElementById('winner-text');
+    const readyBtn = document.getElementById('ready-btn');
+    const currentCharName = document.getElementById('current-char-name');
+    const playerCountBadge = document.getElementById('player-count-badge');
 
     let myPlayerNum = null;
     let roomId = null;
     let characters = {};
     let characterKeys = [];
     let selectedIndex = 0;
-    let isConfirmed = false;
-    let currentGameState = 'WAITING';
+    let currentGameState = 'TITLE';
     let playersData = {};
-    let screenShake = 0;
+    let isReady = false;
 
     const keys = {
       left: false,
@@ -216,18 +290,20 @@
       myPlayerNum = data.playerNum;
       characters = data.characters;
       characterKeys = Object.keys(characters);
-      renderCharSelectCards();
+      renderCharCards();
     });
 
     socket.on('gameState', (data) => {
-      currentGameState = data.state;
+      if (currentGameState !== 'TITLE') {
+        currentGameState = data.state;
+      }
       playersData = data.players;
       updateUI();
     });
 
     socket.on('characterUpdated', (data) => {
       playersData = data.players;
-      updateCharSelectUI();
+      updateLobbyUI();
     });
 
     socket.on('gameStart', (data) => {
@@ -245,48 +321,35 @@
 
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
-      winnerText.textContent = `PLAYER ${data.winnerNum} WIN!`;
+      winnerText.textContent = `PLAYER ${data.winnerNum} VICTORY!`;
       updateUI();
     });
 
     socket.on('playerLeft', () => {
-      alert('対戦相手が切断されました。待機画面に戻ります。');
-      currentGameState = 'WAITING';
-      isConfirmed = false;
+      alert('対戦相手が切断されました。ロビーに戻ります。');
+      currentGameState = 'LOBBY';
+      isReady = false;
       updateUI();
     });
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
 
-      if (currentGameState === 'SELECTING' && !isConfirmed) {
-        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
-          selectedIndex = (selectedIndex - 1 + characterKeys.length) % characterKeys.length;
-          sendSelectUpdate();
-        } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
-          selectedIndex = (selectedIndex + 1) % characterKeys.length;
-          sendSelectUpdate();
-        } else if (e.key === 'Enter') {
-          isConfirmed = true;
-          sendSelectUpdate();
+      if (currentGameState === 'TITLE' && e.key === 'Enter') {
+        goToLobby();
+      } else if (currentGameState === 'LOBBY') {
+        if (e.key === 'Enter') {
+          toggleReady();
         }
       } else if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'w' || e.key === 'W') keys.jump = true;
-        if (e.key === 'f' || e.key === 'F') {
-          keys.attack = true;
-          keys.attackType = 'punch';
-        }
-        if (e.key === 'g' || e.key === 'G') {
-          keys.attack = true;
-          keys.attackType = 'kick';
-        }
+        if (e.key === 'f' || e.key === 'F') { keys.attack = true; keys.attackType = 'punch'; }
+        if (e.key === 'g' || e.key === 'G') { keys.attack = true; keys.attackType = 'kick'; }
         sendInputs();
-      } else if (currentGameState === 'FINISHED') {
-        if (e.key === 'Enter') {
-          requestRematch();
-        }
+      } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
+        requestRematch();
       }
     });
 
@@ -307,46 +370,84 @@
       socket.emit('playerInput', keys);
     }
 
-    function sendSelectUpdate() {
-      const charKey = characterKeys[selectedIndex];
-      socket.emit('selectCharacter', {
-        characterKey: charKey,
-        confirmed: isConfirmed
-      });
-      updateCharSelectUI();
+    function goToLobby() {
+      currentGameState = 'LOBBY';
+      updateUI();
+    }
+
+    function toggleReady() {
+      isReady = !isReady;
+      socket.emit('toggleReady');
+      updateLobbyUI();
+    }
+
+    function openCharSelect() {
+      selectModal.classList.remove('hidden');
+    }
+
+    function closeCharSelect() {
+      selectModal.classList.add('hidden');
+      const key = characterKeys[selectedIndex];
+      socket.emit('selectCharacter', { characterKey: key });
     }
 
     function requestRematch() {
-      isConfirmed = false;
+      isReady = false;
       socket.emit('requestRematch');
     }
 
     function updateUI() {
-      screenWaiting.classList.add('hidden');
-      screenSelect.classList.add('hidden');
+      screenTitle.classList.add('hidden');
+      screenLobby.classList.add('hidden');
       screenGameover.classList.add('hidden');
+      selectModal.classList.add('hidden');
 
-      if (currentGameState === 'WAITING') {
-        screenWaiting.classList.remove('hidden');
-      } else if (currentGameState === 'SELECTING') {
-        screenSelect.classList.remove('hidden');
-        updateCharSelectUI();
+      if (currentGameState === 'TITLE') {
+        screenTitle.classList.remove('hidden');
+      } else if (currentGameState === 'LOBBY') {
+        screenLobby.classList.remove('hidden');
+        updateLobbyUI();
+        startLobbyAnimation();
       } else if (currentGameState === 'FINISHED') {
         screenGameover.classList.remove('hidden');
       }
     }
 
-    function renderCharSelectCards() {
+    function updateLobbyUI() {
+      const pCount = Object.keys(playersData).length;
+      playerCountBadge.textContent = `MATCHMAKING: ${pCount}/2 PLAYERS`;
+
+      const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
+      if (myData) {
+        const char = characters[myData.characterKey];
+        if (char) currentCharName.textContent = char.name;
+
+        if (myData.ready) {
+          readyBtn.textContent = 'CANCEL READY';
+          readyBtn.className = 'btn btn-cancel';
+        } else {
+          readyBtn.textContent = 'PLAY / READY';
+          readyBtn.className = 'btn btn-ready';
+        }
+      }
+    }
+
+    // キャラクタースレクトカード描画
+    function renderCharCards() {
       charListContainer.innerHTML = '';
       characterKeys.forEach((key, index) => {
         const char = characters[key];
         const card = document.createElement('div');
         card.className = `char-card ${index === selectedIndex ? 'active' : ''}`;
-        card.id = `char-card-${key}`;
+        card.onclick = () => {
+          selectedIndex = index;
+          document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+        };
 
         card.innerHTML = `
-          <div style="font-weight:bold; font-size:14px; text-align:center;">${char.name}</div>
-          <div class="char-preview-box" id="preview-${key}"></div>
+          <div style="font-weight:bold; font-size:13px;">${char.name}</div>
+          <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
             HP: ${char.hp}<br>
             ATK: ${char.atk}<br>
@@ -355,139 +456,148 @@
         `;
         charListContainer.appendChild(card);
 
-        // 各カードにミニキャンバスでプレビュー描画
-        setTimeout(() => drawPreviewCharacter(key), 0);
+        // 各枠内にサイズ調整したSVG/Canvasを描画
+        setTimeout(() => drawCardMiniPreview(key), 0);
       });
     }
 
-    function drawPreviewCharacter(key) {
-      const container = document.getElementById(`preview-${key}`);
-      if (!container) return;
-      const char = characters[key];
+    function drawCardMiniPreview(key) {
+      const box = document.getElementById(`box-${key}`);
+      if (!box) return;
+
       const pCanvas = document.createElement('canvas');
       pCanvas.width = 100;
       pCanvas.height = 100;
       const pCtx = pCanvas.getContext('2d');
+      const char = characters[key];
+
+      // スケールを最適化して枠内に納める
+      pCtx.save();
+      pCtx.translate(50, 80);
+      const scale = 0.5;
+      pCtx.scale(scale, scale);
 
       const dummyPlayer = {
-        x: 50 - char.width / 2,
-        y: 80 - char.height,
+        x: -char.width / 2,
+        y: -char.height,
         facing: 'right',
         characterKey: key,
-        invincibleFrames: 0,
         stunFrames: 0
       };
 
       drawGraphicCharacter(pCtx, dummyPlayer, char);
-      container.appendChild(pCanvas);
+      pCtx.restore();
+
+      box.appendChild(pCanvas);
     }
 
-    function updateCharSelectUI() {
-      characterKeys.forEach((key, index) => {
-        const card = document.getElementById(`char-card-${key}`);
-        if (!card) return;
+    // ロビー画面の3D背景＆ポーズキャラクターの動的アニメーション描画
+    let lobbyAnimId = null;
+    function startLobbyAnimation() {
+      if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
 
-        card.classList.remove('active', 'p1-choice', 'p2-choice');
+      function loop() {
+        if (currentGameState !== 'LOBBY') return;
 
-        if (index === selectedIndex) {
-          card.classList.add('active');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // フォートナイト風3Dロビー背景
+        const grad = ctx.createRadialGradient(600, 300, 50, 600, 300, 600);
+        grad.addColorStop(0, '#1f2833');
+        grad.addColorStop(1, '#0b0c10');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 立ち台（ペデスタル）
+        ctx.save();
+        ctx.fillStyle = '#45a29e';
+        ctx.beginPath();
+        ctx.ellipse(600, 520, 220, 45, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#66fcf1';
+        ctx.beginPath();
+        ctx.ellipse(600, 520, 180, 35, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 自分の選択中のキャラクターを中央に大きく表示
+        const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
+        if (myData && characters[myData.characterKey]) {
+          const char = characters[myData.characterKey];
+          ctx.save();
+          ctx.translate(600, 500);
+          ctx.scale(1.8, 1.8);
+
+          const lobbyPlayer = {
+            x: -char.width / 2,
+            y: -char.height,
+            facing: 'right',
+            characterKey: myData.characterKey,
+            stunFrames: 0
+          };
+
+          drawGraphicCharacter(ctx, lobbyPlayer, char);
+          ctx.restore();
         }
 
-        Object.values(playersData).forEach(p => {
-          if (p.characterKey === key) {
-            if (p.playerNum === 1) card.classList.add('p1-choice');
-            if (p.playerNum === 2) card.classList.add('p2-choice');
-          }
-        });
-      });
-
-      const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
-      if (myData && myData.selected) {
-        selectStatus.textContent = '相手の選択を待っています...';
-        selectStatus.style.color = '#f1c40f';
-      } else {
-        selectStatus.textContent = '選択してください (Enterで確定)';
-        selectStatus.style.color = '#fff';
+        lobbyAnimId = requestAnimationFrame(loop);
       }
+
+      loop();
     }
 
-    // ゲーム画面の描画処理
+    // 対戦画面描画
     function renderGame() {
-      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // ヒット時の画面シェイク処理
-      let hitActive = false;
-      Object.values(playersData).forEach(p => {
-        if (p.hitEffect) hitActive = true;
-      });
-      if (hitActive) {
-        const shakeX = (Math.random() - 0.5) * 12;
-        const shakeY = (Math.random() - 0.5) * 12;
-        ctx.translate(shakeX, shakeY);
-      }
-
-      // 背景（グラデーションの格闘ステージ）
+      // 背景
       const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGradient.addColorStop(0, '#111325');
-      bgGradient.addColorStop(0.8, '#1e2038');
+      bgGradient.addColorStop(0, '#0b0c10');
+      bgGradient.addColorStop(0.8, '#1f2833');
       bgGradient.addColorStop(1, '#000');
       ctx.fillStyle = bgGradient;
-      ctx.fillRect(-20, -20, canvas.width + 40, canvas.height + 40);
-
-      // ステージ背景グリッドライン（レトロ感強化）
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += 60) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 500);
-        ctx.stroke();
-      }
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 地面
-      const groundGrad = ctx.createLinearGradient(0, 500, 0, 600);
-      groundGrad.addColorStop(0, '#2c3e50');
-      groundGrad.addColorStop(1, '#0f171e');
-      ctx.fillStyle = groundGrad;
-      ctx.fillRect(0, 500, canvas.width, 100);
-
-      ctx.strokeStyle = '#f1c40f';
+      ctx.fillStyle = '#1f2833';
+      ctx.fillRect(0, 500, canvas.width, 160);
+      ctx.strokeStyle = '#66fcf1';
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(0, 500);
       ctx.lineTo(canvas.width, 500);
       ctx.stroke();
 
-      // 各プレイヤー描画
+      // プレイヤー描画
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
 
-        // 無敵時点滅
         if (p.invincibleFrames % 4 > 2) return;
 
         ctx.save();
 
-        // キャラクター影（足元の丸い陰影）
+        // 足元影
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
         ctx.ellipse(p.x + char.width / 2, 500, char.width * 0.6, 10, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 丸形・楕円ベースのイラスト描写
+        // キャラクター描画
         drawGraphicCharacter(ctx, p, char);
 
-        // 攻撃領域＆エフェクトを描画
+        // 攻撃描画
         if (p.attackBox) {
           drawAttackEffect(ctx, p, char);
         }
 
-        // ヒット時スパーキングエフェクト
+        // ヒットエフェクト
         if (p.hitEffect) {
           drawHitSpark(ctx, p.hitEffect.x, p.hitEffect.y);
         }
 
-        // プレイヤー1P/2Pマーカー
+        // プレイヤー表示
         ctx.fillStyle = p.playerNum === 1 ? '#3498db' : '#e74c3c';
         ctx.font = 'bold 16px sans-serif';
         ctx.textAlign = 'center';
@@ -496,13 +606,10 @@
         ctx.restore();
       });
 
-      // HUD UI (HPバー & 情報)
       drawHUD();
-
-      ctx.restore();
     }
 
-    // 円形・楕円形を用いたグラフィックキャラクターの描画関数
+    // 円・楕円精密描画ロジック
     function drawGraphicCharacter(targetCtx, p, char) {
       targetCtx.save();
 
@@ -510,115 +617,98 @@
       const isRight = p.facing === 'right';
       const dir = isRight ? 1 : -1;
 
-      // ダメージ硬直（赤く点滅）
       if (p.stunFrames > 0) {
-        targetCtx.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5)';
+        targetCtx.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg)';
       }
 
-      // キャラクタータイプ別グラフィック定義
       switch (char.type) {
-        case 'futsuo': // フツオ (バランス型・丸顔・標準体型)
-          // 胴体 (楕円)
+        case 'futsuo':
           targetCtx.fillStyle = '#2980b9';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.45, char.height * 0.3, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 頭部 (真円)
           targetCtx.fillStyle = '#f1c40f';
           targetCtx.beginPath();
-          targetCtx.arc(cx, p.y + char.height * 0.28, char.width * 0.4, 0, Math.PI * 2);
+          targetCtx.arc(cx, p.y + char.height * 0.28, char.width * 0.38, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 目
           targetCtx.fillStyle = '#2c3e50';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.25, 5, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.25, 4, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'debugon': // デブゴン (巨漢・超広範囲の楕円胴体)
-          // 巨大な胴体 (大きな楕円)
+        case 'debugon':
           targetCtx.fillStyle = '#d35400';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.48, char.height * 0.38, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 頭部 (やや埋まり気味の丸)
           targetCtx.fillStyle = '#f39c12';
           targetCtx.beginPath();
           targetCtx.arc(cx, p.y + char.height * 0.22, char.width * 0.28, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 目
           targetCtx.fillStyle = '#000';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 12, p.y + char.height * 0.2, 6, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.2, 5, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'garinoshin': // ガリノシン (細長スリムな長楕円)
-          // 胴体 (縦長の超細身楕円)
+        case 'garinoshin':
           targetCtx.fillStyle = '#8e44ad';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.35, char.height * 0.36, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 頭部 (縦長楕円)
           targetCtx.fillStyle = '#ecf0f1';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.2, char.width * 0.38, char.height * 0.15, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // シャープな目
           targetCtx.fillStyle = '#2c3e50';
           targetCtx.beginPath();
-          targetCtx.ellipse(cx + dir * 6, p.y + char.height * 0.18, 5, 2, 0, 0, Math.PI * 2);
+          targetCtx.ellipse(cx + dir * 6, p.y + char.height * 0.18, 4, 2, 0, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'chibikoro': // チビコロ (低身長・横に広がる楕円球体)
-          // 球体に等しい低身長ボディ
+        case 'chibikoro':
           targetCtx.fillStyle = '#c0392b';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.55, char.width * 0.46, char.height * 0.42, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 大きな可愛い目
           targetCtx.fillStyle = '#fff';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 12, p.y + char.height * 0.4, 10, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 10, p.y + char.height * 0.4, 8, 0, Math.PI * 2);
           targetCtx.fill();
 
           targetCtx.fillStyle = '#000';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 14, p.y + char.height * 0.4, 5, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 11, p.y + char.height * 0.4, 4, 0, Math.PI * 2);
           targetCtx.fill();
           break;
 
-        case 'hime': // ヒメ (女性型・スマートな曲線デザイン)
-          // ドレス調の胴体
+        case 'hime':
           targetCtx.fillStyle = '#fd79a8';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.4, char.height * 0.3, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 頭部
           targetCtx.fillStyle = '#ffeaa7';
           targetCtx.beginPath();
           targetCtx.arc(cx, p.y + char.height * 0.26, char.width * 0.35, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // リボン (頭上の飾り楕円)
           targetCtx.fillStyle = '#e84393';
           targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.08, 12, 6, 0, 0, Math.PI * 2);
+          targetCtx.ellipse(cx, p.y + char.height * 0.08, 10, 5, 0, 0, Math.PI * 2);
           targetCtx.fill();
 
-          // 目
           targetCtx.fillStyle = '#6c5ce7';
           targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.25, 4, 0, Math.PI * 2);
+          targetCtx.arc(cx + dir * 6, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
           targetCtx.fill();
           break;
       }
@@ -626,101 +716,55 @@
       targetCtx.restore();
     }
 
-    // 攻撃動作・アークエフェクト描画
     function drawAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
       const isRight = p.facing === 'right';
 
       if (ab.type === 'punch') {
-        // パンチ: 高速なスラッシュ波＆拳エフェクト
         const grad = targetCtx.createLinearGradient(ab.x, ab.y, ab.x + ab.width, ab.y);
         grad.addColorStop(0, 'rgba(241, 196, 15, 0)');
         grad.addColorStop(1, 'rgba(241, 196, 15, 0.9)');
 
         targetCtx.fillStyle = grad;
         targetCtx.beginPath();
-        targetCtx.ellipse(
-          ab.x + ab.width / 2,
-          ab.y + ab.height / 2,
-          ab.width / 2,
-          ab.height / 2,
-          0, 0, Math.PI * 2
-        );
+        targetCtx.ellipse(ab.x + ab.width / 2, ab.y + ab.height / 2, ab.width / 2, ab.height / 2, 0, 0, Math.PI * 2);
         targetCtx.fill();
-
-        // 先端の光輪
-        targetCtx.fillStyle = '#fff';
-        targetCtx.beginPath();
-        targetCtx.arc(isRight ? ab.x + ab.width : ab.x, ab.y + ab.height / 2, 14, 0, Math.PI * 2);
-        targetCtx.fill();
-
       } else if (ab.type === 'kick') {
-        // キック: 強力な扇状の残像エフェクト
         targetCtx.strokeStyle = 'rgba(231, 76, 60, 0.9)';
-        targetCtx.lineWidth = 12;
-        targetCtx.lineCap = 'round';
-
+        targetCtx.lineWidth = 10;
         targetCtx.beginPath();
         const startAngle = isRight ? -Math.PI * 0.3 : Math.PI * 0.8;
         const endAngle = isRight ? Math.PI * 0.3 : Math.PI * 1.3;
-
-        targetCtx.arc(
-          p.x + char.width / 2,
-          p.y + char.height * 0.5,
-          ab.width,
-          startAngle,
-          endAngle,
-          !isRight
-        );
+        targetCtx.arc(p.x + char.width / 2, p.y + char.height * 0.5, ab.width, startAngle, endAngle, !isRight);
         targetCtx.stroke();
       }
 
       targetCtx.restore();
     }
 
-    // ヒット時の火花・スパークエフェクト
     function drawHitSpark(targetCtx, x, y) {
       targetCtx.save();
       targetCtx.fillStyle = '#f1c40f';
-      targetCtx.strokeStyle = '#e74c3c';
-      targetCtx.lineWidth = 3;
-
-      for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI * 2 / 8) * i;
-        const len = 25 + Math.random() * 15;
-        targetCtx.beginPath();
-        targetCtx.moveTo(x, y);
-        targetCtx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len);
-        targetCtx.stroke();
-      }
-
       targetCtx.beginPath();
       targetCtx.arc(x, y, 15, 0, Math.PI * 2);
       targetCtx.fill();
       targetCtx.restore();
     }
 
-    // HUD (HPバー等) の描画
     function drawHUD() {
       const p1 = Object.values(playersData).find(p => p.playerNum === 1);
       const p2 = Object.values(playersData).find(p => p.playerNum === 2);
 
-      // 1P HPバー
       if (p1 && characters[p1.characterKey]) {
         const char1 = characters[p1.characterKey];
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(30, 30, 450, 30);
+        ctx.fillRect(30, 30, 450, 24);
         const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 450);
-        
-        const grad1 = ctx.createLinearGradient(30, 0, 480, 0);
-        grad1.addColorStop(0, '#2ecc71');
-        grad1.addColorStop(1, '#27ae60');
-        ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : grad1;
-        ctx.fillRect(30, 30, hp1Width, 30);
+        ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
+        ctx.fillRect(30, 30, hp1Width, 24);
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(30, 30, 450, 30);
+        ctx.strokeRect(30, 30, 450, 24);
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 16px sans-serif';
@@ -728,33 +772,21 @@
         ctx.fillText(`1P: ${char1.name}`, 30, 22);
       }
 
-      // 2P HPバー
       if (p2 && characters[p2.characterKey]) {
         const char2 = characters[p2.characterKey];
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(1200 - 30 - 450, 30, 450, 30);
+        ctx.fillRect(1200 - 30 - 450, 30, 450, 24);
         const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 450);
-
-        const grad2 = ctx.createLinearGradient(1200 - 480, 0, 1200 - 30, 0);
-        grad2.addColorStop(0, '#2ecc71');
-        grad2.addColorStop(1, '#27ae60');
-        ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : grad2;
-        ctx.fillRect(1200 - 30 - hp2Width, 30, hp2Width, 30);
+        ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
+        ctx.fillRect(1200 - 30 - hp2Width, 30, hp2Width, 24);
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(1200 - 30 - 450, 30, 450, 30);
+        ctx.strokeRect(1200 - 30 - 450, 30, 450, 24);
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 16px sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText(`2P: ${char2.name}`, 1200 - 30, 22);
       }
-
-      // VS マーク
-      ctx.fillStyle = '#f1c40f';
-      ctx.font = 'italic bold 28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('VS', 600, 52);
     }
   </script>
 </body>
