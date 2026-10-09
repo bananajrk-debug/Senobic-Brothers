@@ -14,9 +14,11 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(path.join(__dirname)));
+// カレントディレクトリの静的ファイルを公開
+app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
+// トップページアクセス時に index.html を返す
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -35,7 +37,7 @@ function createRoom(roomId) {
   return {
     id: roomId,
     players: {},
-    gameState: 'WAITING', // WAITING, SELECTING, PLAYING, FINISHED
+    gameState: 'WAITING',
     timer: 99,
     interval: null
   };
@@ -44,7 +46,6 @@ function createRoom(roomId) {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // 既存の空きルームを探すか新規作成
   let assignedRoomId = null;
   for (let id in rooms) {
     if (Object.keys(rooms[id].players).length < 2 && rooms[id].gameState === 'WAITING') {
@@ -75,7 +76,7 @@ io.on('connection', (socket) => {
     maxHp: 100,
     isGrounded: false,
     attacking: false,
-    attackType: null, // 'punch' or 'kick'
+    attackType: null,
     attackBox: null,
     hitCount: 0,
     stunFrames: 0,
@@ -85,9 +86,6 @@ io.on('connection', (socket) => {
   socket.join(assignedRoomId);
   socket.emit('init', { roomId: assignedRoomId, playerNum: playerNum, characters: CHARACTERS });
 
-  console.log(`Player ${playerNum} joined room ${assignedRoomId}`);
-
-  // 2名揃ったらキャラ選択画面へ遷移
   if (Object.keys(room.players).length === 2) {
     room.gameState = 'SELECTING';
     io.to(assignedRoomId).emit('gameState', { state: 'SELECTING', players: room.players });
@@ -95,7 +93,6 @@ io.on('connection', (socket) => {
     socket.emit('gameState', { state: 'WAITING', players: room.players });
   }
 
-  // キャラクター選択
   socket.on('selectCharacter', (data) => {
     if (room.gameState !== 'SELECTING') return;
     const p = room.players[socket.id];
@@ -104,12 +101,10 @@ io.on('connection', (socket) => {
       p.selected = data.confirmed;
       io.to(assignedRoomId).emit('characterUpdated', { players: room.players });
 
-      // 全員選択完了なら試合開始
       const allReady = Object.values(room.players).every(player => player.selected);
       if (allReady && Object.keys(room.players).length === 2) {
         room.gameState = 'PLAYING';
         
-        // 各プレイヤーのパラメーターをキャラデータで初期化
         Object.values(room.players).forEach(p => {
           const char = CHARACTERS[p.characterKey];
           p.hp = char.hp;
@@ -128,7 +123,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 物理パケット/操作情報の同期
   socket.on('playerInput', (input) => {
     if (room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
@@ -136,7 +130,6 @@ io.on('connection', (socket) => {
 
     const char = CHARACTERS[p.characterKey];
 
-    // 左右移動
     if (input.left) {
       p.vx = -char.speed;
       p.facing = 'left';
@@ -147,16 +140,14 @@ io.on('connection', (socket) => {
       p.vx = 0;
     }
 
-    // ジャンプ
     if (input.jump && p.isGrounded) {
       p.vy = -char.jumpPower;
       p.isGrounded = false;
     }
 
-    // 攻撃処理
     if (input.attack && !p.attacking) {
       p.attacking = true;
-      p.attackType = input.attackType; // 'punch' or 'kick'
+      p.attackType = input.attackType;
       
       const isPunch = input.attackType === 'punch';
       const reach = isPunch ? 45 : 70;
@@ -171,7 +162,6 @@ io.on('connection', (socket) => {
         damage: isPunch ? char.atk : Math.round(char.atk * 1.3)
       };
 
-      // 判定持続とクールダウン
       setTimeout(() => {
         p.attackBox = null;
       }, 120);
@@ -182,7 +172,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 再戦リクエスト
   socket.on('requestRematch', () => {
     if (room.gameState === 'FINISHED') {
       room.gameState = 'SELECTING';
@@ -193,9 +182,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 切断処理
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
     delete room.players[socket.id];
 
     if (Object.keys(room.players).length === 0) {
@@ -203,13 +190,12 @@ io.on('connection', (socket) => {
     } else {
       room.gameState = 'WAITING';
       const remainingPlayer = Object.values(room.players)[0];
-      remainingPlayer.selected = false;
+      if (remainingPlayer) remainingPlayer.selected = false;
       io.to(assignedRoomId).emit('playerLeft');
     }
   });
 });
 
-// サーバーサイドメインループ (60 FPS) - 物理演算・判定同期
 setInterval(() => {
   const STAGE_WIDTH = 800;
   const GROUND_Y = 400;
@@ -229,7 +215,6 @@ setInterval(() => {
     playersArr.forEach(p => {
       const char = CHARACTERS[p.characterKey];
 
-      // スタン（ヒットストップ）処理
       if (p.stunFrames > 0) {
         p.stunFrames--;
         p.vx = 0;
@@ -239,14 +224,10 @@ setInterval(() => {
         p.invincibleFrames--;
       }
 
-      // 重力適用
       p.vy += GRAVITY;
-
-      // 位置更新
       p.x += p.vx;
       p.y += p.vy;
 
-      // 着地判定
       if (p.y + char.height >= GROUND_Y) {
         p.y = GROUND_Y - char.height;
         p.vy = 0;
@@ -255,12 +236,10 @@ setInterval(() => {
         p.isGrounded = false;
       }
 
-      // 画面端の壁判定
       if (p.x < 0) p.x = 0;
       if (p.x + char.width > STAGE_WIDTH) p.x = STAGE_WIDTH - char.width;
     });
 
-    // 当たり判定 (Hitbox Collision)
     playersArr.forEach((attacker) => {
       const defender = playersArr.find(p => p.id !== attacker.id);
       if (!defender) return;
@@ -276,21 +255,17 @@ setInterval(() => {
           height: defenderChar.height
         };
 
-        // AABB 矩形交差判定
         if (
           ab.x < db.x + db.width &&
           ab.x + ab.width > db.x &&
           ab.y < db.y + db.height &&
           ab.y + ab.height > db.y
         ) {
-          // ヒット成立
           defender.hp -= ab.damage;
-          defender.stunFrames = 12; // 硬直時間
-          defender.invincibleFrames = 25; // 無敵時間
-          defender.vy = -4; // ノックバック浮かせ
+          defender.stunFrames = 12;
+          defender.invincibleFrames = 25;
+          defender.vy = -4;
           defender.vx = attacker.facing === 'right' ? 8 : -8;
-
-          // 攻撃判定消去（重複ヒット防止）
           attacker.attackBox = null;
 
           if (defender.hp <= 0) {
@@ -302,7 +277,6 @@ setInterval(() => {
       }
     });
 
-    // クライアントへ最新フレームの全データをブロードキャスト
     io.to(roomId).emit('updateState', {
       players: room.players
     });
