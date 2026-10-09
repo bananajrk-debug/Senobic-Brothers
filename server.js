@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// ステージとキャラクターのパラメーター定義（解像度 1200x600 に合わせて調整）
+// ゲームマスターデータ
 const CHARACTERS = {
   futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 8, jumpPower: 18, width: 60, height: 100, type: 'futsuo', color: '#3498db' },
   debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4.5, jumpPower: 14, width: 90, height: 110, type: 'debugon', color: '#e67e22' },
@@ -41,14 +41,14 @@ function createRoom(roomId) {
   return {
     id: roomId,
     players: {},
-    gameState: 'WAITING'
+    gameState: 'LOBBY'
   };
 }
 
 io.on('connection', (socket) => {
   let assignedRoomId = null;
   for (let id in rooms) {
-    if (Object.keys(rooms[id].players).length < 2 && rooms[id].gameState === 'WAITING') {
+    if (Object.keys(rooms[id].players).length < 2 && (rooms[id].gameState === 'LOBBY' || rooms[id].gameState === 'WAITING')) {
       assignedRoomId = id;
       break;
     }
@@ -67,6 +67,7 @@ io.on('connection', (socket) => {
     playerNum: playerNum,
     characterKey: 'futsuo',
     selected: false,
+    ready: false,
     x: playerNum === 1 ? 250 : 950,
     y: 400,
     vx: 0,
@@ -86,26 +87,29 @@ io.on('connection', (socket) => {
   socket.join(assignedRoomId);
   socket.emit('init', { roomId: assignedRoomId, playerNum: playerNum, characters: CHARACTERS });
 
-  if (Object.keys(room.players).length === 2) {
-    room.gameState = 'SELECTING';
-    io.to(assignedRoomId).emit('gameState', { state: 'SELECTING', players: room.players });
-  } else {
-    socket.emit('gameState', { state: 'WAITING', players: room.players });
-  }
+  io.to(assignedRoomId).emit('gameState', { state: room.gameState, players: room.players });
 
   socket.on('selectCharacter', (data) => {
-    if (room.gameState !== 'SELECTING') return;
     const p = room.players[socket.id];
     if (p) {
       p.characterKey = data.characterKey;
-      p.selected = data.confirmed;
+      p.selected = true;
+      io.to(assignedRoomId).emit('characterUpdated', { players: room.players });
+    }
+  });
+
+  socket.on('toggleReady', () => {
+    const p = room.players[socket.id];
+    if (p) {
+      p.ready = !p.ready;
       io.to(assignedRoomId).emit('characterUpdated', { players: room.players });
 
-      const allReady = Object.values(room.players).every(player => player.selected);
-      if (allReady && Object.keys(room.players).length === 2) {
+      const playerList = Object.values(room.players);
+      const allReady = playerList.length === 2 && playerList.every(player => player.ready);
+
+      if (allReady) {
         room.gameState = 'PLAYING';
-        
-        Object.values(room.players).forEach(p => {
+        playerList.forEach(p => {
           const char = CHARACTERS[p.characterKey];
           p.hp = char.hp;
           p.maxHp = char.hp;
@@ -176,11 +180,11 @@ io.on('connection', (socket) => {
 
   socket.on('requestRematch', () => {
     if (room.gameState === 'FINISHED') {
-      room.gameState = 'SELECTING';
+      room.gameState = 'LOBBY';
       Object.values(room.players).forEach(p => {
-        p.selected = false;
+        p.ready = false;
       });
-      io.to(assignedRoomId).emit('gameState', { state: 'SELECTING', players: room.players });
+      io.to(assignedRoomId).emit('gameState', { state: 'LOBBY', players: room.players });
     }
   });
 
@@ -190,9 +194,9 @@ io.on('connection', (socket) => {
     if (Object.keys(room.players).length === 0) {
       delete rooms[assignedRoomId];
     } else {
-      room.gameState = 'WAITING';
+      room.gameState = 'LOBBY';
       const remainingPlayer = Object.values(room.players)[0];
-      if (remainingPlayer) remainingPlayer.selected = false;
+      if (remainingPlayer) remainingPlayer.ready = false;
       io.to(assignedRoomId).emit('playerLeft');
     }
   });
