@@ -87,6 +87,19 @@
       background: #8e44ad;
     }
 
+    input[type="number"] {
+      width: 180px;
+      padding: 10px;
+      font-size: 20px;
+      text-align: center;
+      border-radius: 6px;
+      border: 2px solid #3498db;
+      background: #1e1e24;
+      color: #fff;
+      outline: none;
+      margin-top: 10px;
+    }
+
     #lobby-ui {
       position: absolute;
       top: 0;
@@ -114,10 +127,12 @@
     }
     .badge {
       background: #2a2a35;
-      padding: 6px 14px;
+      padding: 8px 18px;
       border-radius: 20px;
-      font-size: 14px;
-      color: #aaa;
+      font-size: 18px;
+      font-weight: bold;
+      color: #3498db;
+      border: 1px solid #3498db;
     }
     .lobby-bottom {
       display: flex;
@@ -180,9 +195,10 @@
 
     #controls-guide {
       margin-top: 12px;
-      font-size: 13px;
-      color: #666;
+      font-size: 14px;
+      color: #aaa;
       text-align: center;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -191,11 +207,24 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
-    <!-- 1. タイトル画面 -->
+    <!-- 1. メインメニュー（通信方式選択） -->
     <div id="screen-title" class="overlay">
-      <h1 style="font-size: 40px; margin-bottom: 10px;">セノビックブラザーズ</h1>
-      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">2D ONLINE & CPU FIGHTING GAME</p>
-      <button class="btn" onclick="goToLobby()">ENTER LOBBY</button>
+      <h1 style="font-size: 38px; margin-bottom: 8px;">セノビックブラザーズ</h1>
+      <p style="color: #888; font-size: 14px; margin-bottom: 25px;">2D ONLINE FIGHTING GAME</p>
+      
+      <div style="display: flex; gap: 20px; align-items: center;">
+        <button class="btn" onclick="createOnlineRoom()">部屋を作る (コード生成)</button>
+        <button class="btn btn-cpu" onclick="startCpuGame()">1人でCPU対戦</button>
+      </div>
+
+      <div style="margin-top: 25px; display: flex; flex-direction: column; align-items: center;">
+        <p style="font-size: 14px; color: #aaa;">教えてもらった4桁の数字を入力して参加:</p>
+        <div style="display: flex; gap: 10px;">
+          <input type="number" id="room-code-input" placeholder="例: 1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
+          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 10px; padding: 10px 20px;">部屋に入る</button>
+        </div>
+        <p id="error-msg" style="color: #e74c3c; font-size: 13px; margin-top: 8px;"></p>
+      </div>
     </div>
 
     <!-- 2. ロビー画面 -->
@@ -203,7 +232,7 @@
       <div id="lobby-ui">
         <div class="lobby-top">
           <div class="lobby-title">LOBBY</div>
-          <div id="player-count-badge" class="badge">接続中プレイヤー: 1 / 2</div>
+          <div id="room-code-badge" class="badge">ROOM CODE: ----</div>
         </div>
 
         <div class="lobby-bottom">
@@ -212,9 +241,8 @@
             <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; padding: 8px 16px; background: #333;">キャラを変更</button>
           </div>
 
-          <div class="interactive" style="display:flex; gap:10px;">
-            <button id="cpu-btn" class="btn btn-cpu" onclick="startCpuGame()">CPU対戦スタート</button>
-            <button id="ready-btn" class="btn btn-ready" onclick="toggleReady()">オンライン対戦準備</button>
+          <div class="interactive">
+            <button id="ready-btn" class="btn btn-ready" onclick="toggleReady()">対戦準備完了</button>
           </div>
         </div>
       </div>
@@ -235,7 +263,7 @@
   </div>
 
   <div id="controls-guide">
-    操作方法: [A] 左移動 | [D] 右移動 | [W] ジャンプ | [F] パンチ | [G] キック
+    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -251,12 +279,13 @@
     const charListContainer = document.getElementById('char-list');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
-    const cpuBtn = document.getElementById('cpu-btn');
     const currentCharName = document.getElementById('current-char-name');
-    const playerCountBadge = document.getElementById('player-count-badge');
+    const roomCodeBadge = document.getElementById('room-code-badge');
+    const roomCodeInput = document.getElementById('room-code-input');
+    const errorMsg = document.getElementById('error-msg');
 
     let myPlayerNum = null;
-    let roomId = null;
+    let currentCode = null;
     let characters = {};
     let characterKeys = [];
     let selectedIndex = 0;
@@ -266,12 +295,29 @@
 
     const keys = { left: false, right: false, jump: false, attack: false, attackType: null };
 
-    socket.on('init', (data) => {
-      roomId = data.roomId;
+    // ソケットイベント
+    socket.on('roomCreated', (data) => {
+      currentCode = data.code;
       myPlayerNum = data.playerNum;
       characters = data.characters;
       characterKeys = Object.keys(characters);
+      roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
+      goToLobby();
       renderCharCards();
+    });
+
+    socket.on('roomJoined', (data) => {
+      currentCode = data.code;
+      myPlayerNum = data.playerNum;
+      characters = data.characters;
+      characterKeys = Object.keys(characters);
+      roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
+      goToLobby();
+      renderCharCards();
+    });
+
+    socket.on('joinError', (msg) => {
+      errorMsg.textContent = msg;
     });
 
     socket.on('gameState', (data) => {
@@ -279,6 +325,7 @@
         currentGameState = data.state;
       }
       playersData = data.players;
+      if (data.code) roomCodeBadge.textContent = `ROOM CODE: ${data.code}`;
       updateUI();
     });
 
@@ -313,19 +360,16 @@
       updateUI();
     });
 
+    // キーボード入力 (K: パンチ / O: キック)
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
 
-      if (currentGameState === 'TITLE' && e.key === 'Enter') {
-        goToLobby();
-      } else if (currentGameState === 'LOBBY' && e.key === 'Enter') {
-        toggleReady();
-      } else if (currentGameState === 'PLAYING') {
+      if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'w' || e.key === 'W') keys.jump = true;
-        if (e.key === 'f' || e.key === 'F') { keys.attack = true; keys.attackType = 'punch'; }
-        if (e.key === 'g' || e.key === 'G') { keys.attack = true; keys.attackType = 'kick'; }
+        if (e.key === 'k' || e.key === 'K') { keys.attack = true; keys.attackType = 'punch'; }
+        if (e.key === 'o' || e.key === 'O') { keys.attack = true; keys.attackType = 'kick'; }
         sendInputs();
       } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
         requestRematch();
@@ -337,7 +381,7 @@
         if (e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'd' || e.key === 'D') keys.right = false;
         if (e.key === 'w' || e.key === 'W') keys.jump = false;
-        if (e.key === 'f' || e.key === 'F' || e.key === 'g' || e.key === 'G') {
+        if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
           keys.attack = false;
           keys.attackType = null;
         }
@@ -349,6 +393,26 @@
       socket.emit('playerInput', keys);
     }
 
+    function createOnlineRoom() {
+      errorMsg.textContent = '';
+      socket.emit('createRoom');
+    }
+
+    function joinOnlineRoom() {
+      const code = roomCodeInput.value.trim();
+      if (code.length !== 4) {
+        errorMsg.textContent = '4桁の数字を入力してください。';
+        return;
+      }
+      errorMsg.textContent = '';
+      socket.emit('joinRoom', { code: code });
+    }
+
+    function startCpuGame() {
+      errorMsg.textContent = '';
+      socket.emit('startCpuMode');
+    }
+
     function goToLobby() {
       currentGameState = 'LOBBY';
       updateUI();
@@ -358,10 +422,6 @@
       isReady = !isReady;
       socket.emit('toggleReady');
       updateLobbyUI();
-    }
-
-    function startCpuGame() {
-      socket.emit('startCpuMode');
     }
 
     function openCharSelect() {
@@ -397,9 +457,6 @@
     }
 
     function updateLobbyUI() {
-      const realPlayers = Object.values(playersData).filter(p => !p.isCpu);
-      playerCountBadge.textContent = `接続中プレイヤー: ${realPlayers.length} / 2`;
-
       const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
       if (myData) {
         const char = characters[myData.characterKey];
@@ -409,7 +466,7 @@
           readyBtn.textContent = '準備完了を解除';
           readyBtn.className = 'btn btn-cancel interactive';
         } else {
-          readyBtn.textContent = 'オンライン対戦準備';
+          readyBtn.textContent = '対戦準備完了';
           readyBtn.className = 'btn btn-ready interactive';
         }
       }
