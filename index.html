@@ -297,7 +297,7 @@
       </div>
 
       <div style="display: flex; gap: 12px;">
-        <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート</button>
+        <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート！</button>
         <button class="btn" onclick="goToTitle()" style="background: #555;">戻る</button>
       </div>
     </div>
@@ -349,7 +349,7 @@
 
     <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">キャラクターを選択</h2>
+      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
@@ -859,26 +859,30 @@
       });
     }
 
-    // ★★★ 座標はそのままで、サイズを今の3分の1（0.6 -> 0.2）に縮小 ★★★
+    // ★★★ 高解像度化＆高画質化（内部解像度を2倍にしてCSSで縮小表示、サイズをさらに縮小） ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
       box.innerHTML = '';
 
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 145;
-      pCanvas.height = 100;
+      // 内部解像度を2倍(290x200)にしてドットの粗さ・ぼやけを解消
+      pCanvas.width = 290;
+      pCanvas.height = 200;
+      // CSSで表示サイズを指定して綺麗に縮小表示させる
+      pCanvas.style.width = '145px';
+      pCanvas.style.height = '100px';
+
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      // 背景を確実に描画
       pCtx.fillStyle = '#08080c';
-      pCtx.fillRect(0, 0, 145, 100);
+      pCtx.fillRect(0, 0, 290, 200);
 
-      // 座標はそのままで、スケールを3分の1に縮小（0.6の1/3 = 0.2）
-      pCtx.translate(72, 50);
-      pCtx.scale(0.2, 0.2);
+      // 解像度倍率に合わせて中心座標とスケールを調整（より小さく全身が収まるように設定）
+      pCtx.translate(145, 100);
+      pCtx.scale(0.32, 0.32);
 
       const dummyPlayer = {
         x: -char.width / 2,
