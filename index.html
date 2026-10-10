@@ -399,6 +399,16 @@
       samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
       wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
     };
+
+    // クライアント側で管理するステージ足場データ
+    let stages = {
+      1: { name: '平原', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
+      2: { name: '浮島', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
+      3: { name: 'スリル', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
+      4: { name: '神殿', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
+      5: { name: '宇宙', platforms: [{ x: 150, y: 420, width: 250, height: 16 }, { x: 800, y: 420, width: 250, height: 16 }, { x: 460, y: 290, width: 280, height: 16 }] }
+    };
+
     let characterKeys = Object.keys(characters);
     let selectedStage = 1;
     let cpuSelectedStage = 1;
@@ -516,7 +526,8 @@
     socket.on('roomCreated', (data) => {
       currentCode = data.code;
       myPlayerNum = data.playerNum;
-      characters = data.characters;
+      if (data.characters) characters = data.characters;
+      if (data.stages) stages = data.stages;
       characterKeys = Object.keys(characters);
       roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
       if (!isCpuModeGame) goToLobby();
@@ -526,7 +537,8 @@
     socket.on('roomJoined', (data) => {
       currentCode = data.code;
       myPlayerNum = data.playerNum;
-      characters = data.characters;
+      if (data.characters) characters = data.characters;
+      if (data.stages) stages = data.stages;
       characterKeys = Object.keys(characters);
       roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
       goToLobby();
@@ -1065,12 +1077,11 @@
     }
 
     function drawStageBackground(stageId) {
-      if (stageId === 1) { // 平原 (グラフィック向上＆新プラットフォーム対応)
+      if (stageId === 1) { // 平原
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#1a365d'); grad.addColorStop(0.6, '#2a4365'); grad.addColorStop(1, '#0f172a');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 背景の美しい山・木々のシルエット
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
         ctx.moveTo(0, 520); ctx.lineTo(180, 240); ctx.lineTo(420, 520); ctx.fill();
@@ -1079,7 +1090,6 @@
         ctx.beginPath();
         ctx.moveTo(780, 520); ctx.lineTo(1040, 280); ctx.lineTo(1200, 520); ctx.fill();
 
-        // 地面
         ctx.fillStyle = '#166534'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 6);
 
@@ -1100,12 +1110,6 @@
         ctx.fillStyle = '#1a1a24'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#00f2fe'; ctx.fillRect(0, 520, canvas.width, 4);
 
-        const plats = [{x:180, y:400, w:220, h:20},{x:800, y:400, w:220, h:20},{x:490, y:270, w:220, h:20}];
-        plats.forEach(pt => {
-          ctx.fillStyle = '#222230'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
-          ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
-        });
-
       } else if (stageId === 3) { // スリル
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#110000'); grad.addColorStop(0.7, '#4a0e0e'); grad.addColorStop(1, '#e74c3c');
@@ -1117,9 +1121,6 @@
         ctx.fillStyle = '#2c2c2c'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#f39c12'; ctx.fillRect(0, 520, canvas.width, 6);
 
-        ctx.fillStyle = '#3a3a3a'; ctx.fillRect(350, 390, 500, 22);
-        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3; ctx.strokeRect(350, 390, 500, 22);
-
       } else if (stageId === 4) { // 神殿
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#09203f'); grad.addColorStop(1, '#537895');
@@ -1130,11 +1131,6 @@
         ctx.fillRect(825, 80, 55, 440); ctx.fillRect(1045, 80, 55, 440);
 
         ctx.fillStyle = '#d4af37'; ctx.fillRect(0, 520, canvas.width, 80);
-        const plats = [{x:220, y:410, w:200, h:18},{x:780, y:410, w:200, h:18},{x:500, y:280, w:200, h:18}];
-        plats.forEach(pt => {
-          ctx.fillStyle = '#222'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
-          ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
-        });
 
       } else if (stageId === 5) { // 宇宙
         ctx.fillStyle = '#01010a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1156,27 +1152,21 @@
 
         ctx.fillStyle = '#111122'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 520, canvas.width, 4);
-
-        const plats = [{x:150, y:420, w:250, h:16},{x:800, y:420, w:250, h:16},{x:460, y:290, w:280, h:16}];
-        plats.forEach(pt => {
-          ctx.fillStyle = '#1a1a2e'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
-          ctx.strokeStyle = '#ff007f'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
-        });
       }
 
-      // ★ 全ステージ共通のプラットフォーム（床）を高画質に描画
-      if (STAGES[stageId] && STAGES[stageId].platforms) {
-        STAGES[stageId].platforms.forEach(pt => {
+      // エラーをガードしてプラットフォーム（登れる床）を描画
+      const currentStageObj = stages[stageId];
+      if (currentStageObj && currentStageObj.platforms) {
+        currentStageObj.platforms.forEach(pt => {
           ctx.save();
           ctx.fillStyle = '#1e293b';
-          ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.fillRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 2.5;
-          ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
           
-          // 装飾のハイライトライン
           ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
-          ctx.fillRect(pt.x + 4, pt.y + 3, pt.w - 8, 3);
+          ctx.fillRect(pt.x + 4, pt.y + 3, (pt.width || pt.w) - 8, 3);
           ctx.restore();
         });
       }
