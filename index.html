@@ -392,7 +392,7 @@
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
       hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避' },
       gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(画面端まで)' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:1.5秒)' },
       robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ' },
       samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
       wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(画面端まで)' }
@@ -761,7 +761,6 @@
       updateLobbyUI();
     }
 
-    // ★ 修正：モーダル表示時にすべてのプレビューを強制再描画 ★
     function openCharSelect() {
       selectModal.classList.remove('hidden');
       setTimeout(() => {
@@ -840,7 +839,6 @@
       });
     }
 
-    // ★ 完全修正：サイズが確定した状態での縮小プレビュー描画 ★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -853,7 +851,6 @@
       const char = characters[key];
 
       pCtx.save();
-      // 固定スケール (0.35) で足元基準で描画
       pCtx.translate(70, 75);
       pCtx.scale(0.35, 0.35);
 
@@ -933,7 +930,6 @@
 
       drawStageBackground(selectedStage);
 
-      // アイテム描画
       itemsData.forEach(item => {
         ctx.save();
         ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
@@ -966,16 +962,15 @@
         ctx.restore();
       });
 
-      // ★ 飛び道具（弾丸）描画 ★
       projectilesData.forEach(proj => {
         ctx.save();
-        if (proj.type === 'ninja') { // 手裏剣
+        if (proj.type === 'ninja') {
           ctx.translate(proj.x + 13, proj.y + 11);
           ctx.rotate(Date.now() * 0.02);
           ctx.fillStyle = '#bdc3c7';
           ctx.fillRect(-12, -3, 24, 6);
           ctx.fillRect(-3, -12, 6, 24);
-        } else if (proj.type === 'wizard') { // 魔法弾
+        } else if (proj.type === 'wizard') {
           ctx.fillStyle = '#9b59b6';
           ctx.beginPath();
           ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2);
@@ -984,7 +979,7 @@
           ctx.beginPath();
           ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
           ctx.fill();
-        } else if (proj.type === 'robot') { // ロケットパンチ
+        } else if (proj.type === 'robot') {
           ctx.fillStyle = '#7f8c8d';
           ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
           ctx.fillStyle = '#e74c3c';
@@ -993,7 +988,6 @@
         ctx.restore();
       });
 
-      // プレイヤー描画
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
@@ -1038,7 +1032,6 @@
         ctx.restore();
       });
 
-      // KOエフェクト
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
