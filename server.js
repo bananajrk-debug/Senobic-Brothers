@@ -32,6 +32,21 @@ const CHARACTERS = {
   hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避バックステップ' }
 };
 
+// ステージ定義
+const STAGES = {
+  1: { name: '平原 (PLAIN)', platforms: [] },
+  2: { name: '浮島 (ISLANDS)', platforms: [
+      { x: 150, y: 320, width: 200, height: 15 },
+      { x: 650, y: 320, width: 200, height: 15 },
+      { x: 400, y: 220, width: 200, height: 15 }
+    ]
+  },
+  3: { name: 'スリル (DOOM)', platforms: [
+      { x: 300, y: 330, width: 400, height: 15 }
+    ]
+  }
+};
+
 let rooms = {};
 
 function generateRoomCode() {
@@ -48,6 +63,7 @@ function createRoom(code) {
     players: {},
     gameState: 'LOBBY',
     isCpuMode: false,
+    selectedStage: 1,
     countdownTimer: null,
     countdownVal: 0
   };
@@ -55,7 +71,6 @@ function createRoom(code) {
 
 io.on('connection', (socket) => {
 
-  // 1. 部屋作成
   socket.on('createRoom', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
@@ -64,11 +79,10 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
 
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS });
-    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
+    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
-  // 2. 部屋に参加
   socket.on('joinRoom', (data) => {
     const code = data.code;
     const room = rooms[code];
@@ -86,18 +100,20 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, 2, data.playerName || 'Player 2');
 
     socket.join(code);
-    socket.emit('roomJoined', { code: code, playerNum: 2, characters: CHARACTERS });
-    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
+    socket.emit('roomJoined', { code: code, playerNum: 2, characters: CHARACTERS, stages: STAGES });
+    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
-  // 3. CPU対戦
+  // CPU対戦モード（キャラ指定とステージ指定を反映）
   socket.on('startCpuMode', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
     const room = rooms[code];
     room.isCpuMode = true;
+    room.selectedStage = data.stageId || 1;
 
     room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
+    room.players[socket.id].characterKey = data.characterKey || 'futsuo';
 
     const cpuKeys = Object.keys(CHARACTERS);
     const randomCpuChar = cpuKeys[Math.floor(Math.random() * cpuKeys.length)];
@@ -129,12 +145,19 @@ io.on('connection', (socket) => {
     room.players[socket.id].ready = true;
 
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
 
     startMatch(room);
   });
 
-  // 名前変更・キャラ変更
+  socket.on('selectStage', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id] && room.players[socket.id].playerNum === 1) {
+      room.selectedStage = data.stageId;
+      io.to(room.code).emit('stageUpdated', { selectedStage: room.selectedStage });
+    }
+  });
+
   socket.on('updateName', (data) => {
     const room = getRoomBySocket(socket);
     if (room && room.players[socket.id]) {
@@ -151,7 +174,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // スタンプ（エモート）送信
   socket.on('sendStamp', (data) => {
     const room = getRoomBySocket(socket);
     if (room && room.players[socket.id]) {
@@ -165,7 +187,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 準備完了
   socket.on('toggleReady', () => {
     const room = getRoomBySocket(socket);
     if (room && !room.isCpuMode) {
@@ -202,7 +223,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 操作入力
   socket.on('playerInput', (input) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -266,16 +286,18 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 再戦リクエスト（CPU戦・対人戦）
   socket.on('requestRematch', () => {
     const room = getRoomBySocket(socket);
     if (room && room.gameState === 'FINISHED') {
-      room.gameState = 'LOBBY';
       if (room.isCpuMode) {
-        delete room.players['cpu_player'];
-        room.isCpuMode = false;
+        // CPU戦の即時リトライ
+        startMatch(room);
+      } else {
+        room.gameState = 'LOBBY';
+        Object.values(room.players).forEach(p => { p.ready = false; });
+        io.to(room.code).emit('gameState', { state: 'LOBBY', players: room.players, isCpuMode: false, code: room.code, selectedStage: room.selectedStage });
       }
-      Object.values(room.players).forEach(p => { p.ready = false; });
-      io.to(room.code).emit('gameState', { state: 'LOBBY', players: room.players, isCpuMode: false, code: room.code });
     }
   });
 
@@ -314,7 +336,7 @@ function startMatch(room) {
     pl.jumpCount = 0;
     pl.stamp = null;
   });
-  io.to(room.code).emit('gameStart', { players: room.players });
+  io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
 
 function createPlayerData(socketId, playerNum, name) {
@@ -350,7 +372,7 @@ function getRoomBySocket(socket) {
   return null;
 }
 
-// CPU AI
+// 弱体化版 CPU AI
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0) return;
 
@@ -359,20 +381,23 @@ function updateCpuAI(cpu, target) {
 
   cpu.facing = distance > 0 ? 'right' : 'left';
 
-  if (Math.abs(distance) > 60) {
-    cpu.vx = distance > 0 ? cpuChar.speed * 0.8 : -cpuChar.speed * 0.8;
+  // 移動速度をプレイヤーの50%に落として少しゆっくりに
+  if (Math.abs(distance) > 70) {
+    cpu.vx = distance > 0 ? cpuChar.speed * 0.5 : -cpuChar.speed * 0.5;
   } else {
     cpu.vx = 0;
   }
 
-  if (Math.random() < 0.02 && cpu.isGrounded) {
+  // ジャンプ確率を下げる
+  if (Math.random() < 0.008 && cpu.isGrounded) {
     cpu.vy = -cpuChar.jumpPower;
     cpu.isGrounded = false;
   }
 
-  if (Math.abs(distance) <= 80 && !cpu.attacking && Math.random() < 0.08) {
+  // 攻撃確率を下げて隙を大きくする
+  if (Math.abs(distance) <= 75 && !cpu.attacking && Math.random() < 0.035) {
     cpu.attacking = true;
-    const isPunch = Math.random() < 0.6;
+    const isPunch = Math.random() < 0.7;
     cpu.attackType = isPunch ? 'punch' : 'kick';
 
     const reach = isPunch ? 50 : 80;
@@ -389,7 +414,7 @@ function updateCpuAI(cpu, target) {
     };
 
     setTimeout(() => { cpu.attackBox = null; }, 120);
-    setTimeout(() => { cpu.attacking = false; }, 350);
+    setTimeout(() => { cpu.attacking = false; }, 500); // 硬直時間を長めに設定
   }
 }
 
@@ -414,6 +439,7 @@ setInterval(() => {
     }
 
     const playersArr = [p1, p2];
+    const currentPlatforms = STAGES[room.selectedStage].platforms;
 
     playersArr.forEach(p => {
       if (!p) return;
@@ -428,15 +454,34 @@ setInterval(() => {
         p.invincibleFrames--;
       }
 
+      const prevY = p.y;
       p.vy += GRAVITY;
       p.x += p.vx;
       p.y += p.vy;
+
+      p.isGrounded = false;
 
       if (p.y + char.height >= GROUND_Y) {
         p.y = GROUND_Y - char.height;
         p.vy = 0;
         p.isGrounded = true;
         p.jumpCount = 0;
+      }
+
+      if (p.vy >= 0) {
+        currentPlatforms.forEach(plat => {
+          if (
+            p.x + char.width > plat.x &&
+            p.x < plat.x + plat.width &&
+            prevY + char.height <= plat.y &&
+            p.y + char.height >= plat.y
+          ) {
+            p.y = plat.y - char.height;
+            p.vy = 0;
+            p.isGrounded = true;
+            p.jumpCount = 0;
+          }
+        });
       }
 
       if (p.x < 0) p.x = 0;
@@ -476,7 +521,7 @@ setInterval(() => {
           if (defender.hp <= 0) {
             defender.hp = 0;
             room.gameState = 'FINISHED';
-            io.to(code).emit('gameOver', { winnerName: attacker.name, winnerNum: attacker.playerNum });
+            io.to(code).emit('gameOver', { winnerName: attacker.name, winnerNum: attacker.playerNum, isCpuMode: room.isCpuMode });
           }
         }
       }
