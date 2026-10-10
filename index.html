@@ -859,7 +859,7 @@
       });
     }
 
-    // ★★★ プレビューのドアップを根本的に解消（スケールと配置位置を完全に修正） ★★★
+    // ★★★ プレビュー枠の中心にキャラクターの全身が確実に入るように修正完了 ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -872,13 +872,17 @@
       const char = characters[key];
 
       pCtx.save();
-      // プレビューボックス中央に全身が確実に収まるよう、スケールを0.4に縮小し上部から配置
-      pCtx.translate(72, 8);
-      pCtx.scale(0.4, 0.4);
+      // 背景を確実に描画
+      pCtx.fillStyle = '#08080c';
+      pCtx.fillRect(0, 0, 145, 100);
+
+      // プレビューの原点をキャンバスの中央（72, 50）に設定し、スケールで全体を枠内に収める
+      pCtx.translate(72, 50);
+      pCtx.scale(0.6, 0.6);
 
       const dummyPlayer = {
         x: -char.width / 2,
-        y: 0,
+        y: -char.height / 2,
         facing: 'right',
         characterKey: key,
         stunFrames: 0,
