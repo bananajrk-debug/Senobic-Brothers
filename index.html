@@ -1,1462 +1,745 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>セノビックブラザーズ (Senobic Brothers)</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
-    body {
-      background-color: #121215;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
-    #game-container {
-      position: relative;
-      width: 1200px;
-      height: 600px;
-      border: 2px solid #4a4a5e;
-      border-radius: 10px;
-      background-color: #08080a;
-      overflow: hidden;
-      box-shadow: 0 16px 45px rgba(0,0,0,0.8);
-    }
-    canvas {
-      display: block;
-      width: 1200px;
-      height: 600px;
-    }
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at center, #161622 0%, #08080a 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    .hidden {
-      display: none !important;
-    }
-    .btn {
-      background: linear-gradient(135deg, #3498db, #2980b9);
-      color: #fff;
-      border: none;
-      padding: 10px 24px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 6px;
-      margin-top: 8px;
-      box-shadow: 0 4px 12px rgba(52,152,219,0.3);
-      transition: all 0.2s;
-    }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52,152,219,0.5); }
-    .btn-ready { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 12px rgba(46,204,113,0.3); }
-    .btn-ready:hover { box-shadow: 0 6px 16px rgba(46,204,113,0.5); }
-    .btn-cancel { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
-    .btn-cancel:hover { box-shadow: 0 6px 16px rgba(231,76,60,0.5); }
-    .btn-cpu { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
-    .btn-cpu:hover { box-shadow: 0 6px 16px rgba(155,89,182,0.5); }
-    .btn-stage {
-      background: #2a2a38;
-      font-size: 11px;
-      padding: 5px 10px;
-      margin-top: 0;
-      border: 1px solid #555;
-    }
-    .btn-stage.active { background: #f39c12; border-color: #f1c40f; box-shadow: 0 0 10px rgba(241,196,15,0.4); }
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
 
-    input[type="text"], input[type="number"] {
-      width: 180px;
-      padding: 6px 10px;
-      font-size: 15px;
-      text-align: center;
-      border-radius: 6px;
-      border: 2px solid #3498db;
-      background: #16161a;
-      color: #fff;
-      outline: none;
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+  const filePath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('index.html が見つかりません。');
+  }
+});
+
+// 厳選された5キャラのデータ定義
+const CHARACTERS = {
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
+  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
+  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
+};
+
+const STAGES = {
+  1: { name: '平原 (PLAIN)', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
+  2: { name: '浮島 (ISLANDS)', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
+  3: { name: 'スリル (DOOM)', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
+  4: { name: '神殿 (TEMPLE)', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
+  5: { name: '宇宙 (SPACE)', platforms: [{ x: 150, y: 420, width: 250, height: 16 }, { x: 800, y: 420, width: 250, height: 16 }, { x: 460, y: 290, width: 280, height: 16 }] }
+};
+
+let rooms = {};
+
+function generateRoomCode() {
+  let code;
+  do {
+    code = Math.floor(1000 + Math.random() * 9000).toString();
+  } while (rooms[code]);
+  return code;
+}
+
+function createRoom(code) {
+  return {
+    code: code,
+    players: {},
+    items: [],
+    projectiles: [],
+    spawnedItemCount: 0,
+    gameState: 'LOBBY',
+    isCpuMode: false,
+    selectedStage: 1,
+    countdownTimer: null,
+    countdownVal: 0
+  };
+}
+
+io.on('connection', (socket) => {
+
+  socket.on('createRoom', (data) => {
+    const code = generateRoomCode();
+    rooms[code] = createRoom(code);
+    const room = rooms[code];
+    room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
+
+    socket.join(code);
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
+    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
+  });
+
+  socket.on('joinRoom', (data) => {
+    const code = data.code;
+    const room = rooms[code];
+
+    if (!room) {
+      socket.emit('joinError', '部屋が見つかりません。');
+      return;
     }
 
-    #lobby-ui {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
-      pointer-events: none;
-    }
-    .interactive { pointer-events: auto; }
-    .lobby-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      width: 100%;
-    }
-    .lobby-title { font-size: 22px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-    .badge {
-      background: #1e1e28;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #3498db;
-      border: 1px solid #3498db;
-      box-shadow: 0 2px 8px rgba(52,152,219,0.2);
-    }
-    .lobby-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+    if (Object.keys(room.players).length >= 4 || room.isCpuMode) {
+      socket.emit('joinError', '部屋が満員です (最大4人)。');
+      return;
     }
 
-    #stamp-bar {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-      pointer-events: auto;
-    }
-    .stamp-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #2c3e50;
-      border: 2px solid #3498db;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-    .stamp-btn:hover { transform: scale(1.15); }
+    const assignedNum = Object.keys(room.players).length + 1;
+    room.players[socket.id] = createPlayerData(socket.id, assignedNum, data.playerName || `Player ${assignedNum}`);
 
-    #countdown-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 100px;
-      font-weight: 900;
-      color: #f1c40f;
-      text-shadow: 0 0 30px rgba(241, 196, 15, 0.9), 0 0 10px #000;
-      pointer-events: none;
-      z-index: 15;
-    }
+    socket.join(code);
+    socket.emit('roomJoined', { code: code, playerNum: assignedNum, characters: CHARACTERS, stages: STAGES });
+    io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
+  });
 
-    #select-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 10, 14, 0.97);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-      padding: 15px;
-    }
-    .char-list-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-      max-width: 920px;
-      margin: 15px 0;
-    }
-    .char-card {
-      width: 165px;
-      height: 220px;
-      border: 2px solid #3a3a4e;
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(135deg, #181824, #12121b);
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    }
-    .char-card:hover, .char-card.active {
-      border-color: #3498db;
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-    }
-    .char-preview-box {
-      width: 100%;
-      height: 95px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #08080c;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid #282836;
-      position: relative;
-    }
-    .char-stats {
-      font-size: 11px;
-      width: 100%;
-      color: #bbb;
-      line-height: 1.3;
-    }
-    .ability-box {
-      font-size: 10px;
-      color: #f1c40f;
-      font-weight: bold;
-      background: rgba(241, 196, 15, 0.15);
-      padding: 3px 6px;
-      border-radius: 3px;
-      margin-top: 3px;
-    }
+  socket.on('startCpuMode', (data) => {
+    const code = generateRoomCode();
+    rooms[code] = createRoom(code);
+    const room = rooms[code];
+    room.isCpuMode = true;
+    room.selectedStage = data.stageId || 1;
 
-    #controls-guide {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #aaa;
-      text-align: center;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
+    room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
+    room.players[socket.id].characterKey = data.characterKey || 'futsuo';
 
-  <div id="game-container">
-    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+    const cpuKeys = Object.keys(CHARACTERS);
+    const randomCpuChar = cpuKeys[Math.floor(Math.random() * cpuKeys.length)];
 
-    <div id="countdown-overlay" class="hidden">3</div>
-
-    <!-- 1. タイトル画面 -->
-    <div id="screen-title" class="overlay">
-      <h1 style="font-size: 40px; margin-bottom: 6px; text-shadow: 0 4px 12px rgba(0,0,0,0.8); background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">セノビックブラザーズ</h1>
-      <p style="color: #999; font-size: 14px; margin-bottom: 22px; letter-spacing: 2px;">REAL 2D FIGHTING BATTLE</p>
-      
-      <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
-        <input type="text" id="player-name-input" value="Player 1" maxlength="10">
-      </div>
-
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <button class="btn" onclick="createOnlineRoom()">部屋を作る</button>
-        <button class="btn btn-cpu" onclick="openCpuSetup()">1人でCPU対戦</button>
-      </div>
-
-      <div style="margin-top: 18px; display: flex; flex-direction: column; align-items: center;">
-        <p style="font-size: 13px; color: #aaa;">4桁の部屋コードで参加 (最大4人):</p>
-        <div style="display: flex; gap: 8px; margin-top: 4px;">
-          <input type="number" id="room-code-input" placeholder="1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
-          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 0; padding: 6px 14px;">入室</button>
-        </div>
-        <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 6px;"></p>
-      </div>
-    </div>
-
-    <!-- 2. CPU対戦設定画面 -->
-    <div id="screen-cpu-setup" class="overlay hidden">
-      <h2 style="font-size: 24px; margin-bottom: 12px; text-shadow: 0 2px 6px rgba(0,0,0,0.6);">CPU対戦 設定</h2>
-      
-      <div style="margin-bottom: 14px; text-align: center;">
-        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">キャラクター:</label>
-        <div id="cpu-char-label" style="font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (ファイター)</div>
-        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #3a3a4e;">変更する</button>
-      </div>
-
-      <div style="margin-bottom: 18px; text-align: center;">
-        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 6px;">ステージ:</label>
-        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 420px;">
-          <button class="btn btn-stage active" id="btn-cpu-stage-1" onclick="selectCpuStage(1)">平原</button>
-          <button class="btn btn-stage" id="btn-cpu-stage-2" onclick="selectCpuStage(2)">浮島</button>
-          <button class="btn btn-stage" id="btn-cpu-stage-3" onclick="selectCpuStage(3)">スリル</button>
-          <button class="btn btn-stage" id="btn-cpu-stage-4" onclick="selectCpuStage(4)">神殿</button>
-          <button class="btn btn-stage" id="btn-cpu-stage-5" onclick="selectCpuStage(5)">宇宙</button>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px;">
-        <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート！</button>
-        <button class="btn" onclick="goToTitle()" style="background: #555;">戻る</button>
-      </div>
-    </div>
-
-    <!-- 3. オンラインロビー画面 -->
-    <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
-      <div id="lobby-ui">
-        <div class="lobby-top">
-          <div class="lobby-title">
-            LOBBY (MAX 4 PLAYERS)
-            <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
-              <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
-              <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
-              <button class="btn btn-stage" id="btn-stage-3" onclick="selectStage(3)">スリル</button>
-              <button class="btn btn-stage" id="btn-stage-4" onclick="selectStage(4)">神殿</button>
-              <button class="btn btn-stage" id="btn-stage-5" onclick="selectStage(5)">宇宙</button>
-            </div>
-          </div>
-
-          <div style="display: flex; flex-direction: column; align-items: flex-end;">
-            <div id="room-code-badge" class="badge">ROOM CODE: ----</div>
-            <div id="stamp-bar">
-              <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
-              <button class="stamp-btn" onclick="sendStamp('👎')">👎</button>
-              <button class="stamp-btn" onclick="sendStamp('❤️')">❤️</button>
-              <button class="stamp-btn" onclick="sendStamp('💢')">💢</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="lobby-bottom">
-          <div class="interactive" style="display: flex; gap: 8px; align-items: flex-end;">
-            <div>
-              <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">名前変更:</label>
-              <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
-            </div>
-            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 6px 12px; background: #3a3a4e;">キャラ変更</button>
-          </div>
-
-          <div class="interactive">
-            <button id="ready-btn" class="btn btn-ready" onclick="toggleReady()">対戦準備完了</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. キャラクター選択モーダル -->
-    <div id="select-modal" class="hidden">
-      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
-      <div class="char-list-grid" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
-    </div>
-
-    <!-- 5. 勝敗画面 -->
-    <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 34px; color: #f1c40f; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241,196,15,0.6);">PLAYER 1 WIN!</h2>
-      <div style="display: flex; gap: 12px;">
-        <button class="btn btn-ready" onclick="requestRematch()">もう一度 (Enter)</button>
-        <button class="btn" onclick="returnFromGameover()" style="background: #555;">タイトルへ</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="controls-guide">
-    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ 残機: 3つ
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    const screenTitle = document.getElementById('screen-title');
-    const screenCpuSetup = document.getElementById('screen-cpu-setup');
-    const screenLobby = document.getElementById('screen-lobby');
-    const screenGameover = document.getElementById('screen-gameover');
-    const selectModal = document.getElementById('select-modal');
-    const countdownOverlay = document.getElementById('countdown-overlay');
-    const charListContainer = document.getElementById('char-list');
-    const cpuCharLabel = document.getElementById('cpu-char-label');
-    const winnerText = document.getElementById('winner-text');
-    const readyBtn = document.getElementById('ready-btn');
-    const roomCodeBadge = document.getElementById('room-code-badge');
-    const roomCodeInput = document.getElementById('room-code-input');
-    const playerNameInput = document.getElementById('player-name-input');
-    const lobbyNameInput = document.getElementById('lobby-name-input');
-    const errorMsg = document.getElementById('error-msg');
-
-    let myPlayerNum = null;
-    let currentCode = null;
-
-    // 厳選された5体のキャラクター
-    let characters = {
-      futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
-      debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
-      chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)' },
-      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
+    room.players['cpu_player'] = {
+      id: 'cpu_player',
+      playerNum: 2,
+      name: 'CPU',
+      characterKey: randomCpuChar,
+      ready: true,
+      isCpu: true,
+      x: 850,
+      y: 400,
+      vx: 0,
+      vy: 0,
+      facing: 'left',
+      hp: CHARACTERS[randomCpuChar].hp,
+      maxHp: CHARACTERS[randomCpuChar].hp,
+      lives: 3,
+      isGrounded: false,
+      attacking: false,
+      attackCooldown: 0,
+      attackType: null,
+      attackBox: null,
+      stunFrames: 0,
+      invincibleFrames: 0,
+      jumpCount: 0,
+      stamp: null,
+      isKilled: false,
+      killTimer: 0,
+      buffAtkTimer: 0,
+      buffSpeedTimer: 0,
+      senobicTimer: 0
     };
 
-    let stages = {
-      1: { name: '平原', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
-      2: { name: '浮島', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
-      3: { name: 'スリル', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
-      4: { name: '神殿', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
-      5: { name: '宇宙', platforms: [{ x: 150, y: 420, width: 250, height: 16 }, { x: 800, y: 420, width: 250, height: 16 }, { x: 460, y: 290, width: 280, height: 16 }] }
-    };
+    room.players[socket.id].ready = true;
+    socket.join(code);
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
+    startMatch(room);
+  });
 
-    let characterKeys = Object.keys(characters);
-    let selectedStage = 1;
-    let cpuSelectedStage = 1;
-    let cpuSelectedCharKey = 'futsuo';
-    let selectedIndex = 0;
-    let currentGameState = 'TITLE';
-    let playersData = {};
-    let itemsData = [];
-    let projectilesData = [];
-    let activeStamps = {};
-    let isReady = false;
-    let isCpuModeGame = false;
-    let visualEffects = [];
-
-    let lastAttackTime = 0;
-    let audioCtx = null;
-    let bgmTimer = null;
-
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+  socket.on('selectStage', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id] && room.players[socket.id].playerNum === 1) {
+      room.selectedStage = data.stageId;
+      io.to(room.code).emit('stageUpdated', { selectedStage: room.selectedStage });
     }
+  });
 
-    function playSE(type) {
-      try {
-        initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
-
-        if (type === 'punch') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(180, now);
-          osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-          gain.gain.setValueAtTime(0.3, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-          osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'item') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, now);
-          osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-          gain.gain.setValueAtTime(0.2, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-          osc.start(now); osc.stop(now + 0.2);
-        } else if (type === 'senobic') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.setValueAtTime(554.37, now + 0.1);
-          osc.frequency.setValueAtTime(659.25, now + 0.2);
-          gain.gain.setValueAtTime(0.25, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now); osc.stop(now + 0.4);
-        } else if (type === 'ko') {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(120, now);
-          osc.frequency.linearRampToValueAtTime(30, now + 0.4);
-          gain.gain.setValueAtTime(0.4, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now); osc.stop(now + 0.4);
-        }
-      } catch (e) {}
+  socket.on('updateName', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id]) {
+      room.players[socket.id].name = data.name || `Player ${room.players[socket.id].playerNum}`;
+      io.to(room.code).emit('characterUpdated', { players: room.players });
     }
+  });
 
-    function startBGM() {
-      if (bgmTimer) return;
-      const bassSeq = [110, 110, 130.81, 110, 146.83, 130.81, 123.47, 110];
-      const melodySeq = [220, 261.63, 293.66, 329.63, 392.00, 329.63, 293.66, 261.63];
-      let step = 0;
-
-      bgmTimer = setInterval(() => {
-        if (currentGameState !== 'PLAYING') return;
-        try {
-          initAudio();
-          const now = audioCtx.currentTime;
-
-          const bassOsc = audioCtx.createOscillator();
-          const bassGain = audioCtx.createGain();
-          bassOsc.type = 'sawtooth';
-          bassOsc.frequency.setValueAtTime(bassSeq[step % bassSeq.length], now);
-          bassOsc.connect(bassGain);
-          bassGain.connect(audioCtx.destination);
-          bassGain.gain.setValueAtTime(0.06, now);
-          bassGain.gain.linearRampToValueAtTime(0.001, now + 0.12);
-          bassOsc.start(now);
-          bassOsc.stop(now + 0.12);
-
-          if (step % 2 === 0) {
-            const melOsc = audioCtx.createOscillator();
-            const melGain = audioCtx.createGain();
-            melOsc.type = 'square';
-            melOsc.frequency.setValueAtTime(melodySeq[(step / 2) % melodySeq.length], now);
-            melOsc.connect(melGain);
-            melGain.connect(audioCtx.destination);
-            melGain.gain.setValueAtTime(0.04, now);
-            melGain.gain.linearRampToValueAtTime(0.001, now + 0.18);
-            melOsc.start(now);
-            melOsc.stop(now + 0.18);
-          }
-
-          step++;
-        } catch(e) {}
-      }, 160);
+  socket.on('selectCharacter', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id]) {
+      room.players[socket.id].characterKey = data.characterKey;
+      io.to(room.code).emit('characterUpdated', { players: room.players });
     }
+  });
 
-    function stopBGM() {
-      if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+  socket.on('sendStamp', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id]) {
+      const p = room.players[socket.id];
+      p.stamp = data.stamp;
+      io.to(room.code).emit('stampTriggered', { socketId: socket.id, stamp: data.stamp });
+      setTimeout(() => { if (p.stamp === data.stamp) p.stamp = null; }, 2000);
     }
+  });
 
-    const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
+  socket.on('toggleReady', () => {
+    const room = getRoomBySocket(socket);
+    if (room && !room.isCpuMode) {
+      const p = room.players[socket.id];
+      if (p) {
+        p.ready = !p.ready;
+        io.to(room.code).emit('characterUpdated', { players: room.players });
 
-    renderCharCards();
+        const playerList = Object.values(room.players);
+        const activePlayers = playerList.slice(0, 2);
+        const allReady = activePlayers.length === 2 && activePlayers.every(player => player.ready);
 
-    socket.on('roomCreated', (data) => {
-      currentCode = data.code;
-      myPlayerNum = data.playerNum;
-      if (data.characters) characters = data.characters;
-      if (data.stages) stages = data.stages;
-      characterKeys = Object.keys(characters);
-      roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
-      if (!isCpuModeGame) goToLobby();
-      renderCharCards();
-    });
+        if (allReady) {
+          room.countdownVal = 3;
+          io.to(room.code).emit('countdownUpdate', { count: room.countdownVal });
 
-    socket.on('roomJoined', (data) => {
-      currentCode = data.code;
-      myPlayerNum = data.playerNum;
-      if (data.characters) characters = data.characters;
-      if (data.stages) stages = data.stages;
-      characterKeys = Object.keys(characters);
-      roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
-      goToLobby();
-      renderCharCards();
-    });
-
-    socket.on('joinError', (msg) => { errorMsg.textContent = msg; });
-
-    socket.on('stageUpdated', (data) => {
-      selectedStage = data.selectedStage;
-      updateStageButtonsUI();
-    });
-
-    socket.on('countdownUpdate', (data) => {
-      countdownOverlay.classList.remove('hidden');
-      countdownOverlay.textContent = data.count;
-    });
-
-    socket.on('countdownCancel', () => { countdownOverlay.classList.add('hidden'); });
-
-    socket.on('stampTriggered', (data) => {
-      activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 };
-    });
-
-    socket.on('koEffect', (data) => {
-      playSE('ko');
-      visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 180 });
-      visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 180 });
-    });
-
-    socket.on('itemCollected', (data) => {
-      if (data.type === 'senobic') playSE('senobic');
-      else playSE('item');
-      visualEffects.push({ type: 'ITEM_GET', playerId: data.playerId, itemType: data.type, timer: 40 });
-    });
-
-    socket.on('gameState', (data) => {
-      if (currentGameState !== 'TITLE' && currentGameState !== 'CPU_SETUP') {
-        currentGameState = data.state;
-      }
-      playersData = data.players;
-      if (data.selectedStage) {
-        selectedStage = data.selectedStage;
-        updateStageButtonsUI();
-      }
-      if (data.code) roomCodeBadge.textContent = `ROOM CODE: ${data.code}`;
-      updateUI();
-    });
-
-    socket.on('characterUpdated', (data) => {
-      playersData = data.players;
-      updateLobbyUI();
-    });
-
-    socket.on('gameStart', (data) => {
-      currentGameState = 'PLAYING';
-      isCpuModeGame = !!data.isCpuMode;
-      countdownOverlay.classList.add('hidden');
-      playersData = data.players;
-      itemsData = [];
-      projectilesData = [];
-      visualEffects = [];
-      if (data.selectedStage) selectedStage = data.selectedStage;
-      startBGM();
-      updateUI();
-    });
-
-    socket.on('updateState', (data) => {
-      if (currentGameState === 'PLAYING') {
-        playersData = data.players;
-        itemsData = data.items || [];
-        projectilesData = data.projectiles || [];
-        renderGame();
-      }
-    });
-
-    socket.on('gameOver', (data) => {
-      currentGameState = 'FINISHED';
-      isCpuModeGame = !!data.isCpuMode;
-      stopBGM();
-      winnerText.textContent = `${data.winnerName} VICTORY! (GAME OVER)`;
-      updateUI();
-    });
-
-    socket.on('playerLeft', () => {
-      stopBGM();
-      alert('対戦相手が切断されました。タイトルに戻ります。');
-      goToTitle();
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
-      initAudio();
-
-      if (e.key === '1') sendStamp('👍');
-      if (e.key === '2') sendStamp('👎');
-      if (e.key === '3') sendStamp('❤️');
-      if (e.key === '4') sendStamp('💢');
-
-      if (currentGameState === 'PLAYING') {
-        const now = Date.now();
-        if (e.key === 'a' || e.key === 'A') keys.left = true;
-        if (e.key === 'd' || e.key === 'D') keys.right = true;
-        if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
-
-        if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
-          if (now - lastAttackTime >= 200) {
-            lastAttackTime = now;
-            keys.attack = true;
-            keys.attackType = (e.key === 'k' || e.key === 'K') ? 'punch' : 'kick';
-            playSE('punch');
-          }
-        }
-
-        sendInputs();
-        keys.jumpPrev = keys.jump;
-      } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
-        requestRematch();
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (currentGameState === 'PLAYING') {
-        if (e.key === 'a' || e.key === 'A') keys.left = false;
-        if (e.key === 'd' || e.key === 'D') keys.right = false;
-        if (e.key === 'w' || e.key === 'W') { keys.jump = false; keys.jumpPrev = false; }
-        if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
-          keys.attack = false;
-          keys.attackType = null;
-        }
-        sendInputs();
-      }
-    });
-
-    function sendInputs() { socket.emit('playerInput', keys); }
-
-    function sendStamp(emoji) {
-      if (currentGameState === 'LOBBY' || currentGameState === 'PLAYING') {
-        socket.emit('sendStamp', { stamp: emoji });
-      }
-    }
-
-    function selectStage(stageId) {
-      if (myPlayerNum === 1) {
-        socket.emit('selectStage', { stageId: stageId });
-      }
-    }
-
-    function selectCpuStage(stageId) {
-      cpuSelectedStage = stageId;
-      for (let i = 1; i <= 5; i++) {
-        const btn = document.getElementById(`btn-cpu-stage-${i}`);
-        if (btn) {
-          if (i === stageId) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
-      }
-    }
-
-    function updateStageButtonsUI() {
-      for (let i = 1; i <= 5; i++) {
-        const btn = document.getElementById(`btn-stage-${i}`);
-        if (btn) {
-          if (i === selectedStage) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
-      }
-    }
-
-    function createOnlineRoom() {
-      errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player 1';
-      socket.emit('createRoom', { playerName: name });
-    }
-
-    function joinOnlineRoom() {
-      const code = roomCodeInput.value.trim();
-      if (code.length !== 4) {
-        errorMsg.textContent = '4桁の数字を入力してください。';
-        return;
-      }
-      errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player';
-      socket.emit('joinRoom', { code: code, playerName: name });
-    }
-
-    function openCpuSetup() {
-      currentGameState = 'CPU_SETUP';
-      isCpuModeGame = true;
-      updateCpuCharLabel();
-      updateUI();
-    }
-
-    function updateCpuCharLabel() {
-      if (characters[cpuSelectedCharKey]) {
-        cpuCharLabel.textContent = characters[cpuSelectedCharKey].name;
-      }
-    }
-
-    function confirmStartCpuGame() {
-      errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player 1';
-      socket.emit('startCpuMode', {
-        playerName: name,
-        characterKey: cpuSelectedCharKey,
-        stageId: cpuSelectedStage
-      });
-    }
-
-    function changeLobbyName() {
-      const newName = lobbyNameInput.value.trim();
-      socket.emit('updateName', { name: newName });
-    }
-
-    function goToTitle() {
-      stopBGM();
-      currentGameState = 'TITLE';
-      updateUI();
-    }
-
-    function goToLobby() {
-      currentGameState = 'LOBBY';
-      updateUI();
-    }
-
-    function returnFromGameover() {
-      if (isCpuModeGame) openCpuSetup();
-      else goToLobby();
-    }
-
-    function toggleReady() {
-      isReady = !isReady;
-      socket.emit('toggleReady');
-      updateLobbyUI();
-    }
-
-    function openCharSelect() {
-      selectModal.classList.remove('hidden');
-      setTimeout(() => {
-        characterKeys.forEach(key => drawCardMiniPreview(key));
-      }, 50);
-    }
-    
-    function closeCharSelect() {
-      selectModal.classList.add('hidden');
-      const key = characterKeys[selectedIndex];
-      cpuSelectedCharKey = key;
-      updateCpuCharLabel();
-      socket.emit('selectCharacter', { characterKey: key });
-    }
-
-    function requestRematch() {
-      isReady = false;
-      socket.emit('requestRematch');
-    }
-
-    function updateUI() {
-      screenTitle.classList.add('hidden');
-      screenCpuSetup.classList.add('hidden');
-      screenLobby.classList.add('hidden');
-      screenGameover.classList.add('hidden');
-      selectModal.classList.add('hidden');
-
-      if (currentGameState === 'TITLE') {
-        screenTitle.classList.remove('hidden');
-      } else if (currentGameState === 'CPU_SETUP') {
-        screenCpuSetup.classList.remove('hidden');
-      } else if (currentGameState === 'LOBBY') {
-        screenLobby.classList.remove('hidden');
-        updateLobbyUI();
-        startLobbyAnimation();
-      } else if (currentGameState === 'FINISHED') {
-        screenGameover.classList.remove('hidden');
-      }
-    }
-
-    function updateLobbyUI() {
-      const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
-      if (myData) {
-        lobbyNameInput.value = myData.name;
-        if (myData.ready) {
-          readyBtn.textContent = '準備完了解除';
-          readyBtn.className = 'btn btn-cancel interactive';
+          room.countdownTimer = setInterval(() => {
+            room.countdownVal--;
+            if (room.countdownVal > 0) {
+              io.to(room.code).emit('countdownUpdate', { count: room.countdownVal });
+            } else {
+              clearInterval(room.countdownTimer);
+              startMatch(room);
+            }
+          }, 1000);
         } else {
-          readyBtn.textContent = '対戦準備完了';
-          readyBtn.className = 'btn btn-ready interactive';
+          if (room.countdownTimer) {
+            clearInterval(room.countdownTimer);
+            room.countdownTimer = null;
+            io.to(room.code).emit('countdownCancel');
+          }
         }
       }
     }
+  });
 
-    function renderCharCards() {
-      charListContainer.innerHTML = '';
-      characterKeys.forEach((key, index) => {
-        const char = characters[key];
-        const card = document.createElement('div');
-        card.className = `char-card ${index === selectedIndex ? 'active' : ''}`;
-        card.onclick = () => {
-          selectedIndex = index;
-          document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
-          card.classList.add('active');
+  socket.on('playerInput', (input) => {
+    const room = getRoomBySocket(socket);
+    if (!room || room.gameState !== 'PLAYING') return;
+
+    const p = room.players[socket.id];
+    if (!p || p.stunFrames > 0 || p.isKilled) return;
+
+    const char = CHARACTERS[p.characterKey];
+    let speedMult = p.buffSpeedTimer > 0 ? 1.4 : 1.0;
+
+    if (input.left) {
+      p.vx = -char.speed * speedMult;
+      p.facing = 'left';
+    } else if (input.right) {
+      p.vx = char.speed * speedMult;
+      p.facing = 'right';
+    } else {
+      p.vx = 0;
+    }
+
+    if (input.jump && !input.jumpPrev) {
+      if (p.isGrounded) {
+        p.vy = -char.jumpPower;
+        p.isGrounded = false;
+        p.jumpCount = 1;
+      } else if (char.type === 'ninja' && p.jumpCount < 2) {
+        p.vy = -char.jumpPower * 0.9;
+        p.jumpCount = 2;
+      }
+    }
+
+    if (input.attack && !p.attacking && p.attackCooldown <= 0) {
+      p.attacking = true;
+      p.attackType = input.attackType;
+      p.attackCooldown = char.cd || 12;
+
+      const isPunch = input.attackType === 'punch';
+      let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
+      if (p.senobicTimer > 0) atkMult = 1.8;
+      let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
+
+      if (char.type === 'ninja' || char.type === 'wizard') {
+        const isRight = p.facing === 'right';
+        const startX = isRight ? p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) : p.x - 30;
+        const startY = p.y + (char.height * (p.senobicTimer > 0 ? 2 : 1)) * 0.4;
+        const projSpeed = char.type === 'ninja' ? 16 : 12;
+
+        room.projectiles.push({
+          id: Date.now() + Math.random(),
+          ownerId: p.id,
+          type: char.type,
+          x: startX,
+          y: startY,
+          vx: isRight ? projSpeed : -projSpeed,
+          width: 26,
+          height: 22,
+          damage: dmg
+        });
+      } else {
+        let reach = isPunch ? 55 : 85;
+
+        const isGiant = p.senobicTimer > 0;
+        let attackHeight = (isPunch ? char.height * 0.4 : char.height * 0.3) * (isGiant ? 2.2 : 1);
+        let attackYOffset = isGiant ? (char.height * 2 - attackHeight - 10) : (isPunch ? char.height * 0.2 : char.height * 0.4);
+
+        if (char.type === 'chibikoro' && !p.isGrounded) {
+          p.vy = 22;
+          dmg = Math.round(18 * atkMult);
+          reach = 100;
+        }
+
+        p.attackBox = {
+          x: p.facing === 'right' ? p.x + (char.width * (isGiant ? 2 : 1)) : p.x - (reach * (isGiant ? 1.5 : 1)),
+          y: p.y + attackYOffset,
+          width: reach * (isGiant ? 1.5 : 1),
+          height: attackHeight,
+          damage: dmg,
+          type: input.attackType
         };
 
-        card.innerHTML = `
-          <div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
-          <div class="char-preview-box" id="box-${key}"></div>
-          <div class="char-stats">
-            HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
-            <div class="ability-box">${char.ability}</div>
-          </div>
-        `;
-        charListContainer.appendChild(card);
-      });
-    }
-
-    function drawCardMiniPreview(key) {
-      const box = document.getElementById(`box-${key}`);
-      if (!box) return;
-      box.innerHTML = '';
-
-      const pCanvas = document.createElement('canvas');
-      pCanvas.width = 140;
-      pCanvas.height = 90;
-      const pCtx = pCanvas.getContext('2d');
-      const char = characters[key];
-
-      pCtx.save();
-      pCtx.translate(70, 85);
-      pCtx.scale(0.38, 0.38);
-
-      const dummyPlayer = {
-        x: -char.width / 2,
-        y: -char.height,
-        facing: 'right',
-        characterKey: key,
-        stunFrames: 0,
-        senobicTimer: 0,
-        attacking: false
-      };
-      drawRealisticHumanoid(pCtx, dummyPlayer, char);
-      pCtx.restore();
-      box.appendChild(pCanvas);
-    }
-
-    let lobbyAnimId = null;
-    function startLobbyAnimation() {
-      if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
-
-      function loop() {
-        if (currentGameState !== 'LOBBY') return;
-
-        ctx.fillStyle = '#0d0d12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const positions = [
-          { x: 300, y: 480 },
-          { x: 500, y: 480 },
-          { x: 700, y: 480 },
-          { x: 900, y: 480 }
-        ];
-
-        const allPlayers = Object.values(playersData);
-
-        for (let i = 0; i < 4; i++) {
-          const pos = positions[i];
-          ctx.fillStyle = '#181822';
-          ctx.beginPath();
-          ctx.ellipse(pos.x, pos.y, 80, 18, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          const pl = allPlayers.find(p => p.playerNum === (i + 1));
-          if (pl && characters[pl.characterKey]) {
-            const char = characters[pl.characterKey];
-            ctx.save();
-            ctx.translate(pos.x, pos.y - 10);
-            ctx.scale(0.85, 0.85);
-            const lobbyP = { x: -char.width / 2, y: -char.height, facing: i < 2 ? 'right' : 'left', characterKey: pl.characterKey, stunFrames: 0, senobicTimer: 0 };
-            drawRealisticHumanoid(ctx, lobbyP, char);
-            ctx.restore();
-
-            ctx.fillStyle = pl.playerNum === myPlayerNum ? '#f1c40f' : '#fff';
-            ctx.font = 'bold 13px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${pl.name} (${pl.playerNum}P)`, pos.x, pos.y + 22);
-            ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
-            ctx.font = '11px sans-serif';
-            ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 38);
-          } else {
-            ctx.fillStyle = '#444';
-            ctx.font = 'bold 12px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`【 空き枠 ${i + 1}P 】`, pos.x, pos.y + 20);
-          }
-        }
-
-        lobbyAnimId = requestAnimationFrame(loop);
+        setTimeout(() => { p.attackBox = null; }, 140);
       }
-      loop();
+
+      setTimeout(() => { p.attacking = false; }, 200);
+    }
+  });
+
+  socket.on('requestRematch', () => {
+    const room = getRoomBySocket(socket);
+    if (room && room.gameState === 'FINISHED') {
+      if (room.isCpuMode) {
+        startMatch(room);
+      } else {
+        room.gameState = 'LOBBY';
+        room.items = [];
+        room.projectiles = [];
+        room.spawnedItemCount = 0;
+        Object.values(room.players).forEach(p => { p.ready = false; });
+        io.to(room.code).emit('gameState', { state: 'LOBBY', players: room.players, isCpuMode: false, code: room.code, selectedStage: room.selectedStage });
+      }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    const room = getRoomBySocket(socket);
+    if (room) {
+      if (room.countdownTimer) clearInterval(room.countdownTimer);
+      delete room.players[socket.id];
+      if (Object.keys(room.players).filter(id => id !== 'cpu_player').length === 0) {
+        delete rooms[room.code];
+      } else {
+        room.gameState = 'LOBBY';
+        if (room.isCpuMode) {
+          delete room.players['cpu_player'];
+          room.isCpuMode = false;
+        }
+        const remainingPlayer = Object.values(room.players)[0];
+        if (remainingPlayer) remainingPlayer.ready = false;
+        io.to(room.code).emit('playerLeft');
+      }
+    }
+  });
+});
+
+function startMatch(room) {
+  room.gameState = 'PLAYING';
+  room.items = [];
+  room.projectiles = [];
+  room.spawnedItemCount = 0;
+
+  Object.values(room.players).forEach(pl => {
+    const char = CHARACTERS[pl.characterKey];
+    pl.hp = char.hp;
+    pl.maxHp = char.hp;
+    pl.lives = 3;
+    pl.x = pl.playerNum === 1 ? 250 : 1200 - 250 - char.width;
+    pl.y = 520 - char.height;
+    pl.vx = 0;
+    pl.vy = 0;
+    pl.facing = pl.playerNum === 1 ? 'right' : 'left';
+    pl.jumpCount = 0;
+    pl.stamp = null;
+    pl.isKilled = false;
+    pl.killTimer = 0;
+    pl.buffAtkTimer = 0;
+    pl.buffSpeedTimer = 0;
+    pl.senobicTimer = 0;
+    pl.attackCooldown = 0;
+  });
+  io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
+}
+
+function createPlayerData(socketId, playerNum, name) {
+  return {
+    id: socketId,
+    playerNum: playerNum,
+    name: name,
+    characterKey: 'futsuo',
+    ready: false,
+    isCpu: false,
+    x: playerNum === 1 ? 250 : 850,
+    y: 400,
+    vx: 0,
+    vy: 0,
+    facing: playerNum === 1 ? 'right' : 'left',
+    hp: 100,
+    maxHp: 100,
+    lives: 3,
+    isGrounded: false,
+    attacking: false,
+    attackCooldown: 0,
+    attackType: null,
+    attackBox: null,
+    stunFrames: 0,
+    invincibleFrames: 0,
+    jumpCount: 0,
+    stamp: null,
+    isKilled: false,
+    killTimer: 0,
+    buffAtkTimer: 0,
+    buffSpeedTimer: 0,
+    senobicTimer: 0
+  };
+}
+
+function getRoomBySocket(socket) {
+  for (let code in rooms) {
+    if (rooms[code].players[socket.id]) return rooms[code];
+  }
+  return null;
+}
+
+function respawnPlayer(p) {
+  const char = CHARACTERS[p.characterKey];
+  p.hp = p.maxHp;
+  p.x = p.playerNum === 1 ? 250 : 1200 - 250 - char.width;
+  p.y = 100;
+  p.vx = 0;
+  p.vy = 0;
+  p.isKilled = false;
+  p.killTimer = 0;
+  p.invincibleFrames = 120;
+}
+
+function updateCpuAI(cpu, target) {
+  if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled) return;
+
+  const cpuChar = CHARACTERS[cpu.characterKey];
+  const distance = (target.x + CHARACTERS[target.characterKey].width / 2) - (cpu.x + cpuChar.width / 2);
+
+  cpu.facing = distance > 0 ? 'right' : 'left';
+  let speedMult = cpu.buffSpeedTimer > 0 ? 1.4 : 1.0;
+
+  if (Math.abs(distance) > 75) {
+    cpu.vx = distance > 0 ? cpuChar.speed * 0.55 * speedMult : -cpuChar.speed * 0.55 * speedMult;
+  } else {
+    cpu.vx = 0;
+  }
+
+  if (Math.random() < 0.008 && cpu.isGrounded) {
+    cpu.vy = -cpuChar.jumpPower;
+    cpu.isGrounded = false;
+  }
+
+  if (Math.abs(distance) <= 300 && !cpu.attacking && cpu.attackCooldown <= 0 && Math.random() < 0.038) {
+    cpu.attacking = true;
+    cpu.attackCooldown = cpuChar.cd || 12;
+    const isPunch = Math.random() < 0.7;
+    cpu.attackType = isPunch ? 'punch' : 'kick';
+
+    let atkMult = cpu.buffAtkTimer > 0 ? 1.5 : (cpu.senobicTimer > 0 ? 1.8 : 1.0);
+    let dmg = Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.25)) * atkMult);
+
+    if (cpuChar.type === 'ninja' || cpuChar.type === 'wizard') {
+      const isRight = cpu.facing === 'right';
+      const projSpeed = cpuChar.type === 'ninja' ? 16 : 12;
+
+      getRoomBySocket({ id: cpu.id })?.projectiles.push({
+        id: Date.now() + Math.random(),
+        ownerId: cpu.id,
+        type: cpuChar.type,
+        x: isRight ? cpu.x + cpuChar.width : cpu.x - 30,
+        y: cpu.y + cpuChar.height * 0.35,
+        vx: isRight ? projSpeed : -projSpeed,
+        width: 26,
+        height: 22,
+        damage: dmg
+      });
+    } else {
+      let reach = isPunch ? 55 : 85;
+      const attackHeight = isPunch ? cpuChar.height * 0.4 : cpuChar.height * 0.3;
+      const attackYOffset = isPunch ? cpuChar.height * 0.2 : cpuChar.height * 0.4;
+
+      cpu.attackBox = {
+        x: cpu.facing === 'right' ? cpu.x + cpuChar.width : cpu.x - reach,
+        y: cpu.y + attackYOffset,
+        width: reach,
+        height: attackHeight,
+        damage: dmg,
+        type: cpu.attackType
+      };
+
+      setTimeout(() => { cpu.attackBox = null; }, 120);
     }
 
-    function renderGame() {
-      ctx.fillStyle = '#08080a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setTimeout(() => { cpu.attacking = false; }, 200);
+  }
+}
 
-      drawStageBackground(selectedStage);
+function spawnRandomItem(room) {
+  if (room.items.length >= 1) return;
+  if (room.spawnedItemCount >= 4) return;
 
-      itemsData.forEach(item => {
-        ctx.save();
-        ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
+  const rand = Math.random();
+  let type = 'heal';
+  if (rand < 0.20) type = 'senobic';
+  else if (rand < 0.50) type = 'heal';
+  else if (rand < 0.75) type = 'atk';
+  else type = 'speed';
 
-        if (item.type === 'senobic') {
-          ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(-14, -18, 28, 36);
-          ctx.fillStyle = '#f1c40f';
-          ctx.fillRect(-10, -10, 20, 20);
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('SEN', 0, 4);
-        } else {
-          ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#3498db');
-          ctx.beginPath();
-          ctx.arc(0, 0, 22, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 3;
-          ctx.stroke();
+  room.items.push({
+    id: Date.now() + Math.random(),
+    type: type,
+    x: 150 + Math.random() * 900,
+    y: -40,
+    vy: 2.5,
+    width: 45,
+    height: 45,
+    isGrounded: false
+  });
+  room.spawnedItemCount++;
+}
 
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 18px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
-          ctx.fillText(label, 0, 0);
+setInterval(() => {
+  const STAGE_WIDTH = 1200;
+  const GROUND_Y = 520;
+  const GRAVITY = 0.8;
+
+  for (let code in rooms) {
+    const room = rooms[code];
+    if (room.gameState !== 'PLAYING') continue;
+
+    const playerIds = Object.keys(room.players);
+    if (playerIds.length < 2) continue;
+
+    const p1 = room.players[playerIds[0]];
+    const p2 = room.players[playerIds[1]];
+    const playersArr = [p1, p2];
+
+    if (Math.random() < 0.0015) spawnRandomItem(room);
+
+    if (room.isCpuMode && p2 && p2.isCpu && p1) {
+      updateCpuAI(p2, p1);
+    }
+
+    for (let i = room.projectiles.length - 1; i >= 0; i--) {
+      const proj = room.projectiles[i];
+      proj.x += proj.vx;
+
+      if (proj.x < -50 || proj.x > STAGE_WIDTH + 50) {
+        room.projectiles.splice(i, 1);
+        continue;
+      }
+
+      const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
+      if (target && target.invincibleFrames === 0) {
+        const targetChar = CHARACTERS[target.characterKey];
+        const defScale = target.senobicTimer > 0 ? 2 : 1;
+        const db = { x: target.x, y: target.y, width: targetChar.width * defScale, height: targetChar.height * defScale };
+
+        if (
+          proj.x < db.x + db.width &&
+          proj.x + proj.width > db.x &&
+          proj.y < db.y + db.height &&
+          proj.y + proj.height > db.y
+        ) {
+          target.hp -= proj.damage;
+          const isArmored = (targetChar.type === 'debugon' && target.attacking) || target.senobicTimer > 0;
+
+          if (target.hp <= 0) {
+            target.hp = 0;
+            target.lives--;
+            target.isKilled = true;
+            target.killTimer = 0;
+            target.vx = proj.vx > 0 ? 24 : -24;
+            target.vy = -20;
+            io.to(code).emit('koEffect', { victimId: target.id, x: target.x, y: target.y });
+          } else if (!isArmored) {
+            target.stunFrames = 10;
+            target.vy = -5;
+            target.vx = proj.vx > 0 ? 12 : -12;
+          }
+
+          target.invincibleFrames = 24;
+          room.projectiles.splice(i, 1);
         }
-        ctx.restore();
-      });
+      }
+    }
 
-      projectilesData.forEach(proj => {
-        ctx.save();
-        if (proj.type === 'ninja') {
-          ctx.translate(proj.x + 13, proj.y + 11);
-          ctx.rotate(Date.now() * 0.02);
-          ctx.fillStyle = '#bdc3c7';
-          ctx.fillRect(-12, -3, 24, 6);
-          ctx.fillRect(-3, -12, 6, 24);
-        } else if (proj.type === 'wizard') {
-          ctx.fillStyle = '#9b59b6';
-          ctx.beginPath();
-          ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#f1c40f';
-          ctx.beginPath();
-          ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
-          ctx.fill();
+    for (let i = room.items.length - 1; i >= 0; i--) {
+      const item = room.items[i];
+      if (!item.isGrounded) {
+        item.y += item.vy;
+        if (item.y + item.height >= GROUND_Y) {
+          item.y = GROUND_Y - item.height;
+          item.isGrounded = true;
         }
-        ctx.restore();
-      });
+      }
 
-      Object.values(playersData).forEach(p => {
-        const char = characters[p.characterKey];
-        if (!char) return;
-        if (p.invincibleFrames % 4 > 2) return;
-
+      playersArr.forEach(p => {
+        if (!p || p.isKilled) return;
+        const char = CHARACTERS[p.characterKey];
         const scale = p.senobicTimer > 0 ? 2 : 1;
         const curW = char.width * scale;
         const curH = char.height * scale;
 
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.beginPath();
-        ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.55, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        drawRealisticHumanoid(ctx, p, char);
-
-        if (p.attackBox) {
-          drawCustomAttackEffect(ctx, p, char);
-        }
-
-        ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
-
-        let statusStr = '';
-        if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
-        if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
-        if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
-        if (statusStr) {
-          ctx.font = 'bold 11px sans-serif';
-          ctx.fillStyle = '#f1c40f';
-          ctx.fillText(statusStr, p.x + curW / 2, p.y - 28);
-        }
-
-        if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + curW / 2, p.y - 45, activeStamps[p.id].stamp);
-          activeStamps[p.id].timer--;
-        }
-
-        ctx.restore();
-      });
-
-      for (let i = visualEffects.length - 1; i >= 0; i--) {
-        const fx = visualEffects[i];
-        ctx.save();
-        if (fx.type === 'KO_FLASH') {
-          ctx.fillStyle = `rgba(231, 76, 60, ${Math.min(0.6, fx.timer / 100)})`;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (fx.type === 'KO_TEXT') {
-          ctx.strokeStyle = 'rgba(255, 235, 59, 0.35)';
-          ctx.lineWidth = 4;
-          for (let a = 0; a < Math.PI * 2; a += 0.25) {
-            ctx.beginPath();
-            ctx.moveTo(fx.x, fx.y);
-            ctx.lineTo(fx.x + Math.cos(a) * 1000, fx.y + Math.sin(a) * 1000);
-            ctx.stroke();
+        if (
+          p.x < item.x + item.width &&
+          p.x + curW > item.x &&
+          p.y < item.y + item.height &&
+          p.y + curH > item.y
+        ) {
+          if (item.type === 'senobic') {
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
+            p.senobicTimer = 480;
+          } else if (item.type === 'heal') {
+            p.hp = Math.min(p.maxHp, p.hp + 30);
+          } else if (item.type === 'atk') {
+            p.buffAtkTimer = 360;
+          } else if (item.type === 'speed') {
+            p.buffSpeedTimer = 360;
           }
-          ctx.fillStyle = '#f1c40f';
-          ctx.font = '900 90px Impact, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.shadowColor = '#e74c3c';
-          ctx.shadowBlur = 25;
-          ctx.fillText('K. O. ! !', 600, 280);
+
+          io.to(code).emit('itemCollected', { playerId: p.id, type: item.type });
+          room.items.splice(i, 1);
         }
-        ctx.restore();
-        fx.timer--;
-        if (fx.timer <= 0) visualEffects.splice(i, 1);
-      }
-
-      drawHUD();
+      });
     }
 
-    function drawStageBackground(stageId) {
-      if (stageId === 1) { // 平原
-        const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#1a365d'); grad.addColorStop(0.6, '#2a4365'); grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const currentPlatforms = STAGES[room.selectedStage].platforms;
 
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath();
-        ctx.moveTo(0, 520); ctx.lineTo(180, 240); ctx.lineTo(420, 520); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(320, 520); ctx.lineTo(600, 180); ctx.lineTo(920, 520); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(780, 520); ctx.lineTo(1040, 280); ctx.lineTo(1200, 520); ctx.fill();
+    playersArr.forEach(p => {
+      if (!p) return;
 
-        ctx.fillStyle = '#166534'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 6);
-
-      } else if (stageId === 2) { // 浮島
-        const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#0f0c29'); grad.addColorStop(0.5, '#24243e'); grad.addColorStop(1, '#302b63');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#f39c12';
-        ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
-        ctx.beginPath(); ctx.arc(1000, 120, 65, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-
-        ctx.fillStyle = '#151522';
-        ctx.fillRect(100, 300, 70, 220); ctx.fillRect(220, 240, 90, 280);
-        ctx.fillRect(350, 340, 80, 180); ctx.fillRect(750, 260, 100, 260); ctx.fillRect(880, 320, 80, 200);
-
-        ctx.fillStyle = '#1a1a24'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#00f2fe'; ctx.fillRect(0, 520, canvas.width, 4);
-
-      } else if (stageId === 3) { // スリル
-        const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#110000'); grad.addColorStop(0.7, '#4a0e0e'); grad.addColorStop(1, '#e74c3c');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = 'rgba(230, 126, 34, 0.8)';
-        ctx.fillRect(180, 0, 40, 520); ctx.fillRect(1000, 0, 50, 520);
-
-        ctx.fillStyle = '#2c2c2c'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#f39c12'; ctx.fillRect(0, 520, canvas.width, 6);
-
-      } else if (stageId === 4) { // 神殿
-        const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#09203f'); grad.addColorStop(1, '#537895');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#1c2833';
-        ctx.fillRect(100, 80, 55, 440); ctx.fillRect(320, 80, 55, 440);
-        ctx.fillRect(825, 80, 55, 440); ctx.fillRect(1045, 80, 55, 440);
-
-        ctx.fillStyle = '#d4af37'; ctx.fillRect(0, 520, canvas.width, 80);
-
-      } else if (stageId === 5) { // 宇宙
-        ctx.fillStyle = '#01010a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.translate(950, 180);
-        ctx.rotate(-0.3);
-        ctx.fillStyle = '#8e44ad';
-        ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 14;
-        ctx.beginPath(); ctx.ellipse(0, 0, 160, 35, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
-
-        ctx.fillStyle = '#2980b9';
-        ctx.beginPath(); ctx.arc(220, 480, 140, 0, Math.PI * 2); ctx.fill();
-
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(120, 60, 3, 3); ctx.fillRect(350, 110, 2, 2); ctx.fillRect(600, 80, 3, 3); ctx.fillRect(820, 150, 2, 2);
-
-        ctx.fillStyle = '#111122'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 520, canvas.width, 4);
-      }
-
-      const currentStageObj = stages[stageId];
-      if (currentStageObj && currentStageObj.platforms) {
-        currentStageObj.platforms.forEach(pt => {
-          ctx.save();
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
-          
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
-          ctx.fillRect(pt.x + 4, pt.y + 3, (pt.width || pt.w) - 8, 3);
-          ctx.restore();
-        });
-      }
-    }
-
-    function drawStampEffect(targetCtx, x, y, emoji) {
-      targetCtx.save();
-      targetCtx.font = '34px sans-serif';
-      targetCtx.textAlign = 'center';
-      targetCtx.shadowColor = 'rgba(0,0,0,0.8)';
-      targetCtx.shadowBlur = 8;
-      targetCtx.fillText(emoji, x, y);
-      targetCtx.restore();
-    }
-
-    function drawRealisticHumanoid(targetCtx, p, char) {
-      targetCtx.save();
-      const scale = p.senobicTimer > 0 ? 2 : 1;
-      const w = char.width * scale;
-      const h = char.height * scale;
-      const cx = p.x + w / 2;
-      const isRight = p.facing === 'right';
-      const dir = isRight ? 1 : -1;
-
-      if (p.stunFrames > 0) targetCtx.filter = 'brightness(1.5) sepia(1)';
+      if (p.attackCooldown > 0) p.attackCooldown--;
+      if (p.buffAtkTimer > 0) p.buffAtkTimer--;
+      if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
+      if (p.senobicTimer > 0) p.senobicTimer--;
 
       if (p.isKilled) {
-        targetCtx.translate(cx, p.y + h / 2);
-        targetCtx.rotate(p.killTimer * 0.15);
-        targetCtx.translate(-cx, -(p.y + h / 2));
+        p.x += p.vx;
+        p.y += p.vy;
+        p.killTimer++;
+
+        if (p.killTimer > 90) {
+          if (p.lives > 0) {
+            respawnPlayer(p);
+          } else {
+            const winner = playersArr.find(pl => pl && pl.id !== p.id);
+            room.gameState = 'FINISHED';
+            io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
+          }
+        }
+        return;
       }
 
-      const topY = p.y;
-      const isPunching = p.attacking && p.attackType === 'punch';
-      const isKicking = p.attacking && p.attackType === 'kick';
+      const char = CHARACTERS[p.characterKey];
 
-      switch (char.type) {
-        case 'futsuo': // ファイター
-          drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.38, '#2980b9', '#1a5276');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1c2833', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.22, w * 0.35, h * 0.22, '#f5cba7', '#2c3e50', dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#f5cba7', dir, isPunching);
-          break;
-
-        case 'debugon': // ヘビー
-          drawRealisticBody(targetCtx, cx, topY + h * 0.42, w * 0.8, h * 0.44, '#d35400', '#7e5109', true);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.65, h * 0.28, '#2c3e50', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.2, '#f5cba7', '#5d4037', dir, false, true);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.8, '#f5cba7', dir, isPunching);
-          break;
-
-        case 'chibikoro': // ダイバー
-          drawRealisticBody(targetCtx, cx, topY + h * 0.4, w * 0.72, h * 0.42, '#c0392b', '#641e16');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#111', dir, isKicking);
-          drawDiverHelmet(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, '#e74c3c', dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.72, '#e74c3c', dir, isPunching);
-          break;
-
-        case 'ninja': // シノビ
-          drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#1b1b1b', '#000');
-          drawNinjaScarf(targetCtx, cx, topY + h * 0.28, dir);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#111', dir, isKicking);
-          drawNinjaHead(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#333', dir, isPunching);
-          break;
-
-        case 'wizard': // メイジ
-          drawWizardRobeBody(targetCtx, cx, topY + h * 0.5, w * 0.62, h * 0.48);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.45, h * 0.28, '#111', dir, isKicking);
-          drawWizardHoodHead(targetCtx, cx, topY + h * 0.22, w * 0.36, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.62, '#f5cba7', dir, isPunching);
-          break;
+      if (p.stunFrames > 0) {
+        p.stunFrames--;
+        p.vx = 0;
       }
 
-      targetCtx.restore();
-    }
-
-    function drawRealisticBody(ctx, x, y, w, h, mainColor, subColor, isHeavy = false) {
-      ctx.save();
-      const grad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
-      grad.addColorStop(0, mainColor); grad.addColorStop(1, subColor);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.roundRect(x - w / 2, y, w, h, [8, 8, 4, 4]);
-      ctx.fill();
-      ctx.strokeStyle = '#0a0a0f';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x - w * 0.35, y + h * 0.35);
-      ctx.lineTo(x, y + h * 0.45);
-      ctx.lineTo(x + w * 0.35, y + h * 0.35);
-      ctx.moveTo(x, y + h * 0.45);
-      ctx.lineTo(x, y + h * 0.85);
-      ctx.moveTo(x - w * 0.25, y + h * 0.6);
-      ctx.lineTo(x + w * 0.25, y + h * 0.6);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawRealisticArms(ctx, x, y, bodyW, armColor, dir, isPunching) {
-      ctx.save();
-      ctx.fillStyle = armColor;
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = 2;
-
-      if (isPunching) {
-        const reach = bodyW * 1.1;
-        ctx.beginPath();
-        ctx.roundRect(x + dir * (bodyW * 0.2), y - 8, dir * reach, 14, 4);
-        ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#c0392b';
-        ctx.beginPath();
-        ctx.arc(x + dir * (bodyW * 0.2 + reach), y, 9, 0, Math.PI * 2);
-        ctx.fill(); ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.roundRect(x - bodyW * 0.55, y - 6, bodyW * 0.3, 12, 3);
-        ctx.roundRect(x + bodyW * 0.25, y - 6, bodyW * 0.3, 12, 3);
-        ctx.fill(); ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    function drawRealisticLegs(ctx, x, y, w, h, color, dir, isKicking) {
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 2;
-
-      if (isKicking) {
-        ctx.fillRect(x - w * 0.4, y, w * 0.35, h);
-        ctx.strokeRect(x - w * 0.4, y, w * 0.35, h);
-
-        const kickReach = w * 0.95;
-        ctx.save();
-        ctx.translate(x, y + h * 0.3);
-        ctx.fillRect(dir * (w * 0.1), -8, dir * kickReach, 16);
-        ctx.strokeRect(dir * (w * 0.1), -8, dir * kickReach, 16);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(dir * (w * 0.1 + kickReach), -10, dir * 12, 20);
-        ctx.restore();
-      } else {
-        ctx.fillRect(x - w * 0.45, y, w * 0.38, h);
-        ctx.fillRect(x + w * 0.08, y, w * 0.38, h);
-        ctx.strokeRect(x - w * 0.45, y, w * 0.38, h);
-        ctx.strokeRect(x + w * 0.08, y, w * 0.38, h);
-        ctx.fillStyle = '#222';
-        ctx.fillRect(x - w * 0.5, y + h - 6, w * 0.45, 6);
-        ctx.fillRect(x + w * 0.05, y + h - 6, w * 0.45, 6);
-      }
-      ctx.restore();
-    }
-
-    function drawRealisticFace(ctx, x, y, rx, ry, skinColor, hairColor, dir, isFemale = false, hasBeard = false) {
-      ctx.save();
-      ctx.fillStyle = skinColor;
-      ctx.beginPath();
-      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
-
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(x + dir * 3, y - 5, 8, 5);
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(x + dir * 6, y - 4, 4, 4);
-      ctx.fillStyle = hairColor;
-      ctx.beginPath();
-      ctx.moveTo(x + dir * 2, y - 8);
-      ctx.lineTo(x + dir * 11, y - 6);
-      ctx.lineTo(x + dir * 2, y - 6);
-      ctx.fill();
-
-      ctx.fillStyle = hairColor;
-      ctx.beginPath();
-      ctx.arc(x, y - 3, rx * 1.08, Math.PI * 0.85, Math.PI * 2.15);
-      ctx.fill();
-
-      if (hasBeard) {
-        ctx.fillStyle = '#3e2723';
-        ctx.fillRect(x - rx * 0.7, y + 3, rx * 1.4, ry * 0.7);
-      }
-      ctx.restore();
-    }
-
-    function drawNinjaScarf(ctx, x, y, dir) {
-      ctx.save();
-      ctx.fillStyle = '#e74c3c';
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x - dir * 25, y + 10);
-      ctx.lineTo(x - dir * 35, y + 5);
-      ctx.lineTo(x, y - 5);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function drawNinjaHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#f5cba7';
-      ctx.fillRect(x + dir * 2, y - 7, rx * 0.9, 7);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x + dir * 5, y - 6, 4, 4);
-      ctx.restore();
-    }
-
-    function drawDiverHelmet(ctx, x, y, rx, ry, color, dir) {
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#38bdf8';
-      ctx.beginPath(); ctx.arc(x + dir * 4, y, rx * 0.65, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawWizardRobeBody(ctx, x, y, w, h) {
-      ctx.save();
-      ctx.fillStyle = '#1e1b4b';
-      ctx.beginPath();
-      ctx.moveTo(x - w * 0.3, y);
-      ctx.lineTo(x + w * 0.3, y);
-      ctx.lineTo(x + w * 0.5, y + h);
-      ctx.lineTo(x - w * 0.5, y + h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawWizardHoodHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#f5cba7'; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#312e81';
-      ctx.beginPath();
-      ctx.moveTo(x - rx * 1.4, y + ry * 0.2);
-      ctx.lineTo(x + rx * 1.4, y + ry * 0.2);
-      ctx.lineTo(x, y - ry * 2.2);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawCustomAttackEffect(targetCtx, p, char) {
-      targetCtx.save();
-      const ab = p.attackBox;
-      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
-      targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
-      targetCtx.restore();
-    }
-
-    function drawHUD() {
-      const p1 = Object.values(playersData).find(p => p.playerNum === 1);
-      const p2 = Object.values(playersData).find(p => p.playerNum === 2);
-
-      if (p1 && characters[p1.characterKey]) {
-        const char1 = characters[p1.characterKey];
-        ctx.fillStyle = '#1a1a22';
-        ctx.fillRect(20, 20, 400, 24);
-        const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 400);
-        ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(20, 20, hp1Width, 24);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
-
-        let livesStr = '残機: ';
-        for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(livesStr, 20, 60);
+      if (p.invincibleFrames > 0) {
+        p.invincibleFrames--;
       }
 
-      if (p2 && characters[p2.characterKey]) {
-        const char2 = characters[p2.characterKey];
-        ctx.fillStyle = '#1a1a22';
-        ctx.fillRect(1200 - 20 - 400, 20, 400, 24);
-        const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 400);
-        ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(1200 - 20 - hp2Width, 20, hp2Width, 24);
+      const prevY = p.y;
+      p.vy += GRAVITY;
+      p.x += p.vx;
+      p.y += p.vy;
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(`${p2.name} (${char2.name})`, 1200 - 20, 15);
+      p.isGrounded = false;
+      const curH = char.height * (p.senobicTimer > 0 ? 2 : 1);
 
-        let livesStr = '残機: ';
-        for (let l = 0; l < (p2.lives || 0); l++) livesStr += '❤️ ';
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(livesStr, 1200 - 20, 60);
+      if (p.y + curH >= GROUND_Y) {
+        p.y = GROUND_Y - curH;
+        p.vy = 0;
+        p.isGrounded = true;
+        p.jumpCount = 0;
       }
-    }
-  </script>
-</body>
-</html>
+
+      if (p.vy >= 0) {
+        currentPlatforms.forEach(plat => {
+          const curW = char.width * (p.senobicTimer > 0 ? 2 : 1);
+          if (
+            p.x + curW > plat.x &&
+            p.x < plat.x + plat.width &&
+            prevY + curH <= plat.y &&
+            p.y + curH >= plat.y
+          ) {
+            p.y = plat.y - curH;
+            p.vy = 0;
+            p.isGrounded = true;
+            p.jumpCount = 0;
+          }
+        });
+      }
+
+      if (p.x < 0) p.x = 0;
+      if (p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) > STAGE_WIDTH) {
+        p.x = STAGE_WIDTH - (char.width * (p.senobicTimer > 0 ? 2 : 1));
+      }
+    });
+
+    playersArr.forEach((attacker) => {
+      if (!attacker || attacker.isKilled) return;
+      const defender = playersArr.find(p => p && p.id !== attacker.id);
+      if (!defender || defender.isKilled) return;
+
+      const defenderChar = CHARACTERS[defender.characterKey];
+      const defScale = defender.senobicTimer > 0 ? 2 : 1;
+
+      if (attacker.attackBox && defender.invincibleFrames === 0) {
+        const ab = attacker.attackBox;
+        const db = { x: defender.x, y: defender.y, width: defenderChar.width * defScale, height: defenderChar.height * defScale };
+
+        if (
+          ab.x < db.x + db.width &&
+          ab.x + ab.width > db.x &&
+          ab.y < db.y + db.height &&
+          ab.y + ab.height > db.y
+        ) {
+          defender.hp -= ab.damage;
+          const isArmored = (defenderChar.type === 'debugon' && defender.attacking) || defender.senobicTimer > 0;
+
+          if (defender.hp <= 0) {
+            defender.hp = 0;
+            defender.lives--;
+            defender.isKilled = true;
+            defender.killTimer = 0;
+            defender.vx = attacker.facing === 'right' ? 24 : -24;
+            defender.vy = -20;
+            io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
+          } else if (!isArmored) {
+            defender.stunFrames = 10;
+            defender.vy = -5;
+            defender.vx = attacker.facing === 'right' ? 12 : -12;
+          }
+
+          defender.invincibleFrames = 24;
+          attacker.attackBox = null;
+        }
+      }
+    });
+
+    io.to(code).emit('updateState', { players: room.players, items: room.items, projectiles: room.projectiles });
+  }
+}, 1000 / 60);
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
