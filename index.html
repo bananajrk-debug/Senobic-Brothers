@@ -859,7 +859,7 @@
       });
     }
 
-    // ★★★ プレビューのドアップを完全に修正（全身がすっぽり入るように調整） ★★★
+    // ★★★ プレビューのドアップを根本的に解消（スケールと配置位置を完全に修正） ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -872,13 +872,13 @@
       const char = characters[key];
 
       pCtx.save();
-      // ボックスの中央に配置し、スケールを縮小して全体が収まるようにする
-      pCtx.translate(72, 60);
-      pCtx.scale(0.45, 0.45);
+      // プレビューボックス中央に全身が確実に収まるよう、スケールを0.4に縮小し上部から配置
+      pCtx.translate(72, 8);
+      pCtx.scale(0.4, 0.4);
 
       const dummyPlayer = {
         x: -char.width / 2,
-        y: -char.height / 2,
+        y: 0,
         facing: 'right',
         characterKey: key,
         stunFrames: 0,
