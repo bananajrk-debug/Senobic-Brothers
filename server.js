@@ -271,21 +271,20 @@ io.on('connection', (socket) => {
       }
     }
 
-    // ★ 0.2秒(12フレーム)の厳密な攻撃クールタイム制御 (連打・交互連打防止)
+    // 0.2秒(12フレーム)の攻撃クールタイム制御
     if (input.attack && !p.attacking && p.attackCooldown <= 0) {
       p.attacking = true;
       p.attackType = input.attackType;
-      p.attackCooldown = 12; // 0.2秒間（12フレーム）次の攻撃不能
+      p.attackCooldown = 12;
 
       const isPunch = input.attackType === 'punch';
       let reach = isPunch ? 50 : 80;
 
-      // キャラごとの固有攻撃リーチ・高さ設定
-      if (char.type === 'ninja') reach = 180; // 手裏剣遠距離
-      else if (char.type === 'samurai') reach = 120; // 刀一閃
-      else if (char.type === 'wizard') reach = 150; // 魔法弾
-      else if (char.type === 'robot') reach = 130; // ロケットパンチ
-      else if (char.type === 'gorira') reach = 90; // 地面スマッシュ
+      if (char.type === 'ninja') reach = 180;
+      else if (char.type === 'samurai') reach = 120;
+      else if (char.type === 'wizard') reach = 150;
+      else if (char.type === 'robot') reach = 130;
+      else if (char.type === 'gorira') reach = 90;
 
       let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
