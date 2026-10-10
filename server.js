@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// キャラクターマスターデータ (10体)
+// キャラクターマスターデータ
 const CHARACTERS = {
   futsuo: { name: 'フツオ (ファイター)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: '万能格闘家' },
   debugon: { name: 'デブゴン (ヘビー)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: '不屈のアーマー' },
@@ -37,7 +37,7 @@ const CHARACTERS = {
   wizard: { name: 'ウィザード (メイジ)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '魔術展開' }
 };
 
-// ステージ定義 (全5種)
+// ステージ定義
 const STAGES = {
   1: { name: '平原 (PLAIN)', platforms: [] },
   2: { name: '浮島 (ISLANDS)', platforms: [
@@ -151,6 +151,7 @@ io.on('connection', (socket) => {
       maxHp: CHARACTERS[randomCpuChar].hp,
       isGrounded: false,
       attacking: false,
+      attackCooldown: 0,
       attackType: null,
       attackBox: null,
       stunFrames: 0,
@@ -270,12 +271,22 @@ io.on('connection', (socket) => {
       }
     }
 
-    if (input.attack && !p.attacking) {
+    // ★ 0.2秒(12フレーム)の厳密な攻撃クールタイム制御 (連打・交互連打防止)
+    if (input.attack && !p.attacking && p.attackCooldown <= 0) {
       p.attacking = true;
       p.attackType = input.attackType;
+      p.attackCooldown = 12; // 0.2秒間（12フレーム）次の攻撃不能
 
       const isPunch = input.attackType === 'punch';
       let reach = isPunch ? 50 : 80;
+
+      // キャラごとの固有攻撃リーチ・高さ設定
+      if (char.type === 'ninja') reach = 180; // 手裏剣遠距離
+      else if (char.type === 'samurai') reach = 120; // 刀一閃
+      else if (char.type === 'wizard') reach = 150; // 魔法弾
+      else if (char.type === 'robot') reach = 130; // ロケットパンチ
+      else if (char.type === 'gorira') reach = 90; // 地面スマッシュ
+
       let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
       
@@ -303,7 +314,7 @@ io.on('connection', (socket) => {
       };
 
       setTimeout(() => { p.attackBox = null; }, 140);
-      setTimeout(() => { p.attacking = false; }, 320);
+      setTimeout(() => { p.attacking = false; }, 200);
     }
   });
 
@@ -364,6 +375,7 @@ function startMatch(room) {
     pl.buffAtkTimer = 0;
     pl.buffSpeedTimer = 0;
     pl.senobicTimer = 0;
+    pl.attackCooldown = 0;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
@@ -385,6 +397,7 @@ function createPlayerData(socketId, playerNum, name) {
     maxHp: 100,
     isGrounded: false,
     attacking: false,
+    attackCooldown: 0,
     attackType: null,
     attackBox: null,
     stunFrames: 0,
@@ -426,12 +439,15 @@ function updateCpuAI(cpu, target) {
     cpu.isGrounded = false;
   }
 
-  if (Math.abs(distance) <= 75 && !cpu.attacking && Math.random() < 0.035) {
+  if (Math.abs(distance) <= 120 && !cpu.attacking && cpu.attackCooldown <= 0 && Math.random() < 0.035) {
     cpu.attacking = true;
+    cpu.attackCooldown = 12;
     const isPunch = Math.random() < 0.7;
     cpu.attackType = isPunch ? 'punch' : 'kick';
 
-    const reach = isPunch ? 50 : 80;
+    let reach = isPunch ? 50 : 80;
+    if (cpuChar.type === 'ninja') reach = 180;
+
     const attackHeight = isPunch ? cpuChar.height * 0.4 : cpuChar.height * 0.3;
     const attackYOffset = isPunch ? cpuChar.height * 0.2 : cpuChar.height * 0.4;
     let atkMult = cpu.buffAtkTimer > 0 ? 1.8 : (cpu.senobicTimer > 0 ? 50.0 : 1.0);
@@ -446,7 +462,7 @@ function updateCpuAI(cpu, target) {
     };
 
     setTimeout(() => { cpu.attackBox = null; }, 120);
-    setTimeout(() => { cpu.attacking = false; }, 500);
+    setTimeout(() => { cpu.attacking = false; }, 200);
   }
 }
 
@@ -548,6 +564,7 @@ setInterval(() => {
     playersArr.forEach(p => {
       if (!p) return;
 
+      if (p.attackCooldown > 0) p.attackCooldown--;
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
       if (p.senobicTimer > 0) p.senobicTimer--;
