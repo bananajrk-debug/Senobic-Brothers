@@ -36,13 +36,13 @@ const CHARACTERS = {
 const STAGES = {
   1: { name: '平原 (PLAIN)', platforms: [] },
   2: { name: '浮島 (ISLANDS)', platforms: [
-      { x: 150, y: 320, width: 200, height: 15 },
-      { x: 650, y: 320, width: 200, height: 15 },
-      { x: 400, y: 220, width: 200, height: 15 }
+      { x: 150, y: 320, width: 200, height: 18 },
+      { x: 650, y: 320, width: 200, height: 18 },
+      { x: 400, y: 210, width: 200, height: 18 }
     ]
   },
   3: { name: 'スリル (DOOM)', platforms: [
-      { x: 300, y: 330, width: 400, height: 15 }
+      { x: 280, y: 320, width: 440, height: 20 }
     ]
   }
 };
@@ -62,6 +62,7 @@ function createRoom(code) {
     code: code,
     players: {},
     items: [],
+    spawnedItemCount: 0, // 1試合で出現したアイテム数
     gameState: 'LOBBY',
     isCpuMode: false,
     selectedStage: 1,
@@ -300,6 +301,7 @@ io.on('connection', (socket) => {
       } else {
         room.gameState = 'LOBBY';
         room.items = [];
+        room.spawnedItemCount = 0;
         Object.values(room.players).forEach(p => { p.ready = false; });
         io.to(room.code).emit('gameState', { state: 'LOBBY', players: room.players, isCpuMode: false, code: room.code, selectedStage: room.selectedStage });
       }
@@ -330,6 +332,8 @@ io.on('connection', (socket) => {
 function startMatch(room) {
   room.gameState = 'PLAYING';
   room.items = [];
+  room.spawnedItemCount = 0; // 試合開始時にリセット
+
   Object.values(room.players).forEach(pl => {
     const char = CHARACTERS[pl.characterKey];
     pl.hp = char.hp;
@@ -432,8 +436,11 @@ function updateCpuAI(cpu, target) {
   }
 }
 
+// アイテム生成処理（画面上1個・1試合で最大3個まで）
 function spawnRandomItem(room) {
   if (room.items.length >= 1) return;
+  if (room.spawnedItemCount >= 3) return; // 3回出切っていたら出さない
+
   const types = ['heal', 'atk', 'speed'];
   const type = types[Math.floor(Math.random() * types.length)];
   room.items.push({
@@ -446,6 +453,7 @@ function spawnRandomItem(room) {
     height: 30,
     isGrounded: false
   });
+  room.spawnedItemCount++;
 }
 
 // メイン物理ループ
@@ -464,6 +472,7 @@ setInterval(() => {
     const p1 = room.players[playerIds[0]];
     const p2 = room.players[playerIds[1]];
 
+    // 確率でアイテムドロップ
     if (Math.random() < 0.0014) {
       spawnRandomItem(room);
     }
@@ -514,14 +523,14 @@ setInterval(() => {
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
 
-      // スマブラ風・長めの吹き飛び演出処理
+      // 長めのKO演出＆画面外へぶっ飛び処理
       if (p.isKilled) {
         p.x += p.vx;
         p.y += p.vy;
         p.killTimer++;
 
-        // 一定時間経過、または十分に画面外へ飛んだらゲーム終了
-        if (p.killTimer > 90 || p.x < -400 || p.x > STAGE_WIDTH + 400 || p.y < -500 || p.y > GROUND_Y + 500) {
+        // 180フレーム (約3秒間) 演出を維持してからリザルト画面へ遷移
+        if (p.killTimer > 180) {
           const winner = playersArr.find(pl => pl && pl.id !== p.id);
           room.gameState = 'FINISHED';
           io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
@@ -599,9 +608,9 @@ setInterval(() => {
             defender.hp = 0;
             defender.isKilled = true;
             defender.killTimer = 0;
-            // 豪快に画面外へぶっ飛ぶ初速
-            defender.vx = attacker.facing === 'right' ? 22 : -22;
-            defender.vy = -16;
+            // 画面上へ大きく舞い上がって飛んでいく初速設定
+            defender.vx = attacker.facing === 'right' ? 18 : -18;
+            defender.vy = -18;
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
           } else if (!isDebugonArmored) {
             defender.stunFrames = defenderChar.type === 'futsuo' ? 8 : 12;
