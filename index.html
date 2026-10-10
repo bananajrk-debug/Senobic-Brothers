@@ -12,7 +12,7 @@
       user-select: none;
     }
     body {
-      background-color: #1e1e24;
+      background-color: #16161a;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
@@ -26,11 +26,11 @@
       position: relative;
       width: 1000px;
       height: 500px;
-      border: 2px solid #333;
+      border: 2px solid #444;
       border-radius: 8px;
-      background-color: #121216;
+      background-color: #0b0b0e;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     }
     canvas {
       display: block;
@@ -43,7 +43,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #121216;
+      background: #0b0b0e;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -57,53 +57,37 @@
       background: #3498db;
       color: #fff;
       border: none;
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 10px 22px;
+      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
       border-radius: 6px;
-      margin-top: 10px;
+      margin-top: 8px;
       transition: background 0.2s;
     }
-    .btn:hover {
-      background: #2980b9;
-    }
-    .btn-ready {
-      background: #2ecc71;
-    }
-    .btn-ready:hover {
-      background: #27ae60;
-    }
-    .btn-cancel {
-      background: #e74c3c;
-    }
-    .btn-cancel:hover {
-      background: #c0392b;
-    }
-    .btn-cpu {
-      background: #9b59b6;
-    }
-    .btn-cpu:hover {
-      background: #8e44ad;
-    }
+    .btn:hover { background: #2980b9; }
+    .btn-ready { background: #2ecc71; }
+    .btn-ready:hover { background: #27ae60; }
+    .btn-cancel { background: #e74c3c; }
+    .btn-cancel:hover { background: #c0392b; }
+    .btn-cpu { background: #9b59b6; }
+    .btn-cpu:hover { background: #8e44ad; }
     .btn-stage {
-      background: #444;
-      font-size: 12px;
-      padding: 6px 12px;
+      background: #333;
+      font-size: 11px;
+      padding: 5px 10px;
       margin-top: 0;
     }
-    .btn-stage.active {
-      background: #f39c12;
-    }
+    .btn-stage.active { background: #f39c12; }
 
     input[type="text"], input[type="number"] {
-      width: 200px;
-      padding: 8px 12px;
-      font-size: 16px;
+      width: 180px;
+      padding: 6px 10px;
+      font-size: 15px;
       text-align: center;
       border-radius: 6px;
       border: 2px solid #3498db;
-      background: #1e1e24;
+      background: #16161a;
       color: #fff;
       outline: none;
     }
@@ -117,28 +101,22 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 24px;
+      padding: 20px;
       pointer-events: none;
     }
-    .interactive {
-      pointer-events: auto;
-    }
+    .interactive { pointer-events: auto; }
     .lobby-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       width: 100%;
     }
-    .lobby-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #fff;
-    }
+    .lobby-title { font-size: 22px; font-weight: bold; }
     .badge {
-      background: #2a2a35;
-      padding: 8px 18px;
+      background: #22222a;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
       color: #3498db;
       border: 1px solid #3498db;
@@ -151,35 +129,31 @@
 
     #stamp-bar {
       display: flex;
-      gap: 8px;
-      margin-top: 10px;
+      gap: 6px;
+      margin-top: 8px;
       pointer-events: auto;
     }
     .stamp-btn {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: #2c3e50;
       border: 2px solid #3498db;
-      font-size: 20px;
+      font-size: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-      transition: transform 0.1s, background 0.2s;
+      transition: transform 0.1s;
     }
-    .stamp-btn:hover {
-      transform: scale(1.15);
-      background: #34495e;
-    }
+    .stamp-btn:hover { transform: scale(1.15); }
 
     #countdown-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 100px;
+      font-size: 90px;
       font-weight: 900;
       color: #f1c40f;
       text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
@@ -187,71 +161,75 @@
       z-index: 15;
     }
 
+    /* 拡大はみ出しを防ぐためグリッド・スクロール可能なモーダルに調整[cite: 4] */
     #select-modal {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(18, 18, 22, 0.95);
+      background: rgba(11, 11, 14, 0.96);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 20;
+      padding: 20px;
     }
-    .char-list {
-      display: flex;
-      gap: 12px;
-      margin: 20px 0;
+    .char-list-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      max-width: 900px;
+      margin: 15px 0;
     }
     .char-card {
       width: 150px;
-      height: 230px;
-      border: 2px solid #333;
-      border-radius: 8px;
-      padding: 10px;
+      height: 200px;
+      border: 2px solid #444;
+      border-radius: 6px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      background: #1e1e24;
+      background: #1a1a22;
       cursor: pointer;
       transition: border-color 0.2s, transform 0.2s;
     }
     .char-card:hover, .char-card.active {
       border-color: #3498db;
-      transform: translateY(-4px);
+      transform: translateY(-3px);
     }
     .char-preview-box {
       width: 100%;
-      height: 90px;
+      height: 75px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #121216;
+      background: #0f0f13;
       border-radius: 4px;
       overflow: hidden;
     }
     .char-stats {
-      font-size: 11px;
+      font-size: 10px;
       width: 100%;
-      color: #888;
-      line-height: 1.3;
+      color: #aaa;
+      line-height: 1.2;
     }
     .ability-box {
-      font-size: 10px;
+      font-size: 9px;
       color: #f1c40f;
       font-weight: bold;
       background: rgba(241, 196, 15, 0.1);
-      padding: 3px 5px;
-      border-radius: 4px;
-      margin-top: 3px;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-top: 2px;
     }
 
     #controls-guide {
-      margin-top: 12px;
-      font-size: 14px;
+      margin-top: 10px;
+      font-size: 13px;
       color: #aaa;
       text-align: center;
       font-weight: bold;
@@ -265,51 +243,53 @@
 
     <div id="countdown-overlay" class="hidden">3</div>
 
-    <!-- 1. メインタイトル画面 -->
+    <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
-      <h1 style="font-size: 38px; margin-bottom: 8px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 15px;">2D ONLINE FIGHTING GAME</p>
+      <h1 style="font-size: 34px; margin-bottom: 6px;">セノビックブラザーズ</h1>
+      <p style="color: #888; font-size: 13px; margin-bottom: 15px;">STREET FIGHTER × SMASH BROS</p>
       
-      <div style="margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-        <label style="font-size: 13px; color: #aaa;">プレイヤー名:</label>
+      <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
         <input type="text" id="player-name-input" value="Player 1" maxlength="10">
       </div>
 
-      <div style="display: flex; gap: 15px; align-items: center;">
-        <button class="btn" onclick="createOnlineRoom()">部屋を作る (コード生成)</button>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button class="btn" onclick="createOnlineRoom()">部屋を作る</button>
         <button class="btn btn-cpu" onclick="openCpuSetup()">1人でCPU対戦</button>
       </div>
 
-      <div style="margin-top: 20px; display: flex; flex-direction: column; align-items: center;">
-        <p style="font-size: 14px; color: #aaa;">4桁の部屋コードで参加:</p>
-        <div style="display: flex; gap: 10px; margin-top: 5px;">
+      <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center;">
+        <p style="font-size: 13px; color: #aaa;">4桁の部屋コードで参加:</p>
+        <div style="display: flex; gap: 8px; margin-top: 4px;">
           <input type="number" id="room-code-input" placeholder="1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
-          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 0; padding: 8px 16px;">部屋に入る</button>
+          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 0; padding: 6px 14px;">入室</button>
         </div>
-        <p id="error-msg" style="color: #e74c3c; font-size: 13px; margin-top: 8px;"></p>
+        <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 6px;"></p>
       </div>
     </div>
 
-    <!-- 2. CPU対戦 設定画面 -->
+    <!-- 2. CPU対戦設定画面 -->
     <div id="screen-cpu-setup" class="overlay hidden">
-      <h2 style="font-size: 24px; margin-bottom: 10px;">CPU対戦 設定</h2>
+      <h2 style="font-size: 22px; margin-bottom: 8px;">CPU対戦 設定</h2>
       
-      <div style="margin-bottom: 15px; text-align: center;">
-        <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">使用するキャラクター:</label>
-        <div id="cpu-char-label" style="font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 8px;">フツオ (普通)</div>
-        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; background: #333;">キャラクター変更</button>
+      <div style="margin-bottom: 12px; text-align: center;">
+        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">キャラクター:</label>
+        <div id="cpu-char-label" style="font-size: 15px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (普通)</div>
+        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #333;">変更する</button>
       </div>
 
-      <div style="margin-bottom: 20px; text-align: center;">
-        <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">対戦ステージ:</label>
-        <div style="display: flex; gap: 10px; justify-content: center;">
+      <div style="margin-bottom: 15px; text-align: center;">
+        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">ステージ:</label>
+        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 400px;">
           <button class="btn btn-stage active" id="btn-cpu-stage-1" onclick="selectCpuStage(1)">平原</button>
           <button class="btn btn-stage" id="btn-cpu-stage-2" onclick="selectCpuStage(2)">浮島</button>
           <button class="btn btn-stage" id="btn-cpu-stage-3" onclick="selectCpuStage(3)">スリル</button>
+          <button class="btn btn-stage" id="btn-cpu-stage-4" onclick="selectCpuStage(4)">神殿</button>
+          <button class="btn btn-stage" id="btn-cpu-stage-5" onclick="selectCpuStage(5)">宇宙</button>
         </div>
       </div>
 
-      <div style="display: flex; gap: 15px;">
+      <div style="display: flex; gap: 12px;">
         <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート！</button>
         <button class="btn" onclick="goToTitle()" style="background: #555;">戻る</button>
       </div>
@@ -321,31 +301,33 @@
         <div class="lobby-top">
           <div class="lobby-title">
             LOBBY
-            <div style="margin-top: 5px; display: flex; gap: 5px;" class="interactive">
+            <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
               <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
               <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
               <button class="btn btn-stage" id="btn-stage-3" onclick="selectStage(3)">スリル</button>
+              <button class="btn btn-stage" id="btn-stage-4" onclick="selectStage(4)">神殿</button>
+              <button class="btn btn-stage" id="btn-stage-5" onclick="selectStage(5)">宇宙</button>
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
             <div id="room-code-badge" class="badge">ROOM CODE: ----</div>
             <div id="stamp-bar">
-              <button class="stamp-btn" onclick="sendStamp('👍')" title="グッド [1]">👍</button>
-              <button class="stamp-btn" onclick="sendStamp('👎')" title="バット [2]">👎</button>
-              <button class="stamp-btn" onclick="sendStamp('❤️')" title="ハート [3]">❤️</button>
-              <button class="stamp-btn" onclick="sendStamp('💢')" title="怒り [4]">💢</button>
+              <button class="stamp-btn" onclick="sendStamp('👍')" title="👍">👍</button>
+              <button class="stamp-btn" onclick="sendStamp('👎')" title="👎">👎</button>
+              <button class="stamp-btn" onclick="sendStamp('❤️')" title="❤️">❤️</button>
+              <button class="stamp-btn" onclick="sendStamp('💢')" title="💢">💢</button>
             </div>
           </div>
         </div>
 
         <div class="lobby-bottom">
-          <div class="interactive" style="display: flex; gap: 10px; align-items: flex-end;">
+          <div class="interactive" style="display: flex; gap: 8px; align-items: flex-end;">
             <div>
-              <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 3px;">名前変更:</label>
+              <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">名前変更:</label>
               <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
             </div>
-            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; padding: 8px 16px; background: #333;">キャラを変更</button>
+            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 6px 12px; background: #333;">キャラ変更</button>
           </div>
 
           <div class="interactive">
@@ -355,25 +337,25 @@
       </div>
     </div>
 
-    <!-- 4. キャラクター選択モーダル -->
+    <!-- 4. キャラクター選択モーダル（10体グリッド）[cite: 4] -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 20px;">キャラクターを選択</h2>
-      <div class="char-list" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()">決定</button>
+      <h2 style="font-size: 18px; margin-bottom: 5px;">キャラクターを選択</h2>
+      <div class="char-list-grid" id="char-list"></div>
+      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 20px;">決定</button>
     </div>
 
-    <!-- 5. 勝敗決着画面 -->
+    <!-- 5. 勝敗画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 36px; color: #f1c40f; margin-bottom: 20px;">PLAYER 1 WIN!</h2>
-      <div style="display: flex; gap: 15px;">
-        <button class="btn btn-ready" onclick="requestRematch()">もう一度戦う (Enter)</button>
-        <button class="btn" onclick="returnFromGameover()" style="background: #555;">設定・タイトルに戻る</button>
+      <h2 id="winner-text" style="font-size: 32px; color: #f1c40f; margin-bottom: 15px;">PLAYER 1 WIN!</h2>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-ready" onclick="requestRematch()">もう一度 (Enter)</button>
+        <button class="btn" onclick="returnFromGameover()" style="background: #555;">タイトルへ</button>
       </div>
     </div>
   </div>
 
   <div id="controls-guide">
-    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ <span style="color: #3498db;">[1-4] スタンプ</span>
+    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ <span style="color: #3498db;">[1-4] スタンプ</span>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -401,14 +383,18 @@
     let myPlayerNum = null;
     let currentCode = null;
     let characters = {
-      futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能（低硬直）' },
-      debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー（攻撃中不屈）' },
-      garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
-      chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
-      hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避バックステップ' }
+      futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能' },
+      debugon: { name: 'デブゴン (重量)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー' },
+      garinoshin: { name: 'ガリノシン (俊敏)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
+      chibikoro: { name: 'チビコロ (急降下)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
+      hime: { name: 'ヒメ (回避)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵バックステップ' },
+      gorira: { name: 'ゴリラ (豪腕)', hp: 170, atk: 22, speed: 4.5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '圧倒的パワー' },
+      ninja: { name: 'ニンジャ (隠密)', hp: 75, atk: 13, speed: 12, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '超高速ダッシュ' },
+      robot: { name: 'ロボット (重鋼)', hp: 140, atk: 17, speed: 5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐久メタル' },
+      samurai: { name: 'サムライ (居合)', hp: 95, atk: 19, speed: 8.5, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '強烈な一撃' },
+      wizard: { name: 'ウィザード (魔導)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '浮遊マジック' }
     };
     let characterKeys = Object.keys(characters);
-    let stages = {};
     let selectedStage = 1;
     let cpuSelectedStage = 1;
     let cpuSelectedCharKey = 'futsuo';
@@ -421,6 +407,102 @@
     let isCpuModeGame = false;
     let visualEffects = [];
 
+    // --- Web Audio API による サウンド (BGM & SE) システム ---
+    let audioCtx = null;
+    let bgmTimer = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSE(type) {
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'punch') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'item') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'senobic') {
+          // セノビック取得時の爽快ファンファーレ
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(554.37, now + 0.1);
+          osc.frequency.setValueAtTime(659.25, now + 0.2);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'ko') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.linearRampToValueAtTime(30, now + 0.4);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch (e) {
+        console.log("Audio error:", e);
+      }
+    }
+
+    function startBGM() {
+      if (bgmTimer) return;
+      // 軽めのリズムBGMループ
+      const notes = [220, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00];
+      let step = 0;
+      bgmTimer = setInterval(() => {
+        if (currentGameState !== 'PLAYING') return;
+        try {
+          initAudio();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+          
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.15);
+          step++;
+        } catch(e) {}
+      }, 250);
+    }
+
+    function stopBGM() {
+      if (bgmTimer) {
+        clearInterval(bgmTimer);
+        bgmTimer = null;
+      }
+    }
+
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
 
     renderCharCards();
@@ -430,7 +512,6 @@
       myPlayerNum = data.playerNum;
       characters = data.characters;
       characterKeys = Object.keys(characters);
-      stages = data.stages;
       roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
       if (!isCpuModeGame) goToLobby();
       renderCharCards();
@@ -441,7 +522,6 @@
       myPlayerNum = data.playerNum;
       characters = data.characters;
       characterKeys = Object.keys(characters);
-      stages = data.stages;
       roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
       goToLobby();
       renderCharCards();
@@ -468,12 +548,17 @@
     });
 
     socket.on('koEffect', (data) => {
-      // 演出時間を約3秒間（180フレーム）に延長
+      playSE('ko');
       visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 180 });
       visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 180 });
     });
 
     socket.on('itemCollected', (data) => {
+      if (data.type === 'senobic') {
+        playSE('senobic');
+      } else {
+        playSE('item');
+      }
       visualEffects.push({ type: 'ITEM_GET', playerId: data.playerId, itemType: data.type, timer: 40 });
     });
 
@@ -503,6 +588,7 @@
       itemsData = [];
       visualEffects = [];
       if (data.selectedStage) selectedStage = data.selectedStage;
+      startBGM();
       updateUI();
     });
 
@@ -517,17 +603,20 @@
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
       isCpuModeGame = !!data.isCpuMode;
+      stopBGM();
       winnerText.textContent = `${data.winnerName} VICTORY! (K.O.)`;
       updateUI();
     });
 
     socket.on('playerLeft', () => {
+      stopBGM();
       alert('対戦相手が切断されました。タイトルに戻ります。');
       goToTitle();
     });
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+      initAudio();
 
       if (e.key === '1') sendStamp('👍');
       if (e.key === '2') sendStamp('👎');
@@ -538,8 +627,8 @@
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
-        if (e.key === 'k' || e.key === 'K') { keys.attack = true; keys.attackType = 'punch'; }
-        if (e.key === 'o' || e.key === 'O') { keys.attack = true; keys.attackType = 'kick'; }
+        if (e.key === 'k' || e.key === 'K') { keys.attack = true; keys.attackType = 'punch'; playSE('punch'); }
+        if (e.key === 'o' || e.key === 'O') { keys.attack = true; keys.attackType = 'kick'; playSE('punch'); }
         sendInputs();
         keys.jumpPrev = keys.jump;
       } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
@@ -576,7 +665,7 @@
 
     function selectCpuStage(stageId) {
       cpuSelectedStage = stageId;
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 5; i++) {
         const btn = document.getElementById(`btn-cpu-stage-${i}`);
         if (btn) {
           if (i === stageId) btn.classList.add('active');
@@ -586,7 +675,7 @@
     }
 
     function updateStageButtonsUI() {
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 5; i++) {
         const btn = document.getElementById(`btn-stage-${i}`);
         if (btn) {
           if (i === selectedStage) btn.classList.add('active');
@@ -641,6 +730,7 @@
     }
 
     function goToTitle() {
+      stopBGM();
       currentGameState = 'TITLE';
       updateUI();
     }
@@ -704,7 +794,7 @@
       if (myData) {
         lobbyNameInput.value = myData.name;
         if (myData.ready) {
-          readyBtn.textContent = '準備完了を解除';
+          readyBtn.textContent = '準備完了解除';
           readyBtn.className = 'btn btn-cancel interactive';
         } else {
           readyBtn.textContent = '対戦準備完了';
@@ -726,16 +816,14 @@
         };
 
         card.innerHTML = `
-          <div style="font-weight:bold; font-size:12px;">${char.name}</div>
+          <div style="font-weight:bold; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
           <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
-            HP: ${char.hp} | ATK: ${char.atk}<br>
-            SPD: ${char.speed}
+            HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
             <div class="ability-box">${char.ability}</div>
           </div>
         `;
         charListContainer.appendChild(card);
-
         setTimeout(() => drawCardMiniPreview(key), 0);
       });
     }
@@ -743,30 +831,27 @@
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
-
       box.innerHTML = '';
       const pCanvas = document.createElement('canvas');
       pCanvas.width = 120;
-      pCanvas.height = 90;
+      pCanvas.height = 75;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(60, 75);
-      const scale = 0.5;
-      pCtx.scale(scale, scale);
+      pCtx.translate(60, 65);
+      pCtx.scale(0.45, 0.45);
 
       const dummyPlayer = {
         x: -char.width / 2,
         y: -char.height,
         facing: 'right',
         characterKey: key,
-        stunFrames: 0
+        stunFrames: 0,
+        senobicTimer: 0
       };
-
-      drawGraphicCharacter(pCtx, dummyPlayer, char);
+      drawRealisticCharacter(pCtx, dummyPlayer, char);
       pCtx.restore();
-
       box.appendChild(pCanvas);
     }
 
@@ -777,18 +862,14 @@
       function loop() {
         if (currentGameState !== 'LOBBY') return;
 
-        ctx.fillStyle = '#18181c';
+        ctx.fillStyle = '#111116';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#22222a';
+        ctx.fillStyle = '#1c1c24';
         ctx.beginPath();
-        ctx.ellipse(500, 420, 170, 30, 0, 0, Math.PI * 2);
-        ctx.ellipse(800, 420, 110, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(500, 420, 180, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(800, 420, 110, 18, 0, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.strokeStyle = '#333340';
-        ctx.lineWidth = 2;
-        ctx.stroke();
 
         const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
         const opponentData = Object.values(playersData).find(p => p.playerNum !== myPlayerNum);
@@ -797,31 +878,18 @@
           const char = characters[myData.characterKey];
           ctx.save();
           ctx.translate(500, 410);
-          ctx.scale(1.7, 1.7);
-
-          const lobbyMe = {
-            x: -char.width / 2,
-            y: -char.height,
-            facing: 'right',
-            characterKey: myData.characterKey,
-            stunFrames: 0
-          };
-          drawGraphicCharacter(ctx, lobbyMe, char);
+          ctx.scale(1.6, 1.6);
+          const lobbyMe = { x: -char.width / 2, y: -char.height, facing: 'right', characterKey: myData.characterKey, stunFrames: 0, senobicTimer: 0 };
+          drawRealisticCharacter(ctx, lobbyMe, char);
           ctx.restore();
 
           ctx.fillStyle = '#f1c40f';
-          ctx.font = 'bold 18px sans-serif';
+          ctx.font = 'bold 16px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(`★ ${myData.name} (YOU)`, 500, 450);
-
           ctx.fillStyle = myData.ready ? '#2ecc71' : '#e74c3c';
-          ctx.font = '14px sans-serif';
+          ctx.font = '13px sans-serif';
           ctx.fillText(myData.ready ? '【 準備完了 】' : '【 選択中... 】', 500, 472);
-
-          if (activeStamps[myData.id] && activeStamps[myData.id].timer > 0) {
-            drawStampEffect(ctx, 500, 210, activeStamps[myData.id].stamp);
-            activeStamps[myData.id].timer--;
-          }
         }
 
         if (opponentData && characters[opponentData.characterKey]) {
@@ -829,66 +897,66 @@
           ctx.save();
           ctx.translate(800, 410);
           ctx.scale(1.2, 1.2);
-
-          const lobbyOp = {
-            x: -charOp.width / 2,
-            y: -charOp.height,
-            facing: 'left',
-            characterKey: opponentData.characterKey,
-            stunFrames: 0
-          };
-          drawGraphicCharacter(ctx, lobbyOp, charOp);
+          const lobbyOp = { x: -charOp.width / 2, y: -charOp.height, facing: 'left', characterKey: opponentData.characterKey, stunFrames: 0, senobicTimer: 0 };
+          drawRealisticCharacter(ctx, lobbyOp, charOp);
           ctx.restore();
 
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 15px sans-serif';
+          ctx.font = 'bold 14px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(opponentData.name, 800, 445);
-
           ctx.fillStyle = opponentData.ready ? '#2ecc71' : '#e74c3c';
           ctx.font = '12px sans-serif';
           ctx.fillText(opponentData.ready ? '【 準備完了 】' : '【 選択中... 】', 800, 465);
-
-          if (activeStamps[opponentData.id] && activeStamps[opponentData.id].timer > 0) {
-            drawStampEffect(ctx, 800, 270, activeStamps[opponentData.id].stamp);
-            activeStamps[opponentData.id].timer--;
-          }
         } else {
           ctx.fillStyle = '#555';
-          ctx.font = 'bold 15px sans-serif';
+          ctx.font = 'bold 14px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('対戦相手を待機中...', 800, 390);
         }
 
         lobbyAnimId = requestAnimationFrame(loop);
       }
-
       loop();
     }
 
     function renderGame() {
-      ctx.fillStyle = '#121216';
+      ctx.fillStyle = '#0b0b0e';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 高クオリティ背景描画
       drawStageBackground(selectedStage);
 
-      // アイテム描画
+      // アイテム描画（サイズ大きめ＆セノビックドリンク対応）
       itemsData.forEach(item => {
         ctx.save();
-        ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#e74c3c');
-        ctx.beginPath();
-        ctx.arc(item.x + 15, item.y + 15, 15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
-        ctx.fillText(label, item.x + 15, item.y + 20);
+        if (item.type === 'senobic') {
+          // セノビックドリンクボトルを描画
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(-14, -18, 28, 36);
+          ctx.fillStyle = '#f1c40f';
+          ctx.fillRect(-10, -10, 20, 20);
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('SEN', 0, 4);
+        } else {
+          ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#3498db');
+          ctx.beginPath();
+          ctx.arc(0, 0, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 18px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
+          ctx.fillText(label, 0, 0);
+        }
         ctx.restore();
       });
 
@@ -896,60 +964,55 @@
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
-
         if (p.invincibleFrames % 4 > 2) return;
 
-        ctx.save();
+        const scale = p.senobicTimer > 0 ? 2 : 1;
+        const curW = char.width * scale;
+        const curH = char.height * scale;
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(p.x + char.width / 2, p.y + char.height, char.width * 0.5, 6, 0, 0, Math.PI * 2);
+        ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.5, 7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        drawGraphicCharacter(ctx, p, char);
+        drawRealisticCharacter(ctx, p, char);
 
         if (p.attackBox) {
           drawAttackEffect(ctx, p, char);
         }
 
         ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
-        ctx.font = 'bold 14px sans-serif';
+        ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(p.name, p.x + char.width / 2, p.y - 10);
+        ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
 
-        if (p.buffAtkTimer > 0 || p.buffSpeedTimer > 0) {
-          ctx.font = '12px sans-serif';
-          let buffStr = '';
-          if (p.buffAtkTimer > 0) buffStr += '⭐ATK ';
-          if (p.buffSpeedTimer > 0) buffStr += '👟SPD';
+        let statusStr = '';
+        if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
+        if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
+        if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
+        if (statusStr) {
+          ctx.font = 'bold 11px sans-serif';
           ctx.fillStyle = '#f1c40f';
-          ctx.fillText(buffStr, p.x + char.width / 2, p.y - 25);
+          ctx.fillText(statusStr, p.x + curW / 2, p.y - 28);
         }
 
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + char.width / 2, p.y - 45, activeStamps[p.id].stamp);
+          drawStampEffect(ctx, p.x + curW / 2, p.y - 45, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
         }
 
         ctx.restore();
       });
 
-      // スロー＆豪華KO演出描画
+      // エフェクト描画
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
         if (fx.type === 'KO_FLASH') {
-          // 赤い閃光と爆発リング
           ctx.fillStyle = `rgba(231, 76, 60, ${Math.min(0.6, fx.timer / 100)})`;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.strokeStyle = '#f1c40f';
-          ctx.lineWidth = 8;
-          ctx.beginPath();
-          ctx.arc(fx.x, fx.y, (180 - fx.timer) * 4, 0, Math.PI * 2);
-          ctx.stroke();
         } else if (fx.type === 'KO_TEXT') {
-          // 画面中央に広がる集中線
           ctx.strokeStyle = 'rgba(255, 235, 59, 0.35)';
           ctx.lineWidth = 4;
           for (let a = 0; a < Math.PI * 2; a += 0.25) {
@@ -958,8 +1021,6 @@
             ctx.lineTo(fx.x + Math.cos(a) * 800, fx.y + Math.sin(a) * 800);
             ctx.stroke();
           }
-
-          // ド派手な K. O. 文字
           ctx.fillStyle = '#f1c40f';
           ctx.font = '900 80px Impact, sans-serif';
           ctx.textAlign = 'center';
@@ -968,7 +1029,6 @@
           ctx.fillText('K. O. ! !', 500, 240);
         }
         ctx.restore();
-
         fx.timer--;
         if (fx.timer <= 0) visualEffects.splice(i, 1);
       }
@@ -976,90 +1036,66 @@
       drawHUD();
     }
 
-    // --- 高クオリティマップ（ステージ）背景描画 ---
+    // --- ステージ背景 (全5種・高クオリティ) ---
     function drawStageBackground(stageId) {
       if (stageId === 1) {
-        // 平原 (PLAIN) : 朝焼けのグラデーション ＆ 豊かな緑と芝生
+        // 1: 平原
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
-        grad.addColorStop(0, '#2b5876');
-        grad.addColorStop(0.6, '#4e4376');
-        grad.addColorStop(1, '#1e1e24');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 地面 (緑の大地)
-        const groundGrad = ctx.createLinearGradient(0, 450, 0, 500);
-        groundGrad.addColorStop(0, '#27ae60');
-        groundGrad.addColorStop(0.2, '#219150');
-        groundGrad.addColorStop(1, '#145a32');
-        ctx.fillStyle = groundGrad;
-        ctx.fillRect(0, 450, canvas.width, 50);
-
-        // 芝生の上の光ハイライト
-        ctx.fillStyle = '#2ecc71';
-        ctx.fillRect(0, 450, canvas.width, 4);
-
+        grad.addColorStop(0, '#2b5876'); grad.addColorStop(1, '#1e1e24');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 450, canvas.width, 50);
       } else if (stageId === 2) {
-        // 浮島 (ISLANDS) : ネオンサイバー ＆ 星空
+        // 2: 浮島
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
-        grad.addColorStop(0, '#0f0c29');
-        grad.addColorStop(0.5, '#302b63');
-        grad.addColorStop(1, '#24243e');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // メインフロア (浮遊サイバー台)
-        ctx.fillStyle = '#1a1a24';
-        ctx.fillRect(0, 450, canvas.width, 50);
-        ctx.fillStyle = '#00f2fe';
-        ctx.fillRect(0, 450, canvas.width, 3); // 青ネオンライン
-
-        // 空中プラットフォーム 3つ
-        const plats = [
-          { x: 150, y: 320, w: 200, h: 18 },
-          { x: 650, y: 320, w: 200, h: 18 },
-          { x: 400, y: 210, w: 200, h: 18 }
-        ];
-
+        grad.addColorStop(0, '#0f0c29'); grad.addColorStop(1, '#24243e');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#1a1a24'; ctx.fillRect(0, 450, canvas.width, 50);
+        ctx.fillStyle = '#00f2fe'; ctx.fillRect(0, 450, canvas.width, 3);
+        const plats = [{x:150, y:320, w:200, h:18},{x:650, y:320, w:200, h:18},{x:400, y:210, w:200, h:18}];
         plats.forEach(pt => {
-          ctx.fillStyle = '#222230';
-          ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
-          ctx.strokeStyle = '#4facfe';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
-          ctx.fillStyle = '#00f2fe';
-          ctx.fillRect(pt.x, pt.y, pt.w, 3);
+          ctx.fillStyle = '#222230'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
-
       } else if (stageId === 3) {
-        // スリル (DOOM) : 危険な溶岩地帯 ＆ メタルの足場
+        // 3: スリル
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
-        grad.addColorStop(0, '#310404');
-        grad.addColorStop(0.7, '#671010');
-        grad.addColorStop(1, '#ff4e50');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 地面 (メタル)
-        ctx.fillStyle = '#2c2c2c';
-        ctx.fillRect(0, 450, canvas.width, 50);
-        ctx.fillStyle = '#f39c12';
-        ctx.fillRect(0, 450, canvas.width, 4); // 警告イエローライン
-
-        // 中央の大きなメタルプラットフォーム
-        ctx.fillStyle = '#3a3a3a';
-        ctx.fillRect(280, 320, 440, 20);
-        ctx.strokeStyle = '#e74c3c';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(280, 320, 440, 20);
-        ctx.fillStyle = '#ff4e50';
-        ctx.fillRect(280, 320, 440, 3);
+        grad.addColorStop(0, '#310404'); grad.addColorStop(1, '#ff4e50');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2c2c2c'; ctx.fillRect(0, 450, canvas.width, 50);
+        ctx.fillStyle = '#3a3a3a'; ctx.fillRect(280, 320, 440, 20);
+        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2; ctx.strokeRect(280, 320, 440, 20);
+      } else if (stageId === 4) {
+        // 4: 神殿
+        const grad = ctx.createLinearGradient(0, 0, 0, 500);
+        grad.addColorStop(0, '#4b6cb7'); grad.addColorStop(1, '#182848');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#d4af37'; ctx.fillRect(0, 450, canvas.width, 50);
+        const plats = [{x:200, y:340, w:180, h:16},{x:620, y:340, w:180, h:16},{x:410, y:230, w:180, h:16}];
+        plats.forEach(pt => {
+          ctx.fillStyle = '#222'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+        });
+      } else if (stageId === 5) {
+        // 5: 宇宙
+        const grad = ctx.createLinearGradient(0, 0, 0, 500);
+        grad.addColorStop(0, '#000000'); grad.addColorStop(1, '#050515');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 星のきらめき
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(150, 80, 3, 3); ctx.fillRect(400, 120, 2, 2); ctx.fillRect(750, 90, 3, 3); ctx.fillRect(900, 200, 2, 2);
+        ctx.fillStyle = '#111122'; ctx.fillRect(0, 450, canvas.width, 50);
+        ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 450, canvas.width, 3);
+        const plats = [{x:100, y:360, w:220, h:15},{x:680, y:360, w:220, h:15},{x:380, y:240, w:240, h:15}];
+        plats.forEach(pt => {
+          ctx.fillStyle = '#1a1a2e'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeStyle = '#ff007f'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+        });
       }
     }
 
     function drawStampEffect(targetCtx, x, y, emoji) {
       targetCtx.save();
-      targetCtx.font = '36px sans-serif';
+      targetCtx.font = '34px sans-serif';
       targetCtx.textAlign = 'center';
       targetCtx.shadowColor = 'rgba(0,0,0,0.8)';
       targetCtx.shadowBlur = 8;
@@ -1067,126 +1103,115 @@
       targetCtx.restore();
     }
 
-    function drawGraphicCharacter(targetCtx, p, char) {
+    // --- キャラクターのリアル風高精度グラフィック描画 (全10体) ---
+    function drawRealisticCharacter(targetCtx, p, char) {
       targetCtx.save();
-
-      const cx = p.x + char.width / 2;
+      const scale = p.senobicTimer > 0 ? 2 : 1;
+      const w = char.width * scale;
+      const h = char.height * scale;
+      const cx = p.x + w / 2;
       const isRight = p.facing === 'right';
       const dir = isRight ? 1 : -1;
 
       if (p.stunFrames > 0) {
-        targetCtx.filter = 'brightness(1.5) sepia(1)';
+        targetCtx.filter = 'brightness(1.6) sepia(1)';
       }
 
-      // KO吹き飛び中の回転アニメーション
       if (p.isKilled) {
-        targetCtx.translate(cx, p.y + char.height / 2);
+        targetCtx.translate(cx, p.y + h / 2);
         targetCtx.rotate(p.killTimer * 0.15);
-        targetCtx.translate(-cx, -(p.y + char.height / 2));
+        targetCtx.translate(-cx, -(p.y + h / 2));
       }
 
+      // 共通立体グラデーション＆筋肉・服の描き込み
       switch (char.type) {
         case 'futsuo':
-          targetCtx.fillStyle = '#3498db';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.45, char.height * 0.3, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#f1c40f';
-          targetCtx.beginPath();
-          targetCtx.arc(cx, p.y + char.height * 0.28, char.width * 0.38, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#2c3e50';
-          targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 6, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
-          targetCtx.fill();
+          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.42, h * 0.32, '#2980b9');
+          drawHead(targetCtx, cx, p.y + h * 0.28, w * 0.36, '#f1c40f', dir);
           break;
-
         case 'debugon':
-          targetCtx.fillStyle = '#e67e22';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.48, char.height * 0.38, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#f39c12';
-          targetCtx.beginPath();
-          targetCtx.arc(cx, p.y + char.height * 0.22, char.width * 0.28, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#000';
-          targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.2, 4, 0, Math.PI * 2);
-          targetCtx.fill();
+          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.48, h * 0.38, '#d35400');
+          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.3, '#f39c12', dir);
           break;
-
         case 'garinoshin':
-          targetCtx.fillStyle = '#9b59b6';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.35, char.height * 0.36, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#ecf0f1';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.2, char.width * 0.38, char.height * 0.15, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#2c3e50';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx + dir * 5, p.y + char.height * 0.18, 3, 2, 0, 0, Math.PI * 2);
-          targetCtx.fill();
+          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.32, h * 0.38, '#8e44ad');
+          drawHead(targetCtx, cx, p.y + h * 0.2, w * 0.3, '#ecf0f1', dir);
           break;
-
         case 'chibikoro':
-          targetCtx.fillStyle = '#e74c3c';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.55, char.width * 0.46, char.height * 0.42, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#fff';
-          targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 8, p.y + char.height * 0.4, 6, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#000';
-          targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 9, p.y + char.height * 0.4, 3, 0, Math.PI * 2);
-          targetCtx.fill();
+          drawBodyPart(targetCtx, cx, p.y + h * 0.58, w * 0.46, h * 0.4, '#c0392b');
+          drawHead(targetCtx, cx, p.y + h * 0.25, w * 0.34, '#e74c3c', dir);
           break;
-
         case 'hime':
-          targetCtx.fillStyle = '#e84393';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.4, char.height * 0.3, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#ffeaa7';
-          targetCtx.beginPath();
-          targetCtx.arc(cx, p.y + char.height * 0.26, char.width * 0.35, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#fd79a8';
-          targetCtx.beginPath();
-          targetCtx.ellipse(cx, p.y + char.height * 0.08, 8, 4, 0, 0, Math.PI * 2);
-          targetCtx.fill();
-
-          targetCtx.fillStyle = '#6c5ce7';
-          targetCtx.beginPath();
-          targetCtx.arc(cx + dir * 5, p.y + char.height * 0.25, 3, 0, Math.PI * 2);
-          targetCtx.fill();
+          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.38, h * 0.32, '#d81b60');
+          drawHead(targetCtx, cx, p.y + h * 0.25, w * 0.32, '#ffeaa7', dir, true);
+          break;
+        case 'gorira':
+          drawBodyPart(targetCtx, cx, p.y + h * 0.55, w * 0.52, h * 0.42, '#2c3e50');
+          drawHead(targetCtx, cx, p.y + h * 0.2, w * 0.4, '#34495e', dir);
+          break;
+        case 'ninja':
+          drawBodyPart(targetCtx, cx, p.y + h * 0.62, w * 0.38, h * 0.35, '#111');
+          drawHead(targetCtx, cx, p.y + h * 0.24, w * 0.32, '#333', dir);
+          break;
+        case 'robot':
+          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.45, h * 0.38, '#7f8c8d');
+          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.35, '#95a5a6', dir);
+          break;
+        case 'samurai':
+          drawBodyPart(targetCtx, cx, p.y + h * 0.63, w * 0.42, h * 0.34, '#c0392b');
+          drawHead(targetCtx, cx, p.y + h * 0.24, w * 0.34, '#f1c40f', dir);
+          break;
+        case 'wizard':
+          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.4, h * 0.32, '#2c3e50');
+          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.32, '#8e44ad', dir, false, true);
           break;
       }
 
       targetCtx.restore();
     }
 
+    function drawBodyPart(ctx, x, y, rx, ry, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function drawHead(ctx, x, y, r, color, dir, isFemale = false, isWizard = false) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      if (isFemale) {
+        ctx.fillStyle = '#fd79a8';
+        ctx.fillRect(x - 6, y - r - 4, 12, 6);
+      } else if (isWizard) {
+        ctx.fillStyle = '#2c3e50';
+        ctx.beginPath();
+        ctx.moveTo(x - r - 6, y - r);
+        ctx.lineTo(x + r + 6, y - r);
+        ctx.lineTo(x, y - r - 25);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // 目
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(x + dir * 6, y - 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     function drawAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
-
-      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.6)' : 'rgba(231, 76, 60, 0.6)';
+      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
       targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
-
       targetCtx.restore();
     }
 
@@ -1196,28 +1221,28 @@
 
       if (p1 && characters[p1.characterKey]) {
         const char1 = characters[p1.characterKey];
-        ctx.fillStyle = '#222';
-        ctx.fillRect(20, 20, 350, 20);
+        ctx.fillStyle = '#1a1a22';
+        ctx.fillRect(20, 20, 350, 22);
         const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 350);
         ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(20, 20, hp1Width, 20);
+        ctx.fillRect(20, 20, hp1Width, 22);
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
       }
 
       if (p2 && characters[p2.characterKey]) {
         const char2 = characters[p2.characterKey];
-        ctx.fillStyle = '#222';
-        ctx.fillRect(1000 - 20 - 350, 20, 350, 20);
+        ctx.fillStyle = '#1a1a22';
+        ctx.fillRect(1000 - 20 - 350, 20, 350, 22);
         const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 350);
         ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(1000 - 20 - hp2Width, 20, hp2Width, 20);
+        ctx.fillRect(1000 - 20 - hp2Width, 20, hp2Width, 22);
 
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 12px sans-serif';
         ctx.textAlign = 'right';
         ctx.fillText(`${p2.name} (${char2.name})`, 1000 - 20, 15);
       }
