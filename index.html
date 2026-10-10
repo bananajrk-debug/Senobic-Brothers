@@ -80,8 +80,13 @@
     .btn-cancel:hover {
       background: #c0392b;
     }
+    .btn-cpu {
+      background: #9b59b6;
+    }
+    .btn-cpu:hover {
+      background: #8e44ad;
+    }
 
-    /* ロビー画面 UI */
     #lobby-ui {
       position: absolute;
       top: 0;
@@ -120,7 +125,6 @@
       align-items: flex-end;
     }
 
-    /* キャラ選択モーダル (修正版) */
     #select-modal {
       position: absolute;
       top: 0;
@@ -190,16 +194,16 @@
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 40px; margin-bottom: 10px;">セノビックブラザーズ</h1>
-      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">2D ONLINE FIGHTING GAME</p>
+      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">2D ONLINE & CPU FIGHTING GAME</p>
       <button class="btn" onclick="goToLobby()">ENTER LOBBY</button>
     </div>
 
-    <!-- 2. シンプルロビー画面 -->
+    <!-- 2. ロビー画面 -->
     <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
       <div id="lobby-ui">
         <div class="lobby-top">
           <div class="lobby-title">LOBBY</div>
-          <div id="player-count-badge" class="badge">対戦相手を探しています... (1/2)</div>
+          <div id="player-count-badge" class="badge">接続中プレイヤー: 1 / 2</div>
         </div>
 
         <div class="lobby-bottom">
@@ -208,7 +212,10 @@
             <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; padding: 8px 16px; background: #333;">キャラを変更</button>
           </div>
 
-          <button id="ready-btn" class="btn btn-ready interactive" onclick="toggleReady()">対戦準備完了</button>
+          <div class="interactive" style="display:flex; gap:10px;">
+            <button id="cpu-btn" class="btn btn-cpu" onclick="startCpuGame()">CPU対戦スタート</button>
+            <button id="ready-btn" class="btn btn-ready" onclick="toggleReady()">オンライン対戦準備</button>
+          </div>
         </div>
       </div>
     </div>
@@ -244,6 +251,7 @@
     const charListContainer = document.getElementById('char-list');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
+    const cpuBtn = document.getElementById('cpu-btn');
     const currentCharName = document.getElementById('current-char-name');
     const playerCountBadge = document.getElementById('player-count-badge');
 
@@ -352,6 +360,10 @@
       updateLobbyUI();
     }
 
+    function startCpuGame() {
+      socket.emit('startCpuMode');
+    }
+
     function openCharSelect() {
       selectModal.classList.remove('hidden');
     }
@@ -385,8 +397,8 @@
     }
 
     function updateLobbyUI() {
-      const pCount = Object.keys(playersData).length;
-      playerCountBadge.textContent = `接続中プレイヤー: ${pCount} / 2`;
+      const realPlayers = Object.values(playersData).filter(p => !p.isCpu);
+      playerCountBadge.textContent = `接続中プレイヤー: ${realPlayers.length} / 2`;
 
       const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
       if (myData) {
@@ -397,13 +409,12 @@
           readyBtn.textContent = '準備完了を解除';
           readyBtn.className = 'btn btn-cancel interactive';
         } else {
-          readyBtn.textContent = '対戦準備完了';
+          readyBtn.textContent = 'オンライン対戦準備';
           readyBtn.className = 'btn btn-ready interactive';
         }
       }
     }
 
-    // カード描画処理 (完全に画面比率を固定してバグ回避)
     function renderCharCards() {
       charListContainer.innerHTML = '';
       characterKeys.forEach((key, index) => {
@@ -427,7 +438,6 @@
         `;
         charListContainer.appendChild(card);
 
-        // ミニキャンバス生成
         setTimeout(() => drawCardMiniPreview(key), 0);
       });
     }
@@ -443,7 +453,6 @@
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
-      // スケール計算: ミニキャンバスにしっかり収まるように調整
       pCtx.save();
       pCtx.translate(60, 85);
       const scale = 0.55;
@@ -463,7 +472,6 @@
       box.appendChild(pCanvas);
     }
 
-    // ロビーアニメーション処理
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
@@ -474,7 +482,6 @@
         ctx.fillStyle = '#18181c';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // シンプルな円形ステージ足場
         ctx.fillStyle = '#22222a';
         ctx.beginPath();
         ctx.ellipse(500, 420, 160, 30, 0, 0, Math.PI * 2);
@@ -484,7 +491,6 @@
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // 自分のキャラクターを立ち表示
         const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
         if (myData && characters[myData.characterKey]) {
           const char = characters[myData.characterKey];
@@ -510,12 +516,10 @@
       loop();
     }
 
-    // 戦闘画面の描画処理
     function renderGame() {
       ctx.fillStyle = '#121216';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 地面
       ctx.fillStyle = '#1e1e24';
       ctx.fillRect(0, 450, canvas.width, 50);
       ctx.strokeStyle = '#333';
@@ -525,7 +529,6 @@
       ctx.lineTo(canvas.width, 450);
       ctx.stroke();
 
-      // キャラクター
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
@@ -534,25 +537,21 @@
 
         ctx.save();
 
-        // 影
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.beginPath();
         ctx.ellipse(p.x + char.width / 2, 450, char.width * 0.5, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 本体
         drawGraphicCharacter(ctx, p, char);
 
-        // 攻撃判定
         if (p.attackBox) {
           drawAttackEffect(ctx, p, char);
         }
 
-        // 1P/2P表示
-        ctx.fillStyle = p.playerNum === 1 ? '#3498db' : '#e74c3c';
+        ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`P${p.playerNum}`, p.x + char.width / 2, p.y - 10);
+        ctx.fillText(p.isCpu ? 'CPU' : `P${p.playerNum}`, p.x + char.width / 2, p.y - 10);
 
         ctx.restore();
       });
@@ -560,7 +559,6 @@
       drawHUD();
     }
 
-    // キャラクター描画（円・楕円）
     function drawGraphicCharacter(targetCtx, p, char) {
       targetCtx.save();
 
@@ -573,7 +571,7 @@
       }
 
       switch (char.type) {
-        case 'futsuo': // 普通
+        case 'futsuo':
           targetCtx.fillStyle = '#3498db';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.45, char.height * 0.3, 0, 0, Math.PI * 2);
@@ -590,7 +588,7 @@
           targetCtx.fill();
           break;
 
-        case 'debugon': // デブ
+        case 'debugon':
           targetCtx.fillStyle = '#e67e22';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.48, char.height * 0.38, 0, 0, Math.PI * 2);
@@ -607,7 +605,7 @@
           targetCtx.fill();
           break;
 
-        case 'garinoshin': // ガリ
+        case 'garinoshin':
           targetCtx.fillStyle = '#9b59b6';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.6, char.width * 0.35, char.height * 0.36, 0, 0, Math.PI * 2);
@@ -624,7 +622,7 @@
           targetCtx.fill();
           break;
 
-        case 'chibikoro': // チビデブ
+        case 'chibikoro':
           targetCtx.fillStyle = '#e74c3c';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.55, char.width * 0.46, char.height * 0.42, 0, 0, Math.PI * 2);
@@ -641,7 +639,7 @@
           targetCtx.fill();
           break;
 
-        case 'hime': // 女
+        case 'hime':
           targetCtx.fillStyle = '#e84393';
           targetCtx.beginPath();
           targetCtx.ellipse(cx, p.y + char.height * 0.65, char.width * 0.4, char.height * 0.3, 0, 0, Math.PI * 2);
@@ -667,7 +665,6 @@
       targetCtx.restore();
     }
 
-    // 攻撃エフェクト (シンプル化)
     function drawAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
@@ -678,7 +675,6 @@
       targetCtx.restore();
     }
 
-    // HUD 描画
     function drawHUD() {
       const p1 = Object.values(playersData).find(p => p.playerNum === 1);
       const p2 = Object.values(playersData).find(p => p.playerNum === 2);
@@ -708,7 +704,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`2P: ${char2.name}`, 1000 - 20, 15);
+        ctx.fillText(`${p2.isCpu ? 'CPU' : '2P'}: ${char2.name}`, 1000 - 20, 15);
       }
     }
   </script>
