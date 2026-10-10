@@ -139,6 +139,19 @@
       align-items: flex-end;
     }
 
+    #countdown-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 90px;
+      font-weight: 900;
+      color: #f1c40f;
+      text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+      pointer-events: none;
+      z-index: 15;
+    }
+
     #select-modal {
       position: absolute;
       top: 0;
@@ -158,8 +171,8 @@
       margin: 20px 0;
     }
     .char-card {
-      width: 140px;
-      height: 200px;
+      width: 150px;
+      height: 230px;
       border: 2px solid #333;
       border-radius: 8px;
       padding: 10px;
@@ -177,7 +190,7 @@
     }
     .char-preview-box {
       width: 100%;
-      height: 100px;
+      height: 90px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -189,7 +202,16 @@
       font-size: 11px;
       width: 100%;
       color: #888;
-      line-height: 1.4;
+      line-height: 1.3;
+    }
+    .ability-box {
+      font-size: 10px;
+      color: #f1c40f;
+      font-weight: bold;
+      background: rgba(241, 196, 15, 0.1);
+      padding: 3px 5px;
+      border-radius: 4px;
+      margin-top: 3px;
     }
 
     #controls-guide {
@@ -206,7 +228,10 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
-    <!-- 1. メインメニュー（名前変更・通信方式選択） -->
+    <!-- カウントダウン表示 -->
+    <div id="countdown-overlay" class="hidden">3</div>
+
+    <!-- 1. メインメニュー -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 38px; margin-bottom: 8px;">セノビックブラザーズ</h1>
       <p style="color: #888; font-size: 14px; margin-bottom: 15px;">2D ONLINE FIGHTING GAME</p>
@@ -257,7 +282,7 @@
 
     <!-- 3. キャラクター選択画面 -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 20px;">キャラクターを選択</h2>
+      <h2 style="font-size: 20px;">キャラクターを選択 (能力付き)</h2>
       <div class="char-list" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()">決定</button>
     </div>
@@ -283,6 +308,7 @@
     const screenLobby = document.getElementById('screen-lobby');
     const screenGameover = document.getElementById('screen-gameover');
     const selectModal = document.getElementById('select-modal');
+    const countdownOverlay = document.getElementById('countdown-overlay');
     const charListContainer = document.getElementById('char-list');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
@@ -301,9 +327,8 @@
     let playersData = {};
     let isReady = false;
 
-    const keys = { left: false, right: false, jump: false, attack: false, attackType: null };
+    const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
 
-    // ソケット通信
     socket.on('roomCreated', (data) => {
       currentCode = data.code;
       myPlayerNum = data.playerNum;
@@ -328,6 +353,15 @@
       errorMsg.textContent = msg;
     });
 
+    socket.on('countdownUpdate', (data) => {
+      countdownOverlay.classList.remove('hidden');
+      countdownOverlay.textContent = data.count;
+    });
+
+    socket.on('countdownCancel', () => {
+      countdownOverlay.classList.add('hidden');
+    });
+
     socket.on('gameState', (data) => {
       if (currentGameState !== 'TITLE') {
         currentGameState = data.state;
@@ -344,6 +378,7 @@
 
     socket.on('gameStart', (data) => {
       currentGameState = 'PLAYING';
+      countdownOverlay.classList.add('hidden');
       playersData = data.players;
       updateUI();
     });
@@ -365,6 +400,7 @@
       alert('対戦相手が切断されました。ロビーに戻ります。');
       currentGameState = 'LOBBY';
       isReady = false;
+      countdownOverlay.classList.add('hidden');
       updateUI();
     });
 
@@ -375,10 +411,11 @@
       if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
-        if (e.key === 'w' || e.key === 'W') keys.jump = true;
+        if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
         if (e.key === 'k' || e.key === 'K') { keys.attack = true; keys.attackType = 'punch'; }
         if (e.key === 'o' || e.key === 'O') { keys.attack = true; keys.attackType = 'kick'; }
         sendInputs();
+        keys.jumpPrev = keys.jump;
       } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
         requestRematch();
       }
@@ -388,7 +425,7 @@
       if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'd' || e.key === 'D') keys.right = false;
-        if (e.key === 'w' || e.key === 'W') keys.jump = false;
+        if (e.key === 'w' || e.key === 'W') { keys.jump = false; keys.jumpPrev = false; }
         if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
           keys.attack = false;
           keys.attackType = null;
@@ -499,12 +536,12 @@
         };
 
         card.innerHTML = `
-          <div style="font-weight:bold; font-size:13px;">${char.name}</div>
+          <div style="font-weight:bold; font-size:12px;">${char.name}</div>
           <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
-            HP: ${char.hp}<br>
-            ATK: ${char.atk}<br>
+            HP: ${char.hp} | ATK: ${char.atk}<br>
             SPD: ${char.speed}
+            <div class="ability-box">${char.ability}</div>
           </div>
         `;
         charListContainer.appendChild(card);
@@ -520,13 +557,13 @@
       box.innerHTML = '';
       const pCanvas = document.createElement('canvas');
       pCanvas.width = 120;
-      pCanvas.height = 100;
+      pCanvas.height = 90;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(60, 85);
-      const scale = 0.55;
+      pCtx.translate(60, 75);
+      const scale = 0.5;
       pCtx.scale(scale, scale);
 
       const dummyPlayer = {
@@ -543,7 +580,7 @@
       box.appendChild(pCanvas);
     }
 
-    // ロビーアニメーション（横並びで2人表示）
+    // 横並びロビーアニメーション
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
@@ -554,7 +591,7 @@
         ctx.fillStyle = '#18181c';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 1Pと2Pの台座
+        // 台座
         ctx.fillStyle = '#22222a';
         ctx.beginPath();
         ctx.ellipse(350, 410, 140, 25, 0, 0, Math.PI * 2);
@@ -585,7 +622,6 @@
           drawGraphicCharacter(ctx, lobbyP1, char1);
           ctx.restore();
 
-          // 名前＆ステータス表示
           ctx.fillStyle = '#fff';
           ctx.font = 'bold 16px sans-serif';
           ctx.textAlign = 'center';
@@ -596,7 +632,7 @@
           ctx.fillText(p1.ready ? '【 準備完了 】' : '【 選択中... 】', 350, 465);
         }
 
-        // 2P描画 (オンライン相手または待機表示)
+        // 2P描画
         if (p2 && characters[p2.characterKey]) {
           const char2 = characters[p2.characterKey];
           ctx.save();
@@ -622,7 +658,6 @@
           ctx.font = '13px sans-serif';
           ctx.fillText(p2.ready ? '【 準備完了 】' : '【 選択中... 】', 650, 465);
         } else {
-          // 2Pがいない場合の待機表示
           ctx.fillStyle = '#555';
           ctx.font = 'bold 16px sans-serif';
           ctx.textAlign = 'center';
@@ -667,7 +702,6 @@
           drawAttackEffect(ctx, p, char);
         }
 
-        // 名前表示
         ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
