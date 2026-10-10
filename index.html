@@ -294,14 +294,15 @@
     <div id="screen-cpu-setup" class="overlay hidden">
       <h2 style="font-size: 24px; margin-bottom: 10px;">CPU対戦 設定</h2>
       
-      <div style="margin-bottom: 15px;">
+      <div style="margin-bottom: 15px; text-align: center;">
         <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">使用するキャラクター:</label>
+        <div id="cpu-char-label" style="font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 8px;">フツオ (普通)</div>
         <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; background: #333;">キャラクター変更</button>
       </div>
 
-      <div style="margin-bottom: 20px;">
+      <div style="margin-bottom: 20px; text-align: center;">
         <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">対戦ステージ:</label>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; justify-content: center;">
           <button class="btn btn-stage active" id="btn-cpu-stage-1" onclick="selectCpuStage(1)">平原</button>
           <button class="btn btn-stage" id="btn-cpu-stage-2" onclick="selectCpuStage(2)">浮島</button>
           <button class="btn btn-stage" id="btn-cpu-stage-3" onclick="selectCpuStage(3)">スリル</button>
@@ -388,6 +389,7 @@
     const selectModal = document.getElementById('select-modal');
     const countdownOverlay = document.getElementById('countdown-overlay');
     const charListContainer = document.getElementById('char-list');
+    const cpuCharLabel = document.getElementById('cpu-char-label');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
     const roomCodeBadge = document.getElementById('room-code-badge');
@@ -398,8 +400,14 @@
 
     let myPlayerNum = null;
     let currentCode = null;
-    let characters = {};
-    let characterKeys = [];
+    let characters = {
+      futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能（低硬直）' },
+      debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー（攻撃中不屈）' },
+      garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
+      chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
+      hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避バックステップ' }
+    };
+    let characterKeys = Object.keys(characters);
     let stages = {};
     let selectedStage = 1;
     let cpuSelectedStage = 1;
@@ -414,6 +422,9 @@
     let visualEffects = [];
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
+
+    // 初期化時にカード描画を準備
+    renderCharCards();
 
     socket.on('roomCreated', (data) => {
       currentCode = data.code;
@@ -603,7 +614,14 @@
     function openCpuSetup() {
       currentGameState = 'CPU_SETUP';
       isCpuModeGame = true;
+      updateCpuCharLabel();
       updateUI();
+    }
+
+    function updateCpuCharLabel() {
+      if (characters[cpuSelectedCharKey]) {
+        cpuCharLabel.textContent = characters[cpuSelectedCharKey].name;
+      }
     }
 
     function confirmStartCpuGame() {
@@ -646,10 +664,12 @@
     }
 
     function openCharSelect() { selectModal.classList.remove('hidden'); }
+    
     function closeCharSelect() {
       selectModal.classList.add('hidden');
       const key = characterKeys[selectedIndex];
       cpuSelectedCharKey = key;
+      updateCpuCharLabel();
       socket.emit('selectCharacter', { characterKey: key });
     }
 
@@ -851,7 +871,7 @@
 
       drawStageBackground(selectedStage);
 
-      // アイテム描画
+      // アイテム描画（画面上1つ）
       itemsData.forEach(item => {
         ctx.save();
         ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#e74c3c');
@@ -895,7 +915,6 @@
         ctx.textAlign = 'center';
         ctx.fillText(p.name, p.x + char.width / 2, p.y - 10);
 
-        // バフ表示アイコン
         if (p.buffAtkTimer > 0 || p.buffSpeedTimer > 0) {
           ctx.font = '12px sans-serif';
           let buffStr = '';
@@ -913,7 +932,7 @@
         ctx.restore();
       });
 
-      // ビジュアルエフェクト（KO演出など）
+      // ビジュアルエフェクト
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
