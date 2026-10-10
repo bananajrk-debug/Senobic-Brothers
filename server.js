@@ -33,7 +33,6 @@ const CHARACTERS = {
 
 let rooms = {};
 
-// 4桁のランダム数字コードを生成
 function generateRoomCode() {
   let code;
   do {
@@ -53,20 +52,20 @@ function createRoom(code) {
 
 io.on('connection', (socket) => {
 
-  // 1. 部屋作成（ホスト）
-  socket.on('createRoom', () => {
+  // 1. 部屋作成
+  socket.on('createRoom', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
 
     const room = rooms[code];
-    room.players[socket.id] = createPlayerData(socket.id, 1);
+    room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
 
     socket.join(code);
     socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
   });
 
-  // 2. 数字コードで部屋に参加（ゲスト）
+  // 2. 部屋に参加
   socket.on('joinRoom', (data) => {
     const code = data.code;
     const room = rooms[code];
@@ -81,21 +80,21 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.players[socket.id] = createPlayerData(socket.id, 2);
+    room.players[socket.id] = createPlayerData(socket.id, 2, data.playerName || 'Player 2');
 
     socket.join(code);
     socket.emit('roomJoined', { code: code, playerNum: 2, characters: CHARACTERS });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
   });
 
-  // 3. CPUモード設定
-  socket.on('startCpuMode', () => {
+  // 3. CPU対戦
+  socket.on('startCpuMode', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
     const room = rooms[code];
     room.isCpuMode = true;
 
-    room.players[socket.id] = createPlayerData(socket.id, 1);
+    room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
 
     const cpuKeys = Object.keys(CHARACTERS);
     const randomCpuChar = cpuKeys[Math.floor(Math.random() * cpuKeys.length)];
@@ -103,6 +102,7 @@ io.on('connection', (socket) => {
     room.players['cpu_player'] = {
       id: 'cpu_player',
       playerNum: 2,
+      name: 'CPU',
       characterKey: randomCpuChar,
       ready: true,
       isCpu: true,
@@ -141,7 +141,15 @@ io.on('connection', (socket) => {
     io.to(code).emit('gameStart', { players: room.players });
   });
 
-  // キャラ選択
+  // プレイヤー名・キャラ更新
+  socket.on('updateName', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id]) {
+      room.players[socket.id].name = data.name || `Player ${room.players[socket.id].playerNum}`;
+      io.to(room.code).emit('characterUpdated', { players: room.players });
+    }
+  });
+
   socket.on('selectCharacter', (data) => {
     const room = getRoomBySocket(socket);
     if (room && room.players[socket.id]) {
@@ -261,10 +269,11 @@ io.on('connection', (socket) => {
   });
 });
 
-function createPlayerData(socketId, playerNum) {
+function createPlayerData(socketId, playerNum, name) {
   return {
     id: socketId,
     playerNum: playerNum,
+    name: name,
     characterKey: 'futsuo',
     ready: false,
     isCpu: false,
@@ -291,7 +300,7 @@ function getRoomBySocket(socket) {
   return null;
 }
 
-// CPU AI思考処理
+// CPU AI
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0) return;
 
@@ -334,7 +343,7 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// メインループ (物理・対戦判定)
+// メインループ
 setInterval(() => {
   const STAGE_WIDTH = 1000;
   const GROUND_Y = 450;
@@ -413,7 +422,7 @@ setInterval(() => {
           if (defender.hp <= 0) {
             defender.hp = 0;
             room.gameState = 'FINISHED';
-            io.to(code).emit('gameOver', { winnerNum: attacker.playerNum });
+            io.to(code).emit('gameOver', { winnerName: attacker.name, winnerNum: attacker.playerNum });
           }
         }
       }
