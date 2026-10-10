@@ -12,7 +12,7 @@
       user-select: none;
     }
     body {
-      background-color: #16161a;
+      background-color: #121215;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
@@ -26,11 +26,11 @@
       position: relative;
       width: 1000px;
       height: 500px;
-      border: 2px solid #444;
+      border: 2px solid #3d3d4e;
       border-radius: 8px;
-      background-color: #0b0b0e;
+      background-color: #08080a;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.7);
     }
     canvas {
       display: block;
@@ -43,7 +43,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #0b0b0e;
+      background: #08080a;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -73,12 +73,13 @@
     .btn-cpu { background: #9b59b6; }
     .btn-cpu:hover { background: #8e44ad; }
     .btn-stage {
-      background: #333;
+      background: #2a2a35;
       font-size: 11px;
       padding: 5px 10px;
       margin-top: 0;
+      border: 1px solid #444;
     }
-    .btn-stage.active { background: #f39c12; }
+    .btn-stage.active { background: #f39c12; border-color: #f1c40f; }
 
     input[type="text"], input[type="number"] {
       width: 180px;
@@ -161,55 +162,56 @@
       z-index: 15;
     }
 
-    /* 拡大はみ出しを防ぐためグリッド・スクロール可能なモーダルに調整[cite: 4] */
     #select-modal {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(11, 11, 14, 0.96);
+      background: rgba(8, 8, 10, 0.96);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 20;
-      padding: 20px;
+      padding: 15px;
     }
     .char-list-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      max-width: 900px;
-      margin: 15px 0;
+      gap: 12px;
+      max-width: 920px;
+      margin: 10px 0;
     }
     .char-card {
-      width: 150px;
-      height: 200px;
-      border: 2px solid #444;
-      border-radius: 6px;
+      width: 160px;
+      height: 205px;
+      border: 2px solid #333;
+      border-radius: 8px;
       padding: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      background: #1a1a22;
+      background: #16161f;
       cursor: pointer;
       transition: border-color 0.2s, transform 0.2s;
     }
     .char-card:hover, .char-card.active {
       border-color: #3498db;
       transform: translateY(-3px);
+      box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
     }
     .char-preview-box {
       width: 100%;
-      height: 75px;
+      height: 85px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0f0f13;
-      border-radius: 4px;
+      background: #0d0d12;
+      border-radius: 6px;
       overflow: hidden;
+      border: 1px solid #222;
     }
     .char-stats {
       font-size: 10px;
@@ -221,7 +223,7 @@
       font-size: 9px;
       color: #f1c40f;
       font-weight: bold;
-      background: rgba(241, 196, 15, 0.1);
+      background: rgba(241, 196, 15, 0.12);
       padding: 2px 4px;
       border-radius: 3px;
       margin-top: 2px;
@@ -246,7 +248,7 @@
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 34px; margin-bottom: 6px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 13px; margin-bottom: 15px;">STREET FIGHTER × SMASH BROS</p>
+      <p style="color: #888; font-size: 13px; margin-bottom: 15px;">REAL 2D FIGHTING BATTLE</p>
       
       <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
         <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
@@ -274,7 +276,7 @@
       
       <div style="margin-bottom: 12px; text-align: center;">
         <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">キャラクター:</label>
-        <div id="cpu-char-label" style="font-size: 15px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (普通)</div>
+        <div id="cpu-char-label" style="font-size: 15px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (ファイター)</div>
         <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #333;">変更する</button>
       </div>
 
@@ -313,10 +315,10 @@
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
             <div id="room-code-badge" class="badge">ROOM CODE: ----</div>
             <div id="stamp-bar">
-              <button class="stamp-btn" onclick="sendStamp('👍')" title="👍">👍</button>
-              <button class="stamp-btn" onclick="sendStamp('👎')" title="👎">👎</button>
-              <button class="stamp-btn" onclick="sendStamp('❤️')" title="❤️">❤️</button>
-              <button class="stamp-btn" onclick="sendStamp('💢')" title="💢">💢</button>
+              <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
+              <button class="stamp-btn" onclick="sendStamp('👎')">👎</button>
+              <button class="stamp-btn" onclick="sendStamp('❤️')">❤️</button>
+              <button class="stamp-btn" onclick="sendStamp('💢')">💢</button>
             </div>
           </div>
         </div>
@@ -337,11 +339,11 @@
       </div>
     </div>
 
-    <!-- 4. キャラクター選択モーダル（10体グリッド）[cite: 4] -->
+    <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 18px; margin-bottom: 5px;">キャラクターを選択</h2>
+      <h2 style="font-size: 18px; margin-bottom: 5px;">リアルキャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 20px;">決定</button>
+      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 22px;">決定</button>
     </div>
 
     <!-- 5. 勝敗画面 -->
@@ -383,16 +385,16 @@
     let myPlayerNum = null;
     let currentCode = null;
     let characters = {
-      futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能' },
-      debugon: { name: 'デブゴン (重量)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー' },
-      garinoshin: { name: 'ガリノシン (俊敏)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
-      chibikoro: { name: 'チビコロ (急降下)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
-      hime: { name: 'ヒメ (回避)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵バックステップ' },
-      gorira: { name: 'ゴリラ (豪腕)', hp: 170, atk: 22, speed: 4.5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '圧倒的パワー' },
-      ninja: { name: 'ニンジャ (隠密)', hp: 75, atk: 13, speed: 12, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '超高速ダッシュ' },
-      robot: { name: 'ロボット (重鋼)', hp: 140, atk: 17, speed: 5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐久メタル' },
-      samurai: { name: 'サムライ (居合)', hp: 95, atk: 19, speed: 8.5, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '強烈な一撃' },
-      wizard: { name: 'ウィザード (魔導)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '浮遊マジック' }
+      futsuo: { name: 'フツオ (ファイター)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: '万能格闘家' },
+      debugon: { name: 'デブゴン (ヘビー)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: '不屈のアーマー' },
+      garinoshin: { name: 'ガリノシン (アスリート)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
+      chibikoro: { name: 'チビコロ (ダイバー)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '急降下アタック' },
+      hime: { name: 'ヒメ (クノイチ)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避' },
+      gorira: { name: 'ゴリラ (バーサーカー)', hp: 170, atk: 22, speed: 4.5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '破壊力重視' },
+      ninja: { name: 'ニンジャ (シノビ)', hp: 75, atk: 13, speed: 12, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '高速移動' },
+      robot: { name: 'ロボット (サイボーグ)', hp: 140, atk: 17, speed: 5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐熱装甲' },
+      samurai: { name: 'サムライ (剣豪)', hp: 95, atk: 19, speed: 8.5, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '一閃攻撃' },
+      wizard: { name: 'ウィザード (メイジ)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '魔術展開' }
     };
     let characterKeys = Object.keys(characters);
     let selectedStage = 1;
@@ -407,17 +409,13 @@
     let isCpuModeGame = false;
     let visualEffects = [];
 
-    // --- Web Audio API による サウンド (BGM & SE) システム ---
+    // --- Web Audio システム ---
     let audioCtx = null;
     let bgmTimer = null;
 
     function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function playSE(type) {
@@ -427,7 +425,6 @@
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-
         const now = audioCtx.currentTime;
 
         if (type === 'punch') {
@@ -436,43 +433,35 @@
           osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
-          osc.start(now);
-          osc.stop(now + 0.1);
+          osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'item') {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(300, now);
           osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
           gain.gain.setValueAtTime(0.2, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-          osc.start(now);
-          osc.stop(now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
         } else if (type === 'senobic') {
-          // セノビック取得時の爽快ファンファーレ
           osc.type = 'square';
           osc.frequency.setValueAtTime(440, now);
           osc.frequency.setValueAtTime(554.37, now + 0.1);
           osc.frequency.setValueAtTime(659.25, now + 0.2);
           gain.gain.setValueAtTime(0.25, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
+          osc.start(now); osc.stop(now + 0.4);
         } else if (type === 'ko') {
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(120, now);
           osc.frequency.linearRampToValueAtTime(30, now + 0.4);
           gain.gain.setValueAtTime(0.4, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now);
-          osc.stop(now + 0.4);
+          osc.start(now); osc.stop(now + 0.4);
         }
-      } catch (e) {
-        console.log("Audio error:", e);
-      }
+      } catch (e) {}
     }
 
     function startBGM() {
       if (bgmTimer) return;
-      // 軽めのリズムBGMループ
       const notes = [220, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00];
       let step = 0;
       bgmTimer = setInterval(() => {
@@ -483,12 +472,10 @@
           const gain = audioCtx.createGain();
           osc.connect(gain);
           gain.connect(audioCtx.destination);
-          
           osc.type = 'sine';
           osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
           gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
           gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-          
           osc.start();
           osc.stop(audioCtx.currentTime + 0.15);
           step++;
@@ -497,10 +484,7 @@
     }
 
     function stopBGM() {
-      if (bgmTimer) {
-        clearInterval(bgmTimer);
-        bgmTimer = null;
-      }
+      if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
     }
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
@@ -539,9 +523,7 @@
       countdownOverlay.textContent = data.count;
     });
 
-    socket.on('countdownCancel', () => {
-      countdownOverlay.classList.add('hidden');
-    });
+    socket.on('countdownCancel', () => { countdownOverlay.classList.add('hidden'); });
 
     socket.on('stampTriggered', (data) => {
       activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 };
@@ -554,11 +536,8 @@
     });
 
     socket.on('itemCollected', (data) => {
-      if (data.type === 'senobic') {
-        playSE('senobic');
-      } else {
-        playSE('item');
-      }
+      if (data.type === 'senobic') playSE('senobic');
+      else playSE('item');
       visualEffects.push({ type: 'ITEM_GET', playerId: data.playerId, itemType: data.type, timer: 40 });
     });
 
@@ -741,11 +720,8 @@
     }
 
     function returnFromGameover() {
-      if (isCpuModeGame) {
-        openCpuSetup();
-      } else {
-        goToLobby();
-      }
+      if (isCpuModeGame) openCpuSetup();
+      else goToLobby();
     }
 
     function toggleReady() {
@@ -833,14 +809,14 @@
       if (!box) return;
       box.innerHTML = '';
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 120;
-      pCanvas.height = 75;
+      pCanvas.width = 140;
+      pCanvas.height = 80;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(60, 65);
-      pCtx.scale(0.45, 0.45);
+      pCtx.translate(70, 72);
+      pCtx.scale(0.55, 0.55);
 
       const dummyPlayer = {
         x: -char.width / 2,
@@ -850,7 +826,7 @@
         stunFrames: 0,
         senobicTimer: 0
       };
-      drawRealisticCharacter(pCtx, dummyPlayer, char);
+      drawRealisticHumanoid(pCtx, dummyPlayer, char);
       pCtx.restore();
       box.appendChild(pCanvas);
     }
@@ -878,9 +854,9 @@
           const char = characters[myData.characterKey];
           ctx.save();
           ctx.translate(500, 410);
-          ctx.scale(1.6, 1.6);
+          ctx.scale(1.5, 1.5);
           const lobbyMe = { x: -char.width / 2, y: -char.height, facing: 'right', characterKey: myData.characterKey, stunFrames: 0, senobicTimer: 0 };
-          drawRealisticCharacter(ctx, lobbyMe, char);
+          drawRealisticHumanoid(ctx, lobbyMe, char);
           ctx.restore();
 
           ctx.fillStyle = '#f1c40f';
@@ -896,9 +872,9 @@
           const charOp = characters[opponentData.characterKey];
           ctx.save();
           ctx.translate(800, 410);
-          ctx.scale(1.2, 1.2);
+          ctx.scale(1.1, 1.1);
           const lobbyOp = { x: -charOp.width / 2, y: -charOp.height, facing: 'left', characterKey: opponentData.characterKey, stunFrames: 0, senobicTimer: 0 };
-          drawRealisticCharacter(ctx, lobbyOp, charOp);
+          drawRealisticHumanoid(ctx, lobbyOp, charOp);
           ctx.restore();
 
           ctx.fillStyle = '#fff';
@@ -921,18 +897,18 @@
     }
 
     function renderGame() {
-      ctx.fillStyle = '#0b0b0e';
+      ctx.fillStyle = '#08080a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       drawStageBackground(selectedStage);
 
-      // アイテム描画（サイズ大きめ＆セノビックドリンク対応）
+      // アイテム描画
       itemsData.forEach(item => {
         ctx.save();
         ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
 
         if (item.type === 'senobic') {
-          // セノビックドリンクボトルを描画
+          // セノビックドリンクボトル
           ctx.fillStyle = '#e74c3c';
           ctx.fillRect(-14, -18, 28, 36);
           ctx.fillStyle = '#f1c40f';
@@ -976,7 +952,7 @@
         ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.5, 7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        drawRealisticCharacter(ctx, p, char);
+        drawRealisticHumanoid(ctx, p, char);
 
         if (p.attackBox) {
           drawAttackEffect(ctx, p, char);
@@ -1005,7 +981,7 @@
         ctx.restore();
       });
 
-      // エフェクト描画
+      // エフェクト
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
@@ -1036,16 +1012,13 @@
       drawHUD();
     }
 
-    // --- ステージ背景 (全5種・高クオリティ) ---
     function drawStageBackground(stageId) {
       if (stageId === 1) {
-        // 1: 平原
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#2b5876'); grad.addColorStop(1, '#1e1e24');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 450, canvas.width, 50);
       } else if (stageId === 2) {
-        // 2: 浮島
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#0f0c29'); grad.addColorStop(1, '#24243e');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1057,7 +1030,6 @@
           ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
       } else if (stageId === 3) {
-        // 3: スリル
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#310404'); grad.addColorStop(1, '#ff4e50');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1065,7 +1037,6 @@
         ctx.fillStyle = '#3a3a3a'; ctx.fillRect(280, 320, 440, 20);
         ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2; ctx.strokeRect(280, 320, 440, 20);
       } else if (stageId === 4) {
-        // 4: 神殿
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#4b6cb7'); grad.addColorStop(1, '#182848');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1076,11 +1047,9 @@
           ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
       } else if (stageId === 5) {
-        // 5: 宇宙
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#000000'); grad.addColorStop(1, '#050515');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // 星のきらめき
         ctx.fillStyle = '#fff';
         ctx.fillRect(150, 80, 3, 3); ctx.fillRect(400, 120, 2, 2); ctx.fillRect(750, 90, 3, 3); ctx.fillRect(900, 200, 2, 2);
         ctx.fillStyle = '#111122'; ctx.fillRect(0, 450, canvas.width, 50);
@@ -1103,8 +1072,10 @@
       targetCtx.restore();
     }
 
-    // --- キャラクターのリアル風高精度グラフィック描画 (全10体) ---
-    function drawRealisticCharacter(targetCtx, p, char) {
+    // =========================================================
+    // ★ リアル風高精度グラフィック描画処理 (人型・服・表情) ★
+    // =========================================================
+    function drawRealisticHumanoid(targetCtx, p, char) {
       targetCtx.save();
       const scale = p.senobicTimer > 0 ? 2 : 1;
       const w = char.width * scale;
@@ -1114,7 +1085,7 @@
       const dir = isRight ? 1 : -1;
 
       if (p.stunFrames > 0) {
-        targetCtx.filter = 'brightness(1.6) sepia(1)';
+        targetCtx.filter = 'brightness(1.5) sepia(1)';
       }
 
       if (p.isKilled) {
@@ -1123,88 +1094,254 @@
         targetCtx.translate(-cx, -(p.y + h / 2));
       }
 
-      // 共通立体グラデーション＆筋肉・服の描き込み
+      const topY = p.y;
+
       switch (char.type) {
-        case 'futsuo':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.42, h * 0.32, '#2980b9');
-          drawHead(targetCtx, cx, p.y + h * 0.28, w * 0.36, '#f1c40f', dir);
+        case 'futsuo': // ファイター
+          // 胴体 (道着)
+          drawBody(targetCtx, cx, topY + h * 0.45, w * 0.6, h * 0.4, '#2980b9', '#1f618d');
+          // ベルト
+          targetCtx.fillStyle = '#111';
+          targetCtx.fillRect(cx - w * 0.3, topY + h * 0.62, w * 0.6, h * 0.06);
+          // 脚
+          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1b4f72');
+          // 頭部 (リアルな肌と髪)
+          drawFaceWithHair(targetCtx, cx, topY + h * 0.22, w * 0.35, h * 0.22, '#f5cba7', '#2c3e50', dir);
           break;
-        case 'debugon':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.48, h * 0.38, '#d35400');
-          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.3, '#f39c12', dir);
+
+        case 'debugon': // ヘビー格闘家
+          drawBody(targetCtx, cx, topY + h * 0.42, w * 0.75, h * 0.45, '#e67e22', '#d35400');
+          drawLegs(targetCtx, cx, topY + h * 0.72, w * 0.6, h * 0.28, '#7e5109');
+          drawFaceWithHair(targetCtx, cx, topY + h * 0.18, w * 0.38, h * 0.2, '#f5cba7', '#6e2c00', dir, false, true); // ヒゲつき
           break;
-        case 'garinoshin':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.32, h * 0.38, '#8e44ad');
-          drawHead(targetCtx, cx, p.y + h * 0.2, w * 0.3, '#ecf0f1', dir);
+
+        case 'garinoshin': // アスリート
+          drawBody(targetCtx, cx, topY + h * 0.42, w * 0.5, h * 0.42, '#8e44ad', '#6c3483');
+          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.38, h * 0.32, '#4a235a');
+          drawFaceWithHair(targetCtx, cx, topY + h * 0.18, w * 0.32, h * 0.2, '#eb3b5a', '#20bf6b', dir); // 派手な髪
           break;
-        case 'chibikoro':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.58, w * 0.46, h * 0.4, '#c0392b');
-          drawHead(targetCtx, cx, p.y + h * 0.25, w * 0.34, '#e74c3c', dir);
+
+        case 'chibikoro': // 急降下ダイバー
+          drawBody(targetCtx, cx, topY + h * 0.4, w * 0.7, h * 0.42, '#c0392b', '#922b21');
+          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#641e16');
+          drawHelmetHead(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, '#e74c3c', dir);
           break;
-        case 'hime':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.38, h * 0.32, '#d81b60');
-          drawHead(targetCtx, cx, p.y + h * 0.25, w * 0.32, '#ffeaa7', dir, true);
+
+        case 'hime': // クノイチ
+          drawBody(targetCtx, cx, topY + h * 0.45, w * 0.52, h * 0.4, '#d81b60', '#ad1457');
+          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.4, h * 0.32, '#880e4f');
+          drawFaceWithHair(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, '#ffeaa7', '#2c3e50', dir, true); // 女性風
           break;
-        case 'gorira':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.55, w * 0.52, h * 0.42, '#2c3e50');
-          drawHead(targetCtx, cx, p.y + h * 0.2, w * 0.4, '#34495e', dir);
+
+        case 'gorira': // バーサーカー (リアルなゴリラ)
+          // リアルな毛並みと胸筋
+          drawBody(targetCtx, cx, topY + h * 0.45, w * 0.8, h * 0.48, '#2c3e50', '#1a252f');
+          // 胸筋の描き込み
+          targetCtx.fillStyle = '#34495e';
+          targetCtx.fillRect(cx - w * 0.25, topY + h * 0.35, w * 0.5, h * 0.2);
+          drawLegs(targetCtx, cx, topY + h * 0.75, w * 0.65, h * 0.25, '#111');
+          drawGorillaFace(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, dir);
           break;
-        case 'ninja':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.62, w * 0.38, h * 0.35, '#111');
-          drawHead(targetCtx, cx, p.y + h * 0.24, w * 0.32, '#333', dir);
+
+        case 'ninja': // シノビ
+          drawBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#111', '#222');
+          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#000');
+          drawNinjaHead(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, dir);
           break;
-        case 'robot':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.6, w * 0.45, h * 0.38, '#7f8c8d');
-          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.35, '#95a5a6', dir);
+
+        case 'robot': // サイボーグ
+          // メタルボディ
+          drawRobotBody(targetCtx, cx, topY + h * 0.42, w * 0.65, h * 0.42);
+          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.5, h * 0.3, '#555');
+          drawRobotHead(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.22, dir);
           break;
-        case 'samurai':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.63, w * 0.42, h * 0.34, '#c0392b');
-          drawHead(targetCtx, cx, p.y + h * 0.24, w * 0.34, '#f1c40f', dir);
+
+        case 'samurai': // 剣豪
+          // 甲冑
+          drawBody(targetCtx, cx, topY + h * 0.45, w * 0.62, h * 0.42, '#c0392b', '#7b241c');
+          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.48, h * 0.3, '#111');
+          drawSamuraiHead(targetCtx, cx, topY + h * 0.22, w * 0.38, h * 0.22, dir);
           break;
-        case 'wizard':
-          drawBodyPart(targetCtx, cx, p.y + h * 0.65, w * 0.4, h * 0.32, '#2c3e50');
-          drawHead(targetCtx, cx, p.y + h * 0.22, w * 0.32, '#8e44ad', dir, false, true);
+
+        case 'wizard': // メイジ
+          // ローブ
+          drawBody(targetCtx, cx, topY + h * 0.5, w * 0.6, h * 0.48, '#2c3e50', '#1a252f');
+          drawWizardHead(targetCtx, cx, topY + h * 0.22, w * 0.34, h * 0.22, dir);
           break;
       }
 
       targetCtx.restore();
     }
 
-    function drawBodyPart(ctx, x, y, rx, ry, color) {
-      ctx.fillStyle = color;
+    // 胴体描画
+    function drawBody(ctx, x, y, w, h, mainColor, subColor) {
+      const grad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
+      grad.addColorStop(0, mainColor);
+      grad.addColorStop(1, subColor);
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.roundRect(x - w / 2, y, w, h, 8);
       ctx.fill();
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       ctx.stroke();
     }
 
-    function drawHead(ctx, x, y, r, color, dir, isFemale = false, isWizard = false) {
+    // 脚部描画
+    function drawLegs(ctx, x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x - w / 2, y, w * 0.4, h);
+      ctx.fillRect(x + w * 0.1, y, w * 0.4, h);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - w / 2, y, w * 0.4, h);
+      ctx.strokeRect(x + w * 0.1, y, w * 0.4, h);
+    }
+
+    // リアル顔 ＋ 髪の毛
+    function drawFaceWithHair(ctx, x, y, rx, ry, skinColor, hairColor, dir, isFemale = false, hasBeard = false) {
+      // 頭部（肌）
+      ctx.fillStyle = skinColor;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // リアル目・眉毛・鼻・口
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + dir * 4, y - 4, 8, 5); // 白目
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x + dir * 7, y - 3, 4, 4); // 黒目
+      ctx.fillRect(x + dir * 2, y - 8, 10, 2); // 眉毛
+
+      // 髪の毛
+      ctx.fillStyle = hairColor;
+      ctx.beginPath();
+      ctx.arc(x, y - 4, rx * 1.1, Math.PI, Math.PI * 2);
+      ctx.fill();
+
+      if (isFemale) {
+        // ツインテール / ポニーテール
+        ctx.fillRect(x - dir * rx * 1.2, y - 10, 10, 25);
+      }
+
+      if (hasBeard) {
+        ctx.fillRect(x - rx * 0.8, y + 2, rx * 1.6, ry * 0.8);
+      }
+    }
+
+    // ヘルメット頭部
+    function drawHelmetHead(ctx, x, y, rx, ry, color, dir) {
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      if (isFemale) {
-        ctx.fillStyle = '#fd79a8';
-        ctx.fillRect(x - 6, y - r - 4, 12, 6);
-      } else if (isWizard) {
-        ctx.fillStyle = '#2c3e50';
-        ctx.beginPath();
-        ctx.moveTo(x - r - 6, y - r);
-        ctx.lineTo(x + r + 6, y - r);
-        ctx.lineTo(x, y - r - 25);
-        ctx.closePath();
-        ctx.fill();
-      }
+      // ゴーグル
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(x + dir * 2, y - 6, rx * 1.2, 8);
+    }
 
-      // 目
-      ctx.fillStyle = '#000';
+    // ゴリラの顔
+    function drawGorillaFace(ctx, x, y, rx, ry, dir) {
+      ctx.fillStyle = '#34495e';
       ctx.beginPath();
-      ctx.arc(x + dir * 6, y - 3, 3, 0, Math.PI * 2);
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+
+      // 面構え
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.ellipse(x + dir * 4, y + 4, rx * 0.6, ry * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e74c3c'; // 鋭い眼光
+      ctx.fillRect(x + dir * 6, y - 5, 5, 3);
+    }
+
+    // ニンジャの頭部 (マスク)
+    function drawNinjaHead(ctx, x, y, rx, ry, dir) {
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // 目元の切り欠き
+      ctx.fillStyle = '#f5cba7';
+      ctx.fillRect(x + dir * 2, y - 7, rx, 8);
+
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x + dir * 6, y - 5, 4, 4); // 目
+    }
+
+    // ロボットの頭部
+    function drawRobotHead(ctx, x, y, rx, ry, dir) {
+      ctx.fillStyle = '#7f8c8d';
+      ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
+      ctx.strokeStyle = '#000';
+      ctx.strokeRect(x - rx, y - ry, rx * 2, ry * 2);
+
+      // バイザー（発光）
+      ctx.fillStyle = '#00f2fe';
+      ctx.fillRect(x + dir * 2, y - 6, rx * 1.2, 8);
+    }
+
+    // ロボットの胴体
+    function drawRobotBody(ctx, x, y, w, h) {
+      ctx.fillStyle = '#95a5a6';
+      ctx.fillRect(x - w / 2, y, w, h);
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x - w / 2, y, w, h);
+
+      // 胸のコア
+      ctx.fillStyle = '#e74c3c';
+      ctx.beginPath();
+      ctx.arc(x, y + h * 0.4, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // サムライの頭部 (兜)
+    function drawSamuraiHead(ctx, x, y, rx, ry, dir) {
+      ctx.fillStyle = '#f5cba7';
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 兜
+      ctx.fillStyle = '#111';
+      ctx.fillRect(x - rx * 1.2, y - ry * 1.2, rx * 2.4, ry * 0.8);
+      // 前立て (金色の前立)
+      ctx.fillStyle = '#f1c40f';
+      ctx.beginPath();
+      ctx.moveTo(x, y - ry * 1.2);
+      ctx.lineTo(x - 8, y - ry * 2);
+      ctx.lineTo(x + 8, y - ry * 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // ウィザードの頭部 (魔法帽子)
+    function drawWizardHead(ctx, x, y, rx, ry, dir) {
+      ctx.fillStyle = '#f5cba7';
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 帽子
+      ctx.fillStyle = '#2c3e50';
+      ctx.beginPath();
+      ctx.moveTo(x - rx * 1.5, y - ry * 0.5);
+      ctx.lineTo(x + rx * 1.5, y - ry * 0.5);
+      ctx.lineTo(x, y - ry * 2.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
     }
 
     function drawAttackEffect(targetCtx, p, char) {
