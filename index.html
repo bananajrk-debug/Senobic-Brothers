@@ -859,7 +859,7 @@
       });
     }
 
-    // ★★★ キャラクタープレビュー表示のスケール最適化（ドアップ解消） ★★★
+    // ★★★ プレビューのドアップを完全に修正（全身がすっぽり入るように調整） ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -872,13 +872,13 @@
       const char = characters[key];
 
       pCtx.save();
-      // キャンバス中央下に基準点を合わせて全体を縮小配置
-      pCtx.translate(72, 92);
-      pCtx.scale(0.65, 0.65);
+      // ボックスの中央に配置し、スケールを縮小して全体が収まるようにする
+      pCtx.translate(72, 60);
+      pCtx.scale(0.45, 0.45);
 
       const dummyPlayer = {
         x: -char.width / 2,
-        y: -char.height,
+        y: -char.height / 2,
         facing: 'right',
         characterKey: key,
         stunFrames: 0,
