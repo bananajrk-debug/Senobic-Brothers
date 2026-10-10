@@ -62,7 +62,7 @@
       font-weight: bold;
       cursor: pointer;
       border-radius: 6px;
-      margin-top: 15px;
+      margin-top: 10px;
       transition: background 0.2s;
     }
     .btn:hover {
@@ -87,17 +87,16 @@
       background: #8e44ad;
     }
 
-    input[type="number"] {
-      width: 180px;
-      padding: 10px;
-      font-size: 20px;
+    input[type="text"], input[type="number"] {
+      width: 200px;
+      padding: 8px 12px;
+      font-size: 16px;
       text-align: center;
       border-radius: 6px;
       border: 2px solid #3498db;
       background: #1e1e24;
       color: #fff;
       outline: none;
-      margin-top: 10px;
     }
 
     #lobby-ui {
@@ -207,21 +206,26 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
-    <!-- 1. メインメニュー（通信方式選択） -->
+    <!-- 1. メインメニュー（名前変更・通信方式選択） -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 38px; margin-bottom: 8px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 25px;">2D ONLINE FIGHTING GAME</p>
+      <p style="color: #888; font-size: 14px; margin-bottom: 15px;">2D ONLINE FIGHTING GAME</p>
       
-      <div style="display: flex; gap: 20px; align-items: center;">
+      <div style="margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+        <label style="font-size: 13px; color: #aaa;">プレイヤー名:</label>
+        <input type="text" id="player-name-input" value="Player 1" maxlength="10">
+      </div>
+
+      <div style="display: flex; gap: 15px; align-items: center;">
         <button class="btn" onclick="createOnlineRoom()">部屋を作る (コード生成)</button>
         <button class="btn btn-cpu" onclick="startCpuGame()">1人でCPU対戦</button>
       </div>
 
-      <div style="margin-top: 25px; display: flex; flex-direction: column; align-items: center;">
-        <p style="font-size: 14px; color: #aaa;">教えてもらった4桁の数字を入力して参加:</p>
-        <div style="display: flex; gap: 10px;">
-          <input type="number" id="room-code-input" placeholder="例: 1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
-          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 10px; padding: 10px 20px;">部屋に入る</button>
+      <div style="margin-top: 20px; display: flex; flex-direction: column; align-items: center;">
+        <p style="font-size: 14px; color: #aaa;">4桁の部屋コードで参加:</p>
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+          <input type="number" id="room-code-input" placeholder="1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
+          <button class="btn" onclick="joinOnlineRoom()" style="margin-top: 0; padding: 8px 16px;">部屋に入る</button>
         </div>
         <p id="error-msg" style="color: #e74c3c; font-size: 13px; margin-top: 8px;"></p>
       </div>
@@ -236,8 +240,11 @@
         </div>
 
         <div class="lobby-bottom">
-          <div class="interactive">
-            <div id="current-char-name" style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">フツオ (普通)</div>
+          <div class="interactive" style="display: flex; gap: 10px; align-items: flex-end;">
+            <div>
+              <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 3px;">名前変更:</label>
+              <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
+            </div>
             <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; padding: 8px 16px; background: #333;">キャラを変更</button>
           </div>
 
@@ -279,9 +286,10 @@
     const charListContainer = document.getElementById('char-list');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
-    const currentCharName = document.getElementById('current-char-name');
     const roomCodeBadge = document.getElementById('room-code-badge');
     const roomCodeInput = document.getElementById('room-code-input');
+    const playerNameInput = document.getElementById('player-name-input');
+    const lobbyNameInput = document.getElementById('lobby-name-input');
     const errorMsg = document.getElementById('error-msg');
 
     let myPlayerNum = null;
@@ -295,7 +303,7 @@
 
     const keys = { left: false, right: false, jump: false, attack: false, attackType: null };
 
-    // ソケットイベント
+    // ソケット通信
     socket.on('roomCreated', (data) => {
       currentCode = data.code;
       myPlayerNum = data.playerNum;
@@ -349,7 +357,7 @@
 
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
-      winnerText.textContent = `PLAYER ${data.winnerNum} WIN!`;
+      winnerText.textContent = `${data.winnerName} VICTORY!`;
       updateUI();
     });
 
@@ -360,7 +368,7 @@
       updateUI();
     });
 
-    // キーボード入力 (K: パンチ / O: キック)
+    // キーボード入力
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
 
@@ -395,7 +403,8 @@
 
     function createOnlineRoom() {
       errorMsg.textContent = '';
-      socket.emit('createRoom');
+      const name = playerNameInput.value.trim() || 'Player 1';
+      socket.emit('createRoom', { playerName: name });
     }
 
     function joinOnlineRoom() {
@@ -405,12 +414,19 @@
         return;
       }
       errorMsg.textContent = '';
-      socket.emit('joinRoom', { code: code });
+      const name = playerNameInput.value.trim() || 'Player 2';
+      socket.emit('joinRoom', { code: code, playerName: name });
     }
 
     function startCpuGame() {
       errorMsg.textContent = '';
-      socket.emit('startCpuMode');
+      const name = playerNameInput.value.trim() || 'Player 1';
+      socket.emit('startCpuMode', { playerName: name });
+    }
+
+    function changeLobbyName() {
+      const newName = lobbyNameInput.value.trim();
+      socket.emit('updateName', { name: newName });
     }
 
     function goToLobby() {
@@ -459,9 +475,7 @@
     function updateLobbyUI() {
       const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
       if (myData) {
-        const char = characters[myData.characterKey];
-        if (char) currentCharName.textContent = char.name;
-
+        lobbyNameInput.value = myData.name;
         if (myData.ready) {
           readyBtn.textContent = '準備完了を解除';
           readyBtn.className = 'btn btn-cancel interactive';
@@ -529,6 +543,7 @@
       box.appendChild(pCanvas);
     }
 
+    // ロビーアニメーション（横並びで2人表示）
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
@@ -539,32 +554,79 @@
         ctx.fillStyle = '#18181c';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // 1Pと2Pの台座
         ctx.fillStyle = '#22222a';
         ctx.beginPath();
-        ctx.ellipse(500, 420, 160, 30, 0, 0, Math.PI * 2);
+        ctx.ellipse(350, 410, 140, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(650, 410, 140, 25, 0, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#333340';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
-        if (myData && characters[myData.characterKey]) {
-          const char = characters[myData.characterKey];
-          ctx.save();
-          ctx.translate(500, 410);
-          ctx.scale(1.5, 1.5);
+        const p1 = Object.values(playersData).find(p => p.playerNum === 1);
+        const p2 = Object.values(playersData).find(p => p.playerNum === 2);
 
-          const lobbyPlayer = {
-            x: -char.width / 2,
-            y: -char.height,
+        // 1P描画
+        if (p1 && characters[p1.characterKey]) {
+          const char1 = characters[p1.characterKey];
+          ctx.save();
+          ctx.translate(350, 400);
+          ctx.scale(1.4, 1.4);
+
+          const lobbyP1 = {
+            x: -char1.width / 2,
+            y: -char1.height,
             facing: 'right',
-            characterKey: myData.characterKey,
+            characterKey: p1.characterKey,
             stunFrames: 0
           };
-
-          drawGraphicCharacter(ctx, lobbyPlayer, char);
+          drawGraphicCharacter(ctx, lobbyP1, char1);
           ctx.restore();
+
+          // 名前＆ステータス表示
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(p1.name, 350, 445);
+
+          ctx.fillStyle = p1.ready ? '#2ecc71' : '#e74c3c';
+          ctx.font = '13px sans-serif';
+          ctx.fillText(p1.ready ? '【 準備完了 】' : '【 選択中... 】', 350, 465);
+        }
+
+        // 2P描画 (オンライン相手または待機表示)
+        if (p2 && characters[p2.characterKey]) {
+          const char2 = characters[p2.characterKey];
+          ctx.save();
+          ctx.translate(650, 400);
+          ctx.scale(1.4, 1.4);
+
+          const lobbyP2 = {
+            x: -char2.width / 2,
+            y: -char2.height,
+            facing: 'left',
+            characterKey: p2.characterKey,
+            stunFrames: 0
+          };
+          drawGraphicCharacter(ctx, lobbyP2, char2);
+          ctx.restore();
+
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(p2.name, 650, 445);
+
+          ctx.fillStyle = p2.ready ? '#2ecc71' : '#e74c3c';
+          ctx.font = '13px sans-serif';
+          ctx.fillText(p2.ready ? '【 準備完了 】' : '【 選択中... 】', 650, 465);
+        } else {
+          // 2Pがいない場合の待機表示
+          ctx.fillStyle = '#555';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('参加待ち...', 650, 380);
         }
 
         lobbyAnimId = requestAnimationFrame(loop);
@@ -605,10 +667,11 @@
           drawAttackEffect(ctx, p, char);
         }
 
+        // 名前表示
         ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(p.isCpu ? 'CPU' : `P${p.playerNum}`, p.x + char.width / 2, p.y - 10);
+        ctx.fillText(p.name, p.x + char.width / 2, p.y - 10);
 
         ctx.restore();
       });
@@ -747,7 +810,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`1P: ${char1.name}`, 20, 15);
+        ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
       }
 
       if (p2 && characters[p2.characterKey]) {
@@ -761,7 +824,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`${p2.isCpu ? 'CPU' : '2P'}: ${char2.name}`, 1000 - 20, 15);
+        ctx.fillText(`${p2.name} (${char2.name})`, 1000 - 20, 15);
       }
     }
   </script>
