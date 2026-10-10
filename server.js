@@ -23,16 +23,12 @@ app.get('/', (req, res) => {
   }
 });
 
+// 厳選された5キャラのデータ定義
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
-  garinoshin: { name: 'ガリノシン (アスリート)', hp: 85,  atk: 10, speed: 9.5, jumpPower: 20, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ',   cd: 10 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
-  hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避',     cd: 14 },
-  gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視',   cd: 15 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
-  robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ',cd: 36 },
-  samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃',     cd: 15 },
   wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
 };
 
@@ -249,7 +245,7 @@ io.on('connection', (socket) => {
         p.vy = -char.jumpPower;
         p.isGrounded = false;
         p.jumpCount = 1;
-      } else if ((char.type === 'garinoshin' || char.type === 'ninja') && p.jumpCount < 2) {
+      } else if (char.type === 'ninja' && p.jumpCount < 2) {
         p.vy = -char.jumpPower * 0.9;
         p.jumpCount = 2;
       }
@@ -265,11 +261,11 @@ io.on('connection', (socket) => {
       if (p.senobicTimer > 0) atkMult = 1.8;
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
 
-      if (char.type === 'ninja' || char.type === 'wizard' || char.type === 'robot') {
+      if (char.type === 'ninja' || char.type === 'wizard') {
         const isRight = p.facing === 'right';
         const startX = isRight ? p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) : p.x - 30;
         const startY = p.y + (char.height * (p.senobicTimer > 0 ? 2 : 1)) * 0.4;
-        const projSpeed = char.type === 'ninja' ? 16 : (char.type === 'wizard' ? 12 : 14);
+        const projSpeed = char.type === 'ninja' ? 16 : 12;
 
         room.projectiles.push({
           id: Date.now() + Math.random(),
@@ -278,14 +274,12 @@ io.on('connection', (socket) => {
           x: startX,
           y: startY,
           vx: isRight ? projSpeed : -projSpeed,
-          width: char.type === 'robot' ? 40 : 26,
+          width: 26,
           height: 22,
           damage: dmg
         });
       } else {
         let reach = isPunch ? 55 : 85;
-        if (char.type === 'samurai') reach = 130;
-        else if (char.type === 'gorira') reach = 100;
 
         const isGiant = p.senobicTimer > 0;
         let attackHeight = (isPunch ? char.height * 0.4 : char.height * 0.3) * (isGiant ? 2.2 : 1);
@@ -295,9 +289,6 @@ io.on('connection', (socket) => {
           p.vy = 22;
           dmg = Math.round(18 * atkMult);
           reach = 100;
-        } else if (char.type === 'hime') {
-          p.vx = p.facing === 'right' ? -14 : 14;
-          p.invincibleFrames = 12;
         }
 
         p.attackBox = {
@@ -462,9 +453,9 @@ function updateCpuAI(cpu, target) {
     let atkMult = cpu.buffAtkTimer > 0 ? 1.5 : (cpu.senobicTimer > 0 ? 1.8 : 1.0);
     let dmg = Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.25)) * atkMult);
 
-    if (cpuChar.type === 'ninja' || cpuChar.type === 'wizard' || cpuChar.type === 'robot') {
+    if (cpuChar.type === 'ninja' || cpuChar.type === 'wizard') {
       const isRight = cpu.facing === 'right';
-      const projSpeed = cpuChar.type === 'ninja' ? 16 : (cpuChar.type === 'wizard' ? 12 : 14);
+      const projSpeed = cpuChar.type === 'ninja' ? 16 : 12;
 
       getRoomBySocket({ id: cpu.id })?.projectiles.push({
         id: Date.now() + Math.random(),
@@ -473,7 +464,7 @@ function updateCpuAI(cpu, target) {
         x: isRight ? cpu.x + cpuChar.width : cpu.x - 30,
         y: cpu.y + cpuChar.height * 0.35,
         vx: isRight ? projSpeed : -projSpeed,
-        width: cpuChar.type === 'robot' ? 40 : 26,
+        width: 26,
         height: 22,
         damage: dmg
       });
