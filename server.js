@@ -23,12 +23,13 @@ app.get('/', (req, res) => {
   }
 });
 
+// キャラクターマスターデータ（特殊能力パラメータ追加）
 const CHARACTERS = {
-  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo' },
-  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon' },
-  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 11, jumpPower: 22, width: 35, height: 105, type: 'garinoshin' },
-  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro' },
-  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime' }
+  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能（低硬直）' },
+  debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー（攻撃中不屈）' },
+  garinoshin: { name: 'ガリノシン (ガリ)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
+  chibikoro: { name: 'チビコロ (チビデブ)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
+  hime: { name: 'ヒメ (女)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避バックステップ' }
 };
 
 let rooms = {};
@@ -46,7 +47,9 @@ function createRoom(code) {
     code: code,
     players: {},
     gameState: 'LOBBY',
-    isCpuMode: false
+    isCpuMode: false,
+    countdownTimer: null,
+    countdownVal: 0
   };
 }
 
@@ -87,7 +90,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
   });
 
-  // 3. CPU対戦
+  // 3. CPU対戦モード
   socket.on('startCpuMode', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
@@ -118,30 +121,19 @@ io.on('connection', (socket) => {
       attackType: null,
       attackBox: null,
       stunFrames: 0,
-      invincibleFrames: 0
+      invincibleFrames: 0,
+      jumpCount: 0
     };
 
     room.players[socket.id].ready = true;
-    room.gameState = 'PLAYING';
 
     socket.join(code);
     socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS });
 
-    Object.values(room.players).forEach(pl => {
-      const char = CHARACTERS[pl.characterKey];
-      pl.hp = char.hp;
-      pl.maxHp = char.hp;
-      pl.x = pl.playerNum === 1 ? 200 : 1000 - 200 - char.width;
-      pl.y = 450 - char.height;
-      pl.vx = 0;
-      pl.vy = 0;
-      pl.facing = pl.playerNum === 1 ? 'right' : 'left';
-    });
-
-    io.to(code).emit('gameStart', { players: room.players });
+    // 即座に試合開始
+    startMatch(room);
   });
 
-  // プレイヤー名・キャラ更新
   socket.on('updateName', (data) => {
     const room = getRoomBySocket(socket);
     if (room && room.players[socket.id]) {
@@ -158,7 +150,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 準備完了
+  // 準備完了 (カウントダウン連動)
   socket.on('toggleReady', () => {
     const room = getRoomBySocket(socket);
     if (room && !room.isCpuMode) {
@@ -168,26 +160,36 @@ io.on('connection', (socket) => {
         io.to(room.code).emit('characterUpdated', { players: room.players });
 
         const playerList = Object.values(room.players);
-        if (playerList.length === 2 && playerList.every(player => player.ready)) {
-          room.gameState = 'PLAYING';
-          playerList.forEach(pl => {
-            const char = CHARACTERS[pl.characterKey];
-            pl.hp = char.hp;
-            pl.maxHp = char.hp;
-            pl.x = pl.playerNum === 1 ? 200 : 1000 - 200 - char.width;
-            pl.y = 450 - char.height;
-            pl.vx = 0;
-            pl.vy = 0;
-            pl.facing = pl.playerNum === 1 ? 'right' : 'left';
-          });
+        const allReady = playerList.length === 2 && playerList.every(player => player.ready);
 
-          io.to(room.code).emit('gameStart', { players: room.players });
+        if (allReady) {
+          // 3秒のカウントダウン開始
+          room.countdownVal = 3;
+          io.to(room.code).emit('countdownUpdate', { count: room.countdownVal });
+
+          room.countdownTimer = setInterval(() => {
+            room.countdownVal--;
+            if (room.countdownVal > 0) {
+              io.to(room.code).emit('countdownUpdate', { count: room.countdownVal });
+            } else {
+              clearInterval(room.countdownTimer);
+              startMatch(room);
+            }
+          }, 1000);
+
+        } else {
+          // 準備解除時はカウントダウンキャンセル
+          if (room.countdownTimer) {
+            clearInterval(room.countdownTimer);
+            room.countdownTimer = null;
+            io.to(room.code).emit('countdownCancel');
+          }
         }
       }
     }
   });
 
-  // 操作入力
+  // 物理パケット/操作情報の同期・特殊能力処理
   socket.on('playerInput', (input) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -197,6 +199,7 @@ io.on('connection', (socket) => {
 
     const char = CHARACTERS[p.characterKey];
 
+    // 移動処理
     if (input.left) {
       p.vx = -char.speed;
       p.facing = 'left';
@@ -207,35 +210,56 @@ io.on('connection', (socket) => {
       p.vx = 0;
     }
 
-    if (input.jump && p.isGrounded) {
-      p.vy = -char.jumpPower;
-      p.isGrounded = false;
+    // ジャンプ（ガリノシン特有の2段ジャンプ）
+    if (input.jump && !input.jumpPrev) {
+      if (p.isGrounded) {
+        p.vy = -char.jumpPower;
+        p.isGrounded = false;
+        p.jumpCount = 1;
+      } else if (char.type === 'garinoshin' && p.jumpCount < 2) {
+        // ガリノシン能力: 2段ジャンプ
+        p.vy = -char.jumpPower * 0.9;
+        p.jumpCount = 2;
+      }
     }
 
+    // 攻撃動作＆特殊能力判定
     if (input.attack && !p.attacking) {
       p.attacking = true;
       p.attackType = input.attackType;
-      
+
       const isPunch = input.attackType === 'punch';
-      const reach = isPunch ? 50 : 80;
-      const attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
-      const attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
+      let reach = isPunch ? 50 : 80;
+      let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
+      let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
+      let dmg = isPunch ? char.atk : Math.round(char.atk * 1.3);
+
+      // --- キャラクター別・特殊能力発動 ---
+      if (char.type === 'chibikoro' && !p.isGrounded) {
+        // チビコロ能力: 空中急降下アタック
+        p.vy = 20; // 超高速急降下
+        dmg = 20;
+        reach = 90;
+      } else if (char.type === 'hime') {
+        // ヒメ能力: バックステップ（後方移動＋無敵付与）
+        p.vx = p.facing === 'right' ? -12 : 12;
+        p.invincibleFrames = 12;
+      }
 
       p.attackBox = {
         x: p.facing === 'right' ? p.x + char.width : p.x - reach,
         y: p.y + attackYOffset,
         width: reach,
         height: attackHeight,
-        damage: isPunch ? char.atk : Math.round(char.atk * 1.3),
+        damage: dmg,
         type: input.attackType
       };
 
-      setTimeout(() => { p.attackBox = null; }, 120);
-      setTimeout(() => { p.attacking = false; }, 300);
+      setTimeout(() => { p.attackBox = null; }, 140);
+      setTimeout(() => { p.attacking = false; }, 320);
     }
   });
 
-  // 再戦リクエスト
   socket.on('requestRematch', () => {
     const room = getRoomBySocket(socket);
     if (room && room.gameState === 'FINISHED') {
@@ -252,6 +276,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const room = getRoomBySocket(socket);
     if (room) {
+      if (room.countdownTimer) clearInterval(room.countdownTimer);
       delete room.players[socket.id];
       if (Object.keys(room.players).filter(id => id !== 'cpu_player').length === 0) {
         delete rooms[room.code];
@@ -268,6 +293,22 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+function startMatch(room) {
+  room.gameState = 'PLAYING';
+  Object.values(room.players).forEach(pl => {
+    const char = CHARACTERS[pl.characterKey];
+    pl.hp = char.hp;
+    pl.maxHp = char.hp;
+    pl.x = pl.playerNum === 1 ? 200 : 1000 - 200 - char.width;
+    pl.y = 450 - char.height;
+    pl.vx = 0;
+    pl.vy = 0;
+    pl.facing = pl.playerNum === 1 ? 'right' : 'left';
+    pl.jumpCount = 0;
+  });
+  io.to(room.code).emit('gameStart', { players: room.players });
+}
 
 function createPlayerData(socketId, playerNum, name) {
   return {
@@ -289,7 +330,8 @@ function createPlayerData(socketId, playerNum, name) {
     attackType: null,
     attackBox: null,
     stunFrames: 0,
-    invincibleFrames: 0
+    invincibleFrames: 0,
+    jumpCount: 0
   };
 }
 
@@ -300,7 +342,7 @@ function getRoomBySocket(socket) {
   return null;
 }
 
-// CPU AI
+// CPU AI思考処理
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0) return;
 
@@ -343,7 +385,7 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// メインループ
+// メイン物理ループ
 setInterval(() => {
   const STAGE_WIDTH = 1000;
   const GROUND_Y = 450;
@@ -386,8 +428,7 @@ setInterval(() => {
         p.y = GROUND_Y - char.height;
         p.vy = 0;
         p.isGrounded = true;
-      } else {
-        p.isGrounded = false;
+        p.jumpCount = 0;
       }
 
       if (p.x < 0) p.x = 0;
@@ -412,11 +453,18 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
-          defender.stunFrames = 12;
-          defender.invincibleFrames = 24;
-          defender.vy = -5;
-          defender.vx = attacker.facing === 'right' ? 10 : -10;
 
+          // デブゴン特性: 攻撃中は不屈（スーパーアーマー）でノックバック・硬直を無視
+          const isDebugonArmored = defenderChar.type === 'debugon' && defender.attacking;
+
+          if (!isDebugonArmored) {
+            // フツオ特性: 被弾硬直が短い
+            defender.stunFrames = defenderChar.type === 'futsuo' ? 8 : 12;
+            defender.vy = -5;
+            defender.vx = attacker.facing === 'right' ? 10 : -10;
+          }
+
+          defender.invincibleFrames = 24;
           attacker.attackBox = null;
 
           if (defender.hp <= 0) {
