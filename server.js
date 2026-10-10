@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
   }
 });
 
+// ★ キャラクターマスターデータ (忍者をナーフ調整)
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
@@ -30,7 +31,7 @@ const CHARACTERS = {
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
   hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避',     cd: 14 },
   gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視',   cd: 15 },
-  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(画面端まで)', cd: 22 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:1.5秒)', cd: 90 }, // ★ ナーフ: スピード/ジャンプ力普通化, CT 1.5秒(90f)
   robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ',cd: 18 },
   samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃',     cd: 15 },
   wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(画面端まで)', cd: 24 }
@@ -59,7 +60,7 @@ function createRoom(code) {
     code: code,
     players: {},
     items: [],
-    projectiles: [], // 画面内を飛ぶ弾丸配列
+    projectiles: [],
     spawnedItemCount: 0,
     gameState: 'LOBBY',
     isCpuMode: false,
@@ -265,12 +266,12 @@ io.on('connection', (socket) => {
       if (p.senobicTimer > 0) atkMult = 1.8;
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
 
-      // ★ 飛び道具キャラ（ニンジャ・ウィザード・ロボット）は画面端まで飛ぶ弾丸を生成！
       if (char.type === 'ninja' || char.type === 'wizard' || char.type === 'robot') {
         const isRight = p.facing === 'right';
-        const startX = isRight ? p.x + char.width : p.x - 30;
-        const startY = p.y + char.height * 0.35;
-        const projSpeed = char.type === 'ninja' ? 16 : (char.type === 'wizard' ? 12 : 14);
+        const startX = isRight ? p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) : p.x - 30;
+        // セノビック(巨大化)時の弾丸発射位置補正
+        const startY = p.y + (char.height * (p.senobicTimer > 0 ? 2 : 1)) * 0.4;
+        const projSpeed = char.type === 'ninja' ? 15 : (char.type === 'wizard' ? 12 : 14);
 
         room.projectiles.push({
           id: Date.now() + Math.random(),
@@ -284,13 +285,15 @@ io.on('connection', (socket) => {
           damage: dmg
         });
       } else {
-        // 近接攻撃キャラの攻撃判定
         let reach = isPunch ? 55 : 85;
         if (char.type === 'samurai') reach = 130;
         else if (char.type === 'gorira') reach = 100;
 
-        let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
-        let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
+        const isGiant = p.senobicTimer > 0;
+        let attackHeight = (isPunch ? char.height * 0.4 : char.height * 0.3) * (isGiant ? 2.2 : 1);
+        
+        // ★ 修正：セノビック(巨大化)時でも足元まで攻撃判定がしっかり届くようにオフセット調整 ★
+        let attackYOffset = isGiant ? (char.height * 2 - attackHeight - 10) : (isPunch ? char.height * 0.2 : char.height * 0.4);
 
         if (char.type === 'chibikoro' && !p.isGrounded) {
           p.vy = 22;
@@ -302,10 +305,10 @@ io.on('connection', (socket) => {
         }
 
         p.attackBox = {
-          x: p.facing === 'right' ? p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) : p.x - reach,
+          x: p.facing === 'right' ? p.x + (char.width * (isGiant ? 2 : 1)) : p.x - (reach * (isGiant ? 1.5 : 1)),
           y: p.y + attackYOffset,
-          width: reach * (p.senobicTimer > 0 ? 1.5 : 1),
-          height: attackHeight * (p.senobicTimer > 0 ? 1.5 : 1),
+          width: reach * (isGiant ? 1.5 : 1),
+          height: attackHeight,
           damage: dmg,
           type: input.attackType
         };
@@ -465,7 +468,7 @@ function updateCpuAI(cpu, target) {
 
     if (cpuChar.type === 'ninja' || cpuChar.type === 'wizard' || cpuChar.type === 'robot') {
       const isRight = cpu.facing === 'right';
-      const projSpeed = cpuChar.type === 'ninja' ? 16 : (cpuChar.type === 'wizard' ? 12 : 14);
+      const projSpeed = cpuChar.type === 'ninja' ? 15 : (cpuChar.type === 'wizard' ? 12 : 14);
 
       getRoomBySocket({ id: cpu.id })?.projectiles.push({
         id: Date.now() + Math.random(),
@@ -545,18 +548,15 @@ setInterval(() => {
       updateCpuAI(p2, p1);
     }
 
-    // 飛び道具の移動＆ヒット判定（画面端まで進む）
     for (let i = room.projectiles.length - 1; i >= 0; i--) {
       const proj = room.projectiles[i];
       proj.x += proj.vx;
 
-      // 画面端到達で消滅
       if (proj.x < -50 || proj.x > STAGE_WIDTH + 50) {
         room.projectiles.splice(i, 1);
         continue;
       }
 
-      // 相手プレイヤーとのヒット判定
       const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
       if (target && target.invincibleFrames === 0) {
         const targetChar = CHARACTERS[target.characterKey];
@@ -592,7 +592,6 @@ setInterval(() => {
       }
     }
 
-    // アイテム処理
     for (let i = room.items.length - 1; i >= 0; i--) {
       const item = room.items[i];
       if (!item.isGrounded) {
@@ -709,7 +708,6 @@ setInterval(() => {
       }
     });
 
-    // 近接攻撃ヒット判定
     playersArr.forEach((attacker) => {
       if (!attacker || attacker.isKilled) return;
       const defender = playersArr.find(p => p && p.id !== attacker.id);
