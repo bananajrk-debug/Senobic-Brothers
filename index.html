@@ -249,7 +249,7 @@
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 36px; margin-bottom: 6px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 18px;">REAL 2D FIGHTING BATTLE (OPTIMIZED BALANCED)</p>
+      <p style="color: #888; font-size: 14px; margin-bottom: 18px;">REAL 2D FIGHTING BATTLE</p>
       
       <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
         <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
@@ -392,10 +392,10 @@
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
       hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避' },
       gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣遠距離' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(画面端まで)' },
       robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ' },
       samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
-      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔術展開' }
+      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(画面端まで)' }
     };
     let characterKeys = Object.keys(characters);
     let selectedStage = 1;
@@ -405,6 +405,7 @@
     let currentGameState = 'TITLE';
     let playersData = {};
     let itemsData = [];
+    let projectilesData = [];
     let activeStamps = {};
     let isReady = false;
     let isCpuModeGame = false;
@@ -461,7 +462,6 @@
       } catch (e) {}
     }
 
-    // ★ 重厚スピーディーな戦闘BGMサウンド生成 ★
     function startBGM() {
       if (bgmTimer) return;
       const bassSeq = [110, 110, 130.81, 110, 146.83, 130.81, 123.47, 110];
@@ -474,7 +474,6 @@
           initAudio();
           const now = audioCtx.currentTime;
 
-          // ベース音
           const bassOsc = audioCtx.createOscillator();
           const bassGain = audioCtx.createGain();
           bassOsc.type = 'sawtooth';
@@ -486,7 +485,6 @@
           bassOsc.start(now);
           bassOsc.stop(now + 0.12);
 
-          // メロディ音（1拍おき）
           if (step % 2 === 0) {
             const melOsc = audioCtx.createOscillator();
             const melGain = audioCtx.createGain();
@@ -587,6 +585,7 @@
       countdownOverlay.classList.add('hidden');
       playersData = data.players;
       itemsData = [];
+      projectilesData = [];
       visualEffects = [];
       if (data.selectedStage) selectedStage = data.selectedStage;
       startBGM();
@@ -597,6 +596,7 @@
       if (currentGameState === 'PLAYING') {
         playersData = data.players;
         itemsData = data.items || [];
+        projectilesData = data.projectiles || [];
         renderGame();
       }
     });
@@ -761,7 +761,13 @@
       updateLobbyUI();
     }
 
-    function openCharSelect() { selectModal.classList.remove('hidden'); }
+    // ★ 修正：モーダル表示時にすべてのプレビューを強制再描画 ★
+    function openCharSelect() {
+      selectModal.classList.remove('hidden');
+      setTimeout(() => {
+        characterKeys.forEach(key => drawCardMiniPreview(key));
+      }, 50);
+    }
     
     function closeCharSelect() {
       selectModal.classList.add('hidden');
@@ -831,15 +837,15 @@
           </div>
         `;
         charListContainer.appendChild(card);
-        setTimeout(() => drawCardMiniPreview(key), 0);
       });
     }
 
-    // ★ 完全修復：選択画面のドアップ解消＆枠内ぴったり収め ★
+    // ★ 完全修正：サイズが確定した状態での縮小プレビュー描画 ★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
       box.innerHTML = '';
+
       const pCanvas = document.createElement('canvas');
       pCanvas.width = 140;
       pCanvas.height = 80;
@@ -847,10 +853,9 @@
       const char = characters[key];
 
       pCtx.save();
-      // キャラクターの高さに合わせて枠内にぴったり入るスケールを自動計算
-      const fitScale = Math.min(0.48, 55 / char.height);
-      pCtx.translate(70, 72); // 中央下に基準を合わせる
-      pCtx.scale(fitScale, fitScale);
+      // 固定スケール (0.35) で足元基準で描画
+      pCtx.translate(70, 75);
+      pCtx.scale(0.35, 0.35);
 
       const dummyPlayer = {
         x: -char.width / 2,
@@ -957,6 +962,33 @@
           ctx.textBaseline = 'middle';
           const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
           ctx.fillText(label, 0, 0);
+        }
+        ctx.restore();
+      });
+
+      // ★ 飛び道具（弾丸）描画 ★
+      projectilesData.forEach(proj => {
+        ctx.save();
+        if (proj.type === 'ninja') { // 手裏剣
+          ctx.translate(proj.x + 13, proj.y + 11);
+          ctx.rotate(Date.now() * 0.02);
+          ctx.fillStyle = '#bdc3c7';
+          ctx.fillRect(-12, -3, 24, 6);
+          ctx.fillRect(-3, -12, 6, 24);
+        } else if (proj.type === 'wizard') { // 魔法弾
+          ctx.fillStyle = '#9b59b6';
+          ctx.beginPath();
+          ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#f1c40f';
+          ctx.beginPath();
+          ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (proj.type === 'robot') { // ロケットパンチ
+          ctx.fillStyle = '#7f8c8d';
+          ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(proj.vx > 0 ? proj.x + proj.width - 8 : proj.x, proj.y, 8, proj.height);
         }
         ctx.restore();
       });
@@ -1341,32 +1373,12 @@
       const ab = p.attackBox;
       const isRight = p.facing === 'right';
 
-      if (char.type === 'ninja') {
-        targetCtx.fillStyle = '#bdc3c7';
-        targetCtx.strokeStyle = '#2c3e50';
-        targetCtx.lineWidth = 2;
-        targetCtx.beginPath();
-        targetCtx.arc(ab.x + ab.width / 2, ab.y + ab.height / 2, 18, 0, Math.PI * 2);
-        targetCtx.fill(); targetCtx.stroke();
-
-      } else if (char.type === 'samurai') {
+      if (char.type === 'samurai') {
         targetCtx.strokeStyle = '#f1c40f';
         targetCtx.lineWidth = 6;
         targetCtx.beginPath();
         targetCtx.arc(ab.x, ab.y + ab.height / 2, ab.width * 0.8, -0.5, 0.5);
         targetCtx.stroke();
-
-      } else if (char.type === 'wizard') {
-        targetCtx.fillStyle = 'rgba(142, 68, 173, 0.85)';
-        targetCtx.beginPath();
-        targetCtx.arc(ab.x + ab.width / 2, ab.y + ab.height / 2, 25, 0, Math.PI * 2);
-        targetCtx.fill();
-
-      } else if (char.type === 'robot') {
-        targetCtx.fillStyle = '#7f8c8d';
-        targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height * 0.6);
-        targetCtx.fillStyle = '#e74c3c';
-        targetCtx.fillRect(ab.x + (isRight ? ab.width - 10 : 0), ab.y, 10, ab.height * 0.6);
 
       } else if (char.type === 'gorira') {
         targetCtx.fillStyle = 'rgba(230, 126, 34, 0.7)';
