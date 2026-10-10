@@ -61,7 +61,7 @@ function createRoom(code) {
   return {
     code: code,
     players: {},
-    items: [], // ドロップアイテム管理
+    items: [],
     gameState: 'LOBBY',
     isCpuMode: false,
     selectedStage: 1,
@@ -383,7 +383,6 @@ function getRoomBySocket(socket) {
   return null;
 }
 
-// 弱体化版 CPU AI
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled) return;
 
@@ -430,9 +429,9 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// アイテム生成処理
+// アイテム生成処理（最大で同時に1つだけ出現）
 function spawnRandomItem(room) {
-  if (room.items.length >= 2) return; // 最大画面上に2個まで
+  if (room.items.length >= 1) return; // 画面上に1つでもある場合は生成しない
   const types = ['heal', 'atk', 'speed'];
   const type = types[Math.floor(Math.random() * types.length)];
   room.items.push({
@@ -463,7 +462,7 @@ setInterval(() => {
     const p1 = room.players[playerIds[0]];
     const p2 = room.players[playerIds[1]];
 
-    // 低確率でアイテムドロップ (約12秒に1回のペース)
+    // 低確率でアイテムドロップ（最大1つ制限）
     if (Math.random() < 0.0014) {
       spawnRandomItem(room);
     }
@@ -475,7 +474,6 @@ setInterval(() => {
     const playersArr = [p1, p2];
     const currentPlatforms = STAGES[room.selectedStage].platforms;
 
-    // --- アイテムの移動＆回収判定 ---
     for (let i = room.items.length - 1; i >= 0; i--) {
       const item = room.items[i];
       if (!item.isGrounded) {
@@ -486,7 +484,6 @@ setInterval(() => {
         }
       }
 
-      // プレイヤー接触判定
       playersArr.forEach(p => {
         if (!p || p.isKilled) return;
         const char = CHARACTERS[p.characterKey];
@@ -496,13 +493,12 @@ setInterval(() => {
           p.y < item.y + item.height &&
           p.y + char.height > item.y
         ) {
-          // アイテム効果適用
           if (item.type === 'heal') {
             p.hp = Math.min(p.maxHp, p.hp + 30);
           } else if (item.type === 'atk') {
-            p.buffAtkTimer = 360; // 6秒間効果
+            p.buffAtkTimer = 360;
           } else if (item.type === 'speed') {
-            p.buffSpeedTimer = 360; // 6秒間効果
+            p.buffSpeedTimer = 360;
           }
 
           io.to(code).emit('itemCollected', { playerId: p.id, type: item.type });
@@ -511,20 +507,16 @@ setInterval(() => {
       });
     }
 
-    // --- プレイヤー物理挙動 ---
     playersArr.forEach(p => {
       if (!p) return;
 
-      // バフタイマー減少
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
 
-      // 吹き飛び状態（KO演出中）の処理
       if (p.isKilled) {
         p.x += p.vx;
         p.y += p.vy;
 
-        // 画面外に吹っ飛んだらゲーム終了決定
         if (p.x < -150 || p.x > STAGE_WIDTH + 150 || p.y < -200 || p.y > GROUND_Y + 200) {
           const winner = playersArr.find(pl => pl && pl.id !== p.id);
           room.gameState = 'FINISHED';
@@ -578,7 +570,6 @@ setInterval(() => {
       if (p.x + char.width > STAGE_WIDTH) p.x = STAGE_WIDTH - char.width;
     });
 
-    // --- 攻撃当たり判定 ---
     playersArr.forEach((attacker) => {
       if (!attacker || attacker.isKilled) return;
       const defender = playersArr.find(p => p && p.id !== attacker.id);
@@ -601,7 +592,6 @@ setInterval(() => {
           const isDebugonArmored = defenderChar.type === 'debugon' && defender.attacking;
 
           if (defender.hp <= 0) {
-            // HPが0になったらスマブラ風・超高速画面外吹き飛び！
             defender.hp = 0;
             defender.isKilled = true;
             defender.vx = attacker.facing === 'right' ? 35 : -35;
