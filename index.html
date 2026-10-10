@@ -73,6 +73,8 @@
     .btn-cancel:hover { box-shadow: 0 6px 16px rgba(231,76,60,0.5); }
     .btn-cpu { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
     .btn-cpu:hover { box-shadow: 0 6px 16px rgba(155,89,182,0.5); }
+    .btn-leave { background: linear-gradient(135deg, #7f8c8d, #34495e); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .btn-leave:hover { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
     .btn-stage {
       background: #2a2a38;
       font-size: 11px;
@@ -206,7 +208,7 @@
     }
     .char-preview-box {
       width: 100%;
-      height: 95px;
+      height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -304,14 +306,17 @@
     <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
       <div id="lobby-ui">
         <div class="lobby-top">
-          <div class="lobby-title">
-            LOBBY (MAX 4 PLAYERS)
-            <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
-              <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
-              <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
-              <button class="btn btn-stage" id="btn-stage-3" onclick="selectStage(3)">スリル</button>
-              <button class="btn btn-stage" id="btn-stage-4" onclick="selectStage(4)">神殿</button>
-              <button class="btn btn-stage" id="btn-stage-5" onclick="selectStage(5)">宇宙</button>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-leave interactive" onclick="leaveLobby()" style="font-size: 12px; padding: 6px 12px; margin-top: 0; width: fit-content;">← 退出 (タイトルへ)</button>
+            <div class="lobby-title">
+              LOBBY (MAX 4 PLAYERS)
+              <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
+                <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
+                <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
+                <button class="btn btn-stage" id="btn-stage-3" onclick="selectStage(3)">スリル</button>
+                <button class="btn btn-stage" id="btn-stage-4" onclick="selectStage(4)">神殿</button>
+                <button class="btn btn-stage" id="btn-stage-5" onclick="selectStage(5)">宇宙</button>
+              </div>
             </div>
           </div>
 
@@ -388,7 +393,6 @@
     let myPlayerNum = null;
     let currentCode = null;
 
-    // 厳選された5体のキャラクター
     let characters = {
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
       debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
@@ -721,6 +725,12 @@
       socket.emit('joinRoom', { code: code, playerName: name });
     }
 
+    function leaveLobby() {
+      socket.disconnect();
+      socket.connect();
+      goToTitle();
+    }
+
     function openCpuSetup() {
       currentGameState = 'CPU_SETUP';
       isCpuModeGame = true;
@@ -849,20 +859,22 @@
       });
     }
 
+    // ★★★ キャラクタープレビュー表示のスケール最適化（ドアップ解消） ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
       box.innerHTML = '';
 
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 140;
-      pCanvas.height = 90;
+      pCanvas.width = 145;
+      pCanvas.height = 100;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(70, 85);
-      pCtx.scale(0.38, 0.38);
+      // キャンバス中央下に基準点を合わせて全体を縮小配置
+      pCtx.translate(72, 92);
+      pCtx.scale(0.65, 0.65);
 
       const dummyPlayer = {
         x: -char.width / 2,
