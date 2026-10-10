@@ -23,18 +23,18 @@ app.get('/', (req, res) => {
   }
 });
 
-// キャラクターマスターデータ (計10体)
+// キャラクターマスターデータ (10体)
 const CHARACTERS = {
-  futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能' },
-  debugon: { name: 'デブゴン (重量)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー' },
-  garinoshin: { name: 'ガリノシン (俊敏)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: '2段ジャンプ' },
-  chibikoro: { name: 'チビコロ (急降下)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '空中急降下アタック' },
-  hime: { name: 'ヒメ (回避)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵バックステップ' },
-  gorira: { name: 'ゴリラ (豪腕)', hp: 170, atk: 22, speed: 4.5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '圧倒的パワー' },
-  ninja: { name: 'ニンジャ (隠密)', hp: 75, atk: 13, speed: 12, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '超高速ダッシュ' },
-  robot: { name: 'ロボット (重鋼)', hp: 140, atk: 17, speed: 5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐久メタル' },
-  samurai: { name: 'サムライ (居合)', hp: 95, atk: 19, speed: 8.5, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '強烈な一撃' },
-  wizard: { name: 'ウィザード (魔導)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '浮遊マジック' }
+  futsuo: { name: 'フツオ (ファイター)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: '万能格闘家' },
+  debugon: { name: 'デブゴン (ヘビー)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: '不屈のアーマー' },
+  garinoshin: { name: 'ガリノシン (アスリート)', hp: 70, atk: 8, speed: 11, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
+  chibikoro: { name: 'チビコロ (ダイバー)', hp: 120, atk: 12, speed: 5.5, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '急降下アタック' },
+  hime: { name: 'ヒメ (クノイチ)', hp: 85, atk: 14, speed: 9, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避' },
+  gorira: { name: 'ゴリラ (バーサーカー)', hp: 170, atk: 22, speed: 4.5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '破壊力重視' },
+  ninja: { name: 'ニンジャ (シノビ)', hp: 75, atk: 13, speed: 12, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '高速移動' },
+  robot: { name: 'ロボット (サイボーグ)', hp: 140, atk: 17, speed: 5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐熱装甲' },
+  samurai: { name: 'サムライ (剣豪)', hp: 95, atk: 19, speed: 8.5, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '一閃攻撃' },
+  wizard: { name: 'ウィザード (メイジ)', hp: 70, atk: 15, speed: 8, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '魔術展開' }
 };
 
 // ステージ定義 (全5種)
@@ -280,7 +280,6 @@ io.on('connection', (socket) => {
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
       
       let atkMult = p.buffAtkTimer > 0 ? 1.8 : 1.0;
-      // セノビック効果中はワンパン仕様（攻撃力が極大化）
       if (p.senobicTimer > 0) atkMult = 50.0;
 
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.3)) * atkMult);
@@ -451,16 +450,14 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// アイテム生成処理（低確率で「セノビック」ドリンクを含む）
 function spawnRandomItem(room) {
   if (room.items.length >= 1) return;
   if (room.spawnedItemCount >= 3) return;
 
-  // 低確率でセノビックドリンク (約15%の確率)、他は肉・ATK・SPD
   const rand = Math.random();
   let type = 'heal';
   if (rand < 0.18) {
-    type = 'senobic'; // セノビック・ドリンク！
+    type = 'senobic';
   } else if (rand < 0.45) {
     type = 'heal';
   } else if (rand < 0.75) {
@@ -475,14 +472,13 @@ function spawnRandomItem(room) {
     x: 100 + Math.random() * 800,
     y: -40,
     vy: 2.2,
-    width: 45,  // わかりやすく大きめサイズに変更
+    width: 45,
     height: 45,
     isGrounded: false
   });
   room.spawnedItemCount++;
 }
 
-// メイン物理ループ
 setInterval(() => {
   const STAGE_WIDTH = 1000;
   const GROUND_Y = 450;
@@ -532,11 +528,9 @@ setInterval(() => {
           p.y < item.y + item.height &&
           p.y + curH > item.y
         ) {
-          // アイテム効果の適用
           if (item.type === 'senobic') {
-            // セノビック：体が2倍に大きく、体力半分回復、ワンパン仕様
             p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.5));
-            p.senobicTimer = 480; // 約8秒間巨大化＆ワンパン
+            p.senobicTimer = 480;
           } else if (item.type === 'heal') {
             p.hp = Math.min(p.maxHp, p.hp + 30);
           } else if (item.type === 'atk') {
