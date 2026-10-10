@@ -409,9 +409,7 @@
     let isCpuModeGame = false;
     let visualEffects = [];
 
-    // クライアント側クールタイム判定 (0.2秒 = 200ms)
     let lastAttackTime = 0;
-
     let audioCtx = null;
     let bgmTimer = null;
 
@@ -595,7 +593,6 @@
       goToTitle();
     });
 
-    // 0.2秒(200ms)制限キー入力イベント
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       initAudio();
@@ -612,7 +609,6 @@
         if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
 
         if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
-          // 0.2秒（200ms）連打・交互連打クールタイム制御
           if (now - lastAttackTime >= 200) {
             lastAttackTime = now;
             keys.attack = true;
@@ -817,6 +813,7 @@
       });
     }
 
+    // ★ 修正：カードのプレビュー表示で全身がしっかりと見えるように縮小スケール＆座標調整 ★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -828,8 +825,10 @@
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(70, 72);
-      pCtx.scale(0.55, 0.55);
+      // 全身が入るように縮小して中央下に配置
+      pCtx.translate(70, 75);
+      const fitScale = Math.min(0.32, 65 / char.height);
+      pCtx.scale(fitScale, fitScale);
 
       const dummyPlayer = {
         x: -char.width / 2,
@@ -837,7 +836,8 @@
         facing: 'right',
         characterKey: key,
         stunFrames: 0,
-        senobicTimer: 0
+        senobicTimer: 0,
+        attacking: false
       };
       drawRealisticHumanoid(pCtx, dummyPlayer, char);
       pCtx.restore();
@@ -867,7 +867,7 @@
           const char = characters[myData.characterKey];
           ctx.save();
           ctx.translate(500, 410);
-          ctx.scale(1.5, 1.5);
+          ctx.scale(1.1, 1.1);
           const lobbyMe = { x: -char.width / 2, y: -char.height, facing: 'right', characterKey: myData.characterKey, stunFrames: 0, senobicTimer: 0 };
           drawRealisticHumanoid(ctx, lobbyMe, char);
           ctx.restore();
@@ -885,7 +885,7 @@
           const charOp = characters[opponentData.characterKey];
           ctx.save();
           ctx.translate(800, 410);
-          ctx.scale(1.1, 1.1);
+          ctx.scale(0.9, 0.9);
           const lobbyOp = { x: -charOp.width / 2, y: -charOp.height, facing: 'left', characterKey: opponentData.characterKey, stunFrames: 0, senobicTimer: 0 };
           drawRealisticHumanoid(ctx, lobbyOp, charOp);
           ctx.restore();
@@ -1024,31 +1024,22 @@
       drawHUD();
     }
 
-    // ★ ステージ背景描画 (山・雲・月・溶岩・宇宙の背景を強化) ★
     function drawStageBackground(stageId) {
-      if (stageId === 1) { // 平原
+      if (stageId === 1) {
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#3a7bd5'); grad.addColorStop(1, '#3a6073');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 背景の山
         ctx.fillStyle = '#2d5435';
-        ctx.beginPath();
-        ctx.moveTo(0, 450); ctx.lineTo(250, 220); ctx.lineTo(500, 450); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(400, 450); ctx.lineTo(700, 180); ctx.lineTo(1000, 450); ctx.fill();
-
+        ctx.beginPath(); ctx.moveTo(0, 450); ctx.lineTo(250, 220); ctx.lineTo(500, 450); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(400, 450); ctx.lineTo(700, 180); ctx.lineTo(1000, 450); ctx.fill();
         ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 450, canvas.width, 50);
 
-      } else if (stageId === 2) { // 浮島
+      } else if (stageId === 2) {
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#0f0c29'); grad.addColorStop(0.5, '#302b63'); grad.addColorStop(1, '#24243e');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 満月
         ctx.fillStyle = '#f1c40f';
         ctx.beginPath(); ctx.arc(850, 100, 50, 0, Math.PI * 2); ctx.fill();
-
         ctx.fillStyle = '#1a1a24'; ctx.fillRect(0, 450, canvas.width, 50);
         ctx.fillStyle = '#00f2fe'; ctx.fillRect(0, 450, canvas.width, 3);
         const plats = [{x:150, y:320, w:200, h:18},{x:650, y:320, w:200, h:18},{x:400, y:210, w:200, h:18}];
@@ -1057,24 +1048,19 @@
           ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
 
-      } else if (stageId === 3) { // スリル (火山)
+      } else if (stageId === 3) {
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#200101'); grad.addColorStop(0.7, '#4a0e0e'); grad.addColorStop(1, '#d35400');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         ctx.fillStyle = '#2c2c2c'; ctx.fillRect(0, 450, canvas.width, 50);
         ctx.fillStyle = '#3a3a3a'; ctx.fillRect(280, 320, 440, 20);
         ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2; ctx.strokeRect(280, 320, 440, 20);
 
-      } else if (stageId === 4) { // 神殿
+      } else if (stageId === 4) {
         const grad = ctx.createLinearGradient(0, 0, 0, 500);
         grad.addColorStop(0, '#141e30'); grad.addColorStop(1, '#243b55');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 神殿の石柱
-        ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(80, 100, 40, 350); ctx.fillRect(880, 100, 40, 350);
-
+        ctx.fillStyle = '#2c3e50'; ctx.fillRect(80, 100, 40, 350); ctx.fillRect(880, 100, 40, 350);
         ctx.fillStyle = '#d4af37'; ctx.fillRect(0, 450, canvas.width, 50);
         const plats = [{x:200, y:340, w:180, h:16},{x:620, y:340, w:180, h:16},{x:410, y:230, w:180, h:16}];
         plats.forEach(pt => {
@@ -1082,14 +1068,10 @@
           ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
 
-      } else if (stageId === 5) { // 宇宙
+      } else if (stageId === 5) {
         ctx.fillStyle = '#020208'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // 青い地球
-        ctx.fillStyle = '#2980b9';
-        ctx.beginPath(); ctx.arc(200, 380, 120, 0, Math.PI * 2); ctx.fill();
-
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(150, 80, 2, 2); ctx.fillRect(400, 120, 2, 2); ctx.fillRect(750, 90, 3, 3);
+        ctx.fillStyle = '#2980b9'; ctx.beginPath(); ctx.arc(200, 380, 120, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(150, 80, 2, 2); ctx.fillRect(400, 120, 2, 2); ctx.fillRect(750, 90, 3, 3);
         ctx.fillStyle = '#111122'; ctx.fillRect(0, 450, canvas.width, 50);
         ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 450, canvas.width, 3);
         const plats = [{x:100, y:360, w:220, h:15},{x:680, y:360, w:220, h:15},{x:380, y:240, w:240, h:15}];
@@ -1110,7 +1092,7 @@
       targetCtx.restore();
     }
 
-    // リアル人型描画
+    // ★ 修正：リアル人型 ＋ 攻撃モーション（手を伸ばす／脚を出す動作） ★
     function drawRealisticHumanoid(targetCtx, p, char) {
       targetCtx.save();
       const scale = p.senobicTimer > 0 ? 2 : 1;
@@ -1129,60 +1111,114 @@
       }
 
       const topY = p.y;
+      const isPunching = p.attacking && p.attackType === 'punch';
+      const isKicking = p.attacking && p.attackType === 'kick';
 
       switch (char.type) {
         case 'futsuo':
           drawBody(targetCtx, cx, topY + h * 0.45, w * 0.6, h * 0.4, '#2980b9', '#1f618d');
-          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1b4f72');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1b4f72', dir, isKicking);
           drawFaceWithHair(targetCtx, cx, topY + h * 0.22, w * 0.35, h * 0.22, '#f5cba7', '#2c3e50', dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.6, '#f5cba7', dir, isPunching);
           break;
         case 'debugon':
           drawBody(targetCtx, cx, topY + h * 0.42, w * 0.75, h * 0.45, '#e67e22', '#d35400');
-          drawLegs(targetCtx, cx, topY + h * 0.72, w * 0.6, h * 0.28, '#7e5109');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.72, w * 0.6, h * 0.28, '#7e5109', dir, isKicking);
           drawFaceWithHair(targetCtx, cx, topY + h * 0.18, w * 0.38, h * 0.2, '#f5cba7', '#6e2c00', dir, false, true);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.75, '#f5cba7', dir, isPunching);
           break;
         case 'garinoshin':
           drawBody(targetCtx, cx, topY + h * 0.42, w * 0.5, h * 0.42, '#8e44ad', '#6c3483');
-          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.38, h * 0.32, '#4a235a');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.68, w * 0.38, h * 0.32, '#4a235a', dir, isKicking);
           drawFaceWithHair(targetCtx, cx, topY + h * 0.18, w * 0.32, h * 0.2, '#eb3b5a', '#20bf6b', dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.5, '#eb3b5a', dir, isPunching);
           break;
         case 'chibikoro':
           drawBody(targetCtx, cx, topY + h * 0.4, w * 0.7, h * 0.42, '#c0392b', '#922b21');
-          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#641e16');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#641e16', dir, isKicking);
           drawHelmetHead(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, '#e74c3c', dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.7, '#e74c3c', dir, isPunching);
           break;
         case 'hime':
           drawBody(targetCtx, cx, topY + h * 0.45, w * 0.52, h * 0.4, '#d81b60', '#ad1457');
-          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.4, h * 0.32, '#880e4f');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.68, w * 0.4, h * 0.32, '#880e4f', dir, isKicking);
           drawFaceWithHair(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, '#ffeaa7', '#2c3e50', dir, true);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.52, '#ffeaa7', dir, isPunching);
           break;
         case 'gorira':
           drawBody(targetCtx, cx, topY + h * 0.45, w * 0.8, h * 0.48, '#2c3e50', '#1a252f');
-          drawLegs(targetCtx, cx, topY + h * 0.75, w * 0.65, h * 0.25, '#111');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.75, w * 0.65, h * 0.25, '#111', dir, isKicking);
           drawGorillaFace(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.8, '#34495e', dir, isPunching);
           break;
         case 'ninja':
           drawBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#111', '#222');
-          drawLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#000');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#000', dir, isKicking);
           drawNinjaHead(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.55, '#333', dir, isPunching);
           break;
         case 'robot':
           drawRobotBody(targetCtx, cx, topY + h * 0.42, w * 0.65, h * 0.42);
-          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.5, h * 0.3, '#555');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.7, w * 0.5, h * 0.3, '#555', dir, isKicking);
           drawRobotHead(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.22, dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.65, '#7f8c8d', dir, isPunching);
           break;
         case 'samurai':
           drawBody(targetCtx, cx, topY + h * 0.45, w * 0.62, h * 0.42, '#c0392b', '#7b241c');
-          drawLegs(targetCtx, cx, topY + h * 0.7, w * 0.48, h * 0.3, '#111');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.7, w * 0.48, h * 0.3, '#111', dir, isKicking);
           drawSamuraiHead(targetCtx, cx, topY + h * 0.22, w * 0.38, h * 0.22, dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.62, '#f5cba7', dir, isPunching);
           break;
         case 'wizard':
           drawBody(targetCtx, cx, topY + h * 0.5, w * 0.6, h * 0.48, '#2c3e50', '#1a252f');
+          drawLegsWithMotion(targetCtx, cx, topY + h * 0.72, w * 0.45, h * 0.28, '#111', dir, isKicking);
           drawWizardHead(targetCtx, cx, topY + h * 0.22, w * 0.34, h * 0.22, dir);
+          drawArmsWithMotion(targetCtx, cx, topY + h * 0.48, w * 0.6, '#f5cba7', dir, isPunching);
           break;
       }
 
       targetCtx.restore();
+    }
+
+    // ★ 腕・パンチモーション描画 ★
+    function drawArmsWithMotion(ctx, x, y, bodyW, armColor, dir, isPunching) {
+      ctx.fillStyle = armColor;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+
+      if (isPunching) {
+        // パンチ時：向きに向かって手を大きく伸ばす！
+        const punchLength = bodyW * 0.9;
+        ctx.fillRect(x + dir * (bodyW * 0.3), y - 6, dir * punchLength, 12);
+        ctx.strokeRect(x + dir * (bodyW * 0.3), y - 6, dir * punchLength, 12);
+      } else {
+        // 通常時：両腕を横に配置
+        ctx.fillRect(x - bodyW * 0.6, y - 4, bodyW * 0.25, 10);
+        ctx.fillRect(x + bodyW * 0.35, y - 4, bodyW * 0.25, 10);
+      }
+    }
+
+    // ★ 脚・キックモーション描画 ★
+    function drawLegsWithMotion(ctx, x, y, w, h, color, dir, isKicking) {
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+
+      if (isKicking) {
+        // キック時：片足を前方に大きく蹴り出す！
+        ctx.fillRect(x - w / 2, y, w * 0.4, h);
+        ctx.strokeRect(x - w / 2, y, w * 0.4, h);
+
+        const kickReach = w * 0.8;
+        ctx.fillRect(x + dir * (w * 0.2), y + h * 0.2, dir * kickReach, h * 0.4);
+        ctx.strokeRect(x + dir * (w * 0.2), y + h * 0.2, dir * kickReach, h * 0.4);
+      } else {
+        // 通常時
+        ctx.fillRect(x - w / 2, y, w * 0.4, h);
+        ctx.fillRect(x + w * 0.1, y, w * 0.4, h);
+        ctx.strokeRect(x - w / 2, y, w * 0.4, h);
+        ctx.strokeRect(x + w * 0.1, y, w * 0.4, h);
+      }
     }
 
     function drawBody(ctx, x, y, w, h, mainColor, subColor) {
@@ -1191,13 +1227,6 @@
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.roundRect(x - w / 2, y, w, h, 8); ctx.fill();
       ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
-    }
-
-    function drawLegs(ctx, x, y, w, h, color) {
-      ctx.fillStyle = color;
-      ctx.fillRect(x - w / 2, y, w * 0.4, h); ctx.fillRect(x + w * 0.1, y, w * 0.4, h);
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-      ctx.strokeRect(x - w / 2, y, w * 0.4, h); ctx.strokeRect(x + w * 0.1, y, w * 0.4, h);
     }
 
     function drawFaceWithHair(ctx, x, y, rx, ry, skinColor, hairColor, dir, isFemale = false, hasBeard = false) {
@@ -1257,14 +1286,13 @@
       ctx.beginPath(); ctx.moveTo(x - rx * 1.5, y - ry * 0.5); ctx.lineTo(x + rx * 1.5, y - ry * 0.5); ctx.lineTo(x, y - ry * 2.5); ctx.closePath(); ctx.fill(); ctx.stroke();
     }
 
-    // ★ キャラごとの固有攻撃エフェクトのアニメーション ★
+    // 攻撃演出
     function drawCustomAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
       const isRight = p.facing === 'right';
 
       if (char.type === 'ninja') {
-        // 手裏剣を投げるモーション
         targetCtx.fillStyle = '#bdc3c7';
         targetCtx.strokeStyle = '#2c3e50';
         targetCtx.lineWidth = 2;
@@ -1273,7 +1301,6 @@
         targetCtx.fill(); targetCtx.stroke();
 
       } else if (char.type === 'samurai') {
-        // 刀の一閃（三日月型の斬撃）
         targetCtx.strokeStyle = '#f1c40f';
         targetCtx.lineWidth = 6;
         targetCtx.beginPath();
@@ -1281,26 +1308,22 @@
         targetCtx.stroke();
 
       } else if (char.type === 'wizard') {
-        // 魔法陣＆マジックボール
         targetCtx.fillStyle = 'rgba(142, 68, 173, 0.8)';
         targetCtx.beginPath();
         targetCtx.arc(ab.x + ab.width / 2, ab.y + ab.height / 2, 22, 0, Math.PI * 2);
         targetCtx.fill();
 
       } else if (char.type === 'robot') {
-        // ロケットパンチ
         targetCtx.fillStyle = '#7f8c8d';
         targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height * 0.6);
         targetCtx.fillStyle = '#e74c3c';
         targetCtx.fillRect(ab.x + (isRight ? ab.width - 10 : 0), ab.y, 10, ab.height * 0.6);
 
       } else if (char.type === 'gorira') {
-        // 地面スマッシュ波
         targetCtx.fillStyle = 'rgba(230, 126, 34, 0.7)';
         targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
 
       } else {
-        // 通常パンチ/キックエフェクト
         targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
         targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
       }
