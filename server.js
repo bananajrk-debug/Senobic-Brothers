@@ -141,6 +141,7 @@ io.on('connection', (socket) => {
       jumpCount: 0,
       stamp: null,
       isKilled: false,
+      killTimer: 0,
       buffAtkTimer: 0,
       buffSpeedTimer: 0
     };
@@ -341,6 +342,7 @@ function startMatch(room) {
     pl.jumpCount = 0;
     pl.stamp = null;
     pl.isKilled = false;
+    pl.killTimer = 0;
     pl.buffAtkTimer = 0;
     pl.buffSpeedTimer = 0;
   });
@@ -371,6 +373,7 @@ function createPlayerData(socketId, playerNum, name) {
     jumpCount: 0,
     stamp: null,
     isKilled: false,
+    killTimer: 0,
     buffAtkTimer: 0,
     buffSpeedTimer: 0
   };
@@ -429,9 +432,8 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// アイテム生成処理（最大で同時に1つだけ出現）
 function spawnRandomItem(room) {
-  if (room.items.length >= 1) return; // 画面上に1つでもある場合は生成しない
+  if (room.items.length >= 1) return;
   const types = ['heal', 'atk', 'speed'];
   const type = types[Math.floor(Math.random() * types.length)];
   room.items.push({
@@ -462,7 +464,6 @@ setInterval(() => {
     const p1 = room.players[playerIds[0]];
     const p2 = room.players[playerIds[1]];
 
-    // 低確率でアイテムドロップ（最大1つ制限）
     if (Math.random() < 0.0014) {
       spawnRandomItem(room);
     }
@@ -513,11 +514,14 @@ setInterval(() => {
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
 
+      // スマブラ風・長めの吹き飛び演出処理
       if (p.isKilled) {
         p.x += p.vx;
         p.y += p.vy;
+        p.killTimer++;
 
-        if (p.x < -150 || p.x > STAGE_WIDTH + 150 || p.y < -200 || p.y > GROUND_Y + 200) {
+        // 一定時間経過、または十分に画面外へ飛んだらゲーム終了
+        if (p.killTimer > 90 || p.x < -400 || p.x > STAGE_WIDTH + 400 || p.y < -500 || p.y > GROUND_Y + 500) {
           const winner = playersArr.find(pl => pl && pl.id !== p.id);
           room.gameState = 'FINISHED';
           io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
@@ -594,8 +598,10 @@ setInterval(() => {
           if (defender.hp <= 0) {
             defender.hp = 0;
             defender.isKilled = true;
-            defender.vx = attacker.facing === 'right' ? 35 : -35;
-            defender.vy = -28;
+            defender.killTimer = 0;
+            // 豪快に画面外へぶっ飛ぶ初速
+            defender.vx = attacker.facing === 'right' ? 22 : -22;
+            defender.vy = -16;
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
           } else if (!isDebugonArmored) {
             defender.stunFrames = defenderChar.type === 'futsuo' ? 8 : 12;
