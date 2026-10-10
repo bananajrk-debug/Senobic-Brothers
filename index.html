@@ -149,7 +149,6 @@
       align-items: flex-end;
     }
 
-    /* スタンプバー（重ならないように右上エリアに移動） */
     #stamp-bar {
       display: flex;
       gap: 8px;
@@ -264,10 +263,9 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
-    <!-- カウントダウン表示 -->
     <div id="countdown-overlay" class="hidden">3</div>
 
-    <!-- 1. メインメニュー -->
+    <!-- 1. メインタイトル画面 -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 38px; margin-bottom: 8px;">セノビックブラザーズ</h1>
       <p style="color: #888; font-size: 14px; margin-bottom: 15px;">2D ONLINE FIGHTING GAME</p>
@@ -279,7 +277,7 @@
 
       <div style="display: flex; gap: 15px; align-items: center;">
         <button class="btn" onclick="createOnlineRoom()">部屋を作る (コード生成)</button>
-        <button class="btn btn-cpu" onclick="startCpuGame()">1人でCPU対戦</button>
+        <button class="btn btn-cpu" onclick="openCpuSetup()">1人でCPU対戦</button>
       </div>
 
       <div style="margin-top: 20px; display: flex; flex-direction: column; align-items: center;">
@@ -292,13 +290,36 @@
       </div>
     </div>
 
-    <!-- 2. ロビー画面 -->
+    <!-- 2. CPU対戦 設定画面 (新機能) -->
+    <div id="screen-cpu-setup" class="overlay hidden">
+      <h2 style="font-size: 24px; margin-bottom: 10px;">CPU対戦 設定</h2>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">使用するキャラクター:</label>
+        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 14px; background: #333;">キャラクター変更</button>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 14px; color: #aaa; display: block; margin-bottom: 5px;">対戦ステージ:</label>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-stage active" id="btn-cpu-stage-1" onclick="selectCpuStage(1)">平原</button>
+          <button class="btn btn-stage" id="btn-cpu-stage-2" onclick="selectCpuStage(2)">浮島</button>
+          <button class="btn btn-stage" id="btn-cpu-stage-3" onclick="selectCpuStage(3)">スリル</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 15px;">
+        <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート！</button>
+        <button class="btn" onclick="goToTitle()" style="background: #555;">戻る</button>
+      </div>
+    </div>
+
+    <!-- 3. オンラインロビー画面 -->
     <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
       <div id="lobby-ui">
         <div class="lobby-top">
           <div class="lobby-title">
             LOBBY
-            <!-- ステージ切り替えボタン (ホスト1Pのみ操作可) -->
             <div style="margin-top: 5px; display: flex; gap: 5px;" class="interactive">
               <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
               <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
@@ -306,7 +327,6 @@
             </div>
           </div>
 
-          <!-- 右上：ルームコード＆スタンプバー（被り解消位置） -->
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
             <div id="room-code-badge" class="badge">ROOM CODE: ----</div>
             <div id="stamp-bar">
@@ -334,17 +354,20 @@
       </div>
     </div>
 
-    <!-- 3. キャラクター選択画面 -->
+    <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
       <h2 style="font-size: 20px;">キャラクターを選択</h2>
       <div class="char-list" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()">決定</button>
     </div>
 
-    <!-- 4. 勝敗決着画面 -->
+    <!-- 5. 勝敗決着画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 36px; color: #f1c40f;">PLAYER 1 WIN!</h2>
-      <button class="btn" onclick="requestRematch()">ロビーに戻る (Enter)</button>
+      <h2 id="winner-text" style="font-size: 36px; color: #f1c40f; margin-bottom: 20px;">PLAYER 1 WIN!</h2>
+      <div style="display: flex; gap: 15px;">
+        <button class="btn btn-ready" onclick="requestRematch()">もう一度戦う (Enter)</button>
+        <button class="btn" onclick="returnFromGameover()" style="background: #555;">設定・タイトルに戻る</button>
+      </div>
     </div>
   </div>
 
@@ -359,6 +382,7 @@
     const ctx = canvas.getContext('2d');
 
     const screenTitle = document.getElementById('screen-title');
+    const screenCpuSetup = document.getElementById('screen-cpu-setup');
     const screenLobby = document.getElementById('screen-lobby');
     const screenGameover = document.getElementById('screen-gameover');
     const selectModal = document.getElementById('select-modal');
@@ -378,11 +402,14 @@
     let characterKeys = [];
     let stages = {};
     let selectedStage = 1;
+    let cpuSelectedStage = 1;
+    let cpuSelectedCharKey = 'futsuo';
     let selectedIndex = 0;
     let currentGameState = 'TITLE';
     let playersData = {};
     let activeStamps = {};
     let isReady = false;
+    let isCpuModeGame = false;
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
 
@@ -393,7 +420,7 @@
       characterKeys = Object.keys(characters);
       stages = data.stages;
       roomCodeBadge.textContent = `ROOM CODE: ${currentCode}`;
-      goToLobby();
+      if (!isCpuModeGame) goToLobby();
       renderCharCards();
     });
 
@@ -431,7 +458,9 @@
     });
 
     socket.on('gameState', (data) => {
-      if (currentGameState !== 'TITLE') currentGameState = data.state;
+      if (currentGameState !== 'TITLE' && currentGameState !== 'CPU_SETUP') {
+        currentGameState = data.state;
+      }
       playersData = data.players;
       if (data.selectedStage) {
         selectedStage = data.selectedStage;
@@ -448,6 +477,7 @@
 
     socket.on('gameStart', (data) => {
       currentGameState = 'PLAYING';
+      isCpuModeGame = !!data.isCpuMode;
       countdownOverlay.classList.add('hidden');
       playersData = data.players;
       if (data.selectedStage) selectedStage = data.selectedStage;
@@ -463,16 +493,14 @@
 
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
+      isCpuModeGame = !!data.isCpuMode;
       winnerText.textContent = `${data.winnerName} VICTORY!`;
       updateUI();
     });
 
     socket.on('playerLeft', () => {
-      alert('対戦相手が切断されました。ロビーに戻ります。');
-      currentGameState = 'LOBBY';
-      isReady = false;
-      countdownOverlay.classList.add('hidden');
-      updateUI();
+      alert('対戦相手が切断されました。タイトルに戻ります。');
+      goToTitle();
     });
 
     window.addEventListener('keydown', (e) => {
@@ -523,6 +551,17 @@
       }
     }
 
+    function selectCpuStage(stageId) {
+      cpuSelectedStage = stageId;
+      for (let i = 1; i <= 3; i++) {
+        const btn = document.getElementById(`btn-cpu-stage-${i}`);
+        if (btn) {
+          if (i === stageId) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+      }
+    }
+
     function updateStageButtonsUI() {
       for (let i = 1; i <= 3; i++) {
         const btn = document.getElementById(`btn-stage-${i}`);
@@ -550,10 +589,20 @@
       socket.emit('joinRoom', { code: code, playerName: name });
     }
 
-    function startCpuGame() {
+    function openCpuSetup() {
+      currentGameState = 'CPU_SETUP';
+      isCpuModeGame = true;
+      updateUI();
+    }
+
+    function confirmStartCpuGame() {
       errorMsg.textContent = '';
       const name = playerNameInput.value.trim() || 'Player 1';
-      socket.emit('startCpuMode', { playerName: name });
+      socket.emit('startCpuMode', {
+        playerName: name,
+        characterKey: cpuSelectedCharKey,
+        stageId: cpuSelectedStage
+      });
     }
 
     function changeLobbyName() {
@@ -561,9 +610,22 @@
       socket.emit('updateName', { name: newName });
     }
 
+    function goToTitle() {
+      currentGameState = 'TITLE';
+      updateUI();
+    }
+
     function goToLobby() {
       currentGameState = 'LOBBY';
       updateUI();
+    }
+
+    function returnFromGameover() {
+      if (isCpuModeGame) {
+        openCpuSetup();
+      } else {
+        goToLobby();
+      }
     }
 
     function toggleReady() {
@@ -576,6 +638,7 @@
     function closeCharSelect() {
       selectModal.classList.add('hidden');
       const key = characterKeys[selectedIndex];
+      cpuSelectedCharKey = key;
       socket.emit('selectCharacter', { characterKey: key });
     }
 
@@ -586,12 +649,15 @@
 
     function updateUI() {
       screenTitle.classList.add('hidden');
+      screenCpuSetup.classList.add('hidden');
       screenLobby.classList.add('hidden');
       screenGameover.classList.add('hidden');
       selectModal.classList.add('hidden');
 
       if (currentGameState === 'TITLE') {
         screenTitle.classList.remove('hidden');
+      } else if (currentGameState === 'CPU_SETUP') {
+        screenCpuSetup.classList.remove('hidden');
       } else if (currentGameState === 'LOBBY') {
         screenLobby.classList.remove('hidden');
         updateLobbyUI();
@@ -768,12 +834,10 @@
       loop();
     }
 
-    // ステージ別のグラフィック描画を含む対戦メイン画面
     function renderGame() {
       ctx.fillStyle = '#121216';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 選択中ステージのレイアウト描画
       drawStageBackground(selectedStage);
 
       Object.values(playersData).forEach(p => {
@@ -811,9 +875,7 @@
       drawHUD();
     }
 
-    // ステージ背景・足場描画
     function drawStageBackground(stageId) {
-      // 地面
       ctx.fillStyle = '#1e1e24';
       ctx.fillRect(0, 450, canvas.width, 50);
       ctx.strokeStyle = '#333';
@@ -823,8 +885,7 @@
       ctx.lineTo(canvas.width, 450);
       ctx.stroke();
 
-      // 各ステージ独自の足場を描画
-      if (stageId === 2) { // 浮島ステージ
+      if (stageId === 2) {
         ctx.fillStyle = '#2c3e50';
         ctx.strokeStyle = '#3498db';
         ctx.lineWidth = 2;
@@ -840,7 +901,7 @@
           ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
 
-      } else if (stageId === 3) { // スリルステージ
+      } else if (stageId === 3) {
         ctx.fillStyle = '#8e44ad';
         ctx.strokeStyle = '#9b59b6';
         ctx.lineWidth = 2;
