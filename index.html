@@ -181,16 +181,16 @@
     .char-list-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
+      gap: 16px;
       max-width: 920px;
-      margin: 10px 0;
+      margin: 15px 0;
     }
     .char-card {
-      width: 160px;
-      height: 205px;
+      width: 165px;
+      height: 220px;
       border: 2px solid #3a3a4e;
       border-radius: 8px;
-      padding: 8px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -206,7 +206,7 @@
     }
     .char-preview-box {
       width: 100%;
-      height: 85px;
+      height: 95px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -217,19 +217,19 @@
       position: relative;
     }
     .char-stats {
-      font-size: 10px;
+      font-size: 11px;
       width: 100%;
       color: #bbb;
-      line-height: 1.2;
+      line-height: 1.3;
     }
     .ability-box {
-      font-size: 9px;
+      font-size: 10px;
       color: #f1c40f;
       font-weight: bold;
       background: rgba(241, 196, 15, 0.15);
-      padding: 2px 4px;
+      padding: 3px 6px;
       border-radius: 3px;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     #controls-guide {
@@ -344,9 +344,9 @@
 
     <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 20px; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
+      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 24px; margin-top: 10px;">決定</button>
+      <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
 
     <!-- 5. 勝敗画面 -->
@@ -387,16 +387,13 @@
 
     let myPlayerNum = null;
     let currentCode = null;
+
+    // 厳選された5体のキャラクター
     let characters = {
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
       debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
-      garinoshin: { name: 'ガリノシン (アスリート)', hp: 85,  atk: 10, speed: 9.5, jumpPower: 20, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
-      hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避' },
-      gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視' },
       ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)' },
-      robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ' },
-      samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
       wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
     };
 
@@ -841,7 +838,7 @@
         };
 
         card.innerHTML = `
-          <div style="font-weight:bold; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
+          <div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
           <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
             HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
@@ -859,13 +856,13 @@
 
       const pCanvas = document.createElement('canvas');
       pCanvas.width = 140;
-      pCanvas.height = 80;
+      pCanvas.height = 90;
       const pCtx = pCanvas.getContext('2d');
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(70, 75);
-      pCtx.scale(0.35, 0.35);
+      pCtx.translate(70, 85);
+      pCtx.scale(0.38, 0.38);
 
       const dummyPlayer = {
         x: -char.width / 2,
@@ -992,11 +989,6 @@
           ctx.beginPath();
           ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
           ctx.fill();
-        } else if (proj.type === 'robot') {
-          ctx.fillStyle = '#7f8c8d';
-          ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
-          ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(proj.vx > 0 ? proj.x + proj.width - 8 : proj.x, proj.y, 8, proj.height);
         }
         ctx.restore();
       });
@@ -1153,7 +1145,6 @@
         ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 520, canvas.width, 4);
       }
 
-      // エラーをガードしてプラットフォーム（登れる床）を描画
       const currentStageObj = stages[stageId];
       if (currentStageObj && currentStageObj.platforms) {
         currentStageObj.platforms.forEach(pt => {
@@ -1181,7 +1172,6 @@
       targetCtx.restore();
     }
 
-    // ★★★ 超リアルなキャラクター描画システム ★★★
     function drawRealisticHumanoid(targetCtx, p, char) {
       targetCtx.save();
       const scale = p.senobicTimer > 0 ? 2 : 1;
@@ -1203,7 +1193,6 @@
       const isPunching = p.attacking && p.attackType === 'punch';
       const isKicking = p.attacking && p.attackType === 'kick';
 
-      // タイプ別リアルレンダリング
       switch (char.type) {
         case 'futsuo': // ファイター
           drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.38, '#2980b9', '#1a5276');
@@ -1212,18 +1201,11 @@
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#f5cba7', dir, isPunching);
           break;
 
-        case 'debugon': // ヘビー・アーマー
+        case 'debugon': // ヘビー
           drawRealisticBody(targetCtx, cx, topY + h * 0.42, w * 0.8, h * 0.44, '#d35400', '#7e5109', true);
           drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.65, h * 0.28, '#2c3e50', dir, isKicking);
           drawRealisticFace(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.2, '#f5cba7', '#5d4037', dir, false, true);
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.8, '#f5cba7', dir, isPunching);
-          break;
-
-        case 'garinoshin': // アスリート
-          drawRealisticBody(targetCtx, cx, topY + h * 0.42, w * 0.48, h * 0.42, '#8e44ad', '#4a235a');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.36, h * 0.32, '#111', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.18, w * 0.3, h * 0.2, '#eb3b5a', '#27ae60', dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.48, '#eb3b5a', dir, isPunching);
           break;
 
         case 'chibikoro': // ダイバー
@@ -1233,41 +1215,12 @@
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.72, '#e74c3c', dir, isPunching);
           break;
 
-        case 'hime': // クノイチ
-          drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.5, h * 0.4, '#d81b60', '#880e4f');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.38, h * 0.32, '#000', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, '#ffeaa7', '#111', dir, true);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.5, '#ffeaa7', dir, isPunching);
-          break;
-
-        case 'gorira': // バーサーカー
-          drawGorillaBody(targetCtx, cx, topY + h * 0.45, w * 0.85, h * 0.48);
-          drawGorillaLegs(targetCtx, cx, topY + h * 0.75, w * 0.7, h * 0.25, dir, isKicking);
-          drawGorillaHead(targetCtx, cx, topY + h * 0.2, w * 0.44, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.85, '#2c3e50', dir, isPunching);
-          break;
-
         case 'ninja': // シノビ
           drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#1b1b1b', '#000');
           drawNinjaScarf(targetCtx, cx, topY + h * 0.28, dir);
           drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#111', dir, isKicking);
           drawNinjaHead(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, dir);
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#333', dir, isPunching);
-          break;
-
-        case 'robot': // サイボーグ
-          drawRobotBodyDetail(targetCtx, cx, topY + h * 0.42, w * 0.68, h * 0.42);
-          drawRobotLegs(targetCtx, cx, topY + h * 0.7, w * 0.52, h * 0.3, dir, isKicking);
-          drawRobotHeadDetail(targetCtx, cx, topY + h * 0.18, w * 0.42, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.68, '#7f8c8d', dir, isPunching);
-          break;
-
-        case 'samurai': // 剣豪
-          drawSamuraiArmorBody(targetCtx, cx, topY + h * 0.45, w * 0.64, h * 0.42);
-          drawKatanaSheath(targetCtx, cx, topY + h * 0.55, dir, p.attacking);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.7, w * 0.48, h * 0.3, '#111', dir, isKicking);
-          drawSamuraiHelmetHead(targetCtx, cx, topY + h * 0.22, w * 0.4, h * 0.24, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.64, '#f5cba7', dir, isPunching);
           break;
 
         case 'wizard': // メイジ
@@ -1281,7 +1234,6 @@
       targetCtx.restore();
     }
 
-    // リアルな胴体・筋力描画
     function drawRealisticBody(ctx, x, y, w, h, mainColor, subColor, isHeavy = false) {
       ctx.save();
       const grad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
@@ -1294,15 +1246,12 @@
       ctx.lineWidth = 2.5;
       ctx.stroke();
 
-      // 胸筋・腹筋のリアルな陰影ライン
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      // 胸筋ライン
       ctx.moveTo(x - w * 0.35, y + h * 0.35);
       ctx.lineTo(x, y + h * 0.45);
       ctx.lineTo(x + w * 0.35, y + h * 0.35);
-      // 6パック腹筋ライン
       ctx.moveTo(x, y + h * 0.45);
       ctx.lineTo(x, y + h * 0.85);
       ctx.moveTo(x - w * 0.25, y + h * 0.6);
@@ -1311,7 +1260,6 @@
       ctx.restore();
     }
 
-    // リアルな腕・関節動作
     function drawRealisticArms(ctx, x, y, bodyW, armColor, dir, isPunching) {
       ctx.save();
       ctx.fillStyle = armColor;
@@ -1319,18 +1267,15 @@
       ctx.lineWidth = 2;
 
       if (isPunching) {
-        // 伸ばしたパンチ腕
         const reach = bodyW * 1.1;
         ctx.beginPath();
         ctx.roundRect(x + dir * (bodyW * 0.2), y - 8, dir * reach, 14, 4);
         ctx.fill(); ctx.stroke();
-        // 拳（ナックル）
         ctx.fillStyle = '#c0392b';
         ctx.beginPath();
         ctx.arc(x + dir * (bodyW * 0.2 + reach), y, 9, 0, Math.PI * 2);
         ctx.fill(); ctx.stroke();
       } else {
-        // ガード構え
         ctx.beginPath();
         ctx.roundRect(x - bodyW * 0.55, y - 6, bodyW * 0.3, 12, 3);
         ctx.roundRect(x + bodyW * 0.25, y - 6, bodyW * 0.3, 12, 3);
@@ -1339,7 +1284,6 @@
       ctx.restore();
     }
 
-    // リアルな脚・靴
     function drawRealisticLegs(ctx, x, y, w, h, color, dir, isKicking) {
       ctx.save();
       ctx.fillStyle = color;
@@ -1347,27 +1291,22 @@
       ctx.lineWidth = 2;
 
       if (isKicking) {
-        // 軸足
         ctx.fillRect(x - w * 0.4, y, w * 0.35, h);
         ctx.strokeRect(x - w * 0.4, y, w * 0.35, h);
 
-        // ダイナミックに蹴り出した足
         const kickReach = w * 0.95;
         ctx.save();
         ctx.translate(x, y + h * 0.3);
         ctx.fillRect(dir * (w * 0.1), -8, dir * kickReach, 16);
         ctx.strokeRect(dir * (w * 0.1), -8, dir * kickReach, 16);
-        // 靴ブーツ
         ctx.fillStyle = '#e74c3c';
         ctx.fillRect(dir * (w * 0.1 + kickReach), -10, dir * 12, 20);
         ctx.restore();
       } else {
-        // 構え足（左右）
         ctx.fillRect(x - w * 0.45, y, w * 0.38, h);
         ctx.fillRect(x + w * 0.08, y, w * 0.38, h);
         ctx.strokeRect(x - w * 0.45, y, w * 0.38, h);
         ctx.strokeRect(x + w * 0.08, y, w * 0.38, h);
-        // 靴
         ctx.fillStyle = '#222';
         ctx.fillRect(x - w * 0.5, y + h - 6, w * 0.45, 6);
         ctx.fillRect(x + w * 0.05, y + h - 6, w * 0.45, 6);
@@ -1375,22 +1314,18 @@
       ctx.restore();
     }
 
-    // リアルな人物の顔・目元・髪型
     function drawRealisticFace(ctx, x, y, rx, ry, skinColor, hairColor, dir, isFemale = false, hasBeard = false) {
       ctx.save();
-      // 肌（頭部輪郭）
       ctx.fillStyle = skinColor;
       ctx.beginPath();
       ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
 
-      // 目と眉毛
       ctx.fillStyle = '#fff';
       ctx.fillRect(x + dir * 3, y - 5, 8, 5);
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(x + dir * 6, y - 4, 4, 4);
-      // 凛々しい眉毛
       ctx.fillStyle = hairColor;
       ctx.beginPath();
       ctx.moveTo(x + dir * 2, y - 8);
@@ -1398,27 +1333,18 @@
       ctx.lineTo(x + dir * 2, y - 6);
       ctx.fill();
 
-      // リアルな髪型
       ctx.fillStyle = hairColor;
       ctx.beginPath();
       ctx.arc(x, y - 3, rx * 1.08, Math.PI * 0.85, Math.PI * 2.15);
       ctx.fill();
 
-      if (isFemale) {
-        // ポニーテール風の髪
-        ctx.beginPath();
-        ctx.ellipse(x - dir * rx * 1.1, y + 2, 8, 18, dir * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-      }
       if (hasBeard) {
-        // ダンディなヒゲ
         ctx.fillStyle = '#3e2723';
         ctx.fillRect(x - rx * 0.7, y + 3, rx * 1.4, ry * 0.7);
       }
       ctx.restore();
     }
 
-    // ★ ニンジャの装束・マフラー
     function drawNinjaScarf(ctx, x, y, dir) {
       ctx.save();
       ctx.fillStyle = '#e74c3c';
@@ -1435,7 +1361,6 @@
       ctx.save();
       ctx.fillStyle = '#111';
       ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      // 忍者マスクのスリット
       ctx.fillStyle = '#f5cba7';
       ctx.fillRect(x + dir * 2, y - 7, rx * 0.9, 7);
       ctx.fillStyle = '#000';
@@ -1443,121 +1368,6 @@
       ctx.restore();
     }
 
-    // ★ サムライの甲冑・兜・刀
-    function drawSamuraiArmorBody(ctx, x, y, w, h) {
-      ctx.save();
-      ctx.fillStyle = '#b71c1c';
-      ctx.fillRect(x - w / 2, y, w, h);
-      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2.5; ctx.strokeRect(x - w / 2, y, w, h);
-      // 甲冑の小札（プレートライン）
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5;
-      for (let i = 1; i < 4; i++) {
-        ctx.beginPath();
-        ctx.moveTo(x - w / 2, y + (h / 4) * i);
-        ctx.lineTo(x + w / 2, y + (h / 4) * i);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    function drawKatanaSheath(ctx, x, y, dir, isAttacking) {
-      ctx.save();
-      ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(x - dir * 10, y);
-      ctx.lineTo(x + dir * 28, y + 12);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawSamuraiHelmetHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#f5cba7';
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
-      // 兜（かぶと）
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.arc(x, y - 2, rx * 1.15, Math.PI, Math.PI * 2); ctx.fill();
-      // 前立て（くわがた/角）
-      ctx.fillStyle = '#d4af37';
-      ctx.beginPath();
-      ctx.moveTo(x, y - ry * 0.8);
-      ctx.lineTo(x - 12, y - ry * 2.2);
-      ctx.lineTo(x, y - ry * 1.4);
-      ctx.lineTo(x + 12, y - ry * 2.2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // ★ ロボットのメカニカル描画
-    function drawRobotBodyDetail(ctx, x, y, w, h) {
-      ctx.save();
-      const grad = ctx.createLinearGradient(x - w / 2, y, x + w / 2, y + h);
-      grad.addColorStop(0, '#95a5a6'); grad.addColorStop(0.5, '#7f8c8d'); grad.addColorStop(1, '#34495e');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x - w / 2, y, w, h);
-      ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.strokeRect(x - w / 2, y, w, h);
-      // コア発光パーツ
-      ctx.fillStyle = '#e74c3c';
-      ctx.beginPath(); ctx.arc(x, y + h * 0.4, 9, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawRobotHeadDetail(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#4a5568'; ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
-      ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.strokeRect(x - rx, y - ry, rx * 2, ry * 2);
-      // アイセンサー
-      ctx.fillStyle = '#00f2fe';
-      ctx.fillRect(x + dir * 2, y - 5, rx * 1.1, 7);
-      ctx.restore();
-    }
-
-    function drawRobotLegs(ctx, x, y, w, h, dir, isKicking) {
-      ctx.save();
-      ctx.fillStyle = '#4a5568';
-      ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2;
-      ctx.fillRect(x - w * 0.45, y, w * 0.4, h);
-      ctx.fillRect(x + w * 0.05, y, w * 0.4, h);
-      ctx.strokeRect(x - w * 0.45, y, w * 0.4, h);
-      ctx.strokeRect(x + w * 0.05, y, w * 0.4, h);
-      ctx.restore();
-    }
-
-    // ★ ゴリラ（バーサーカー）のリアルビルド
-    function drawGorillaBody(ctx, x, y, w, h) {
-      ctx.save();
-      ctx.fillStyle = '#1e293b';
-      ctx.beginPath(); ctx.ellipse(x, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.stroke();
-      // 厚い胸板
-      ctx.fillStyle = '#475569';
-      ctx.beginPath(); ctx.ellipse(x, y + h * 0.35, w * 0.35, h * 0.25, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
-
-    function drawGorillaHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#334155';
-      ctx.beginPath(); ctx.ellipse(x + dir * 4, y + 4, rx * 0.65, ry * 0.5, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ef4444'; ctx.fillRect(x + dir * 6, y - 5, 6, 3);
-      ctx.restore();
-    }
-
-    function drawGorillaLegs(ctx, x, y, w, h, dir, isKicking) {
-      ctx.save();
-      ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
-      ctx.fillRect(x - w * 0.4, y, w * 0.38, h);
-      ctx.fillRect(x + w * 0.02, y, w * 0.38, h);
-      ctx.strokeRect(x - w * 0.4, y, w * 0.38, h);
-      ctx.strokeRect(x + w * 0.02, y, w * 0.38, h);
-      ctx.restore();
-    }
-
-    // ★ ダイバー＆ウィザード
     function drawDiverHelmet(ctx, x, y, rx, ry, color, dir) {
       ctx.save();
       ctx.fillStyle = color;
@@ -1597,24 +1407,8 @@
     function drawCustomAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
-      const isRight = p.facing === 'right';
-
-      if (char.type === 'samurai') {
-        targetCtx.strokeStyle = '#f1c40f';
-        targetCtx.lineWidth = 6;
-        targetCtx.beginPath();
-        targetCtx.arc(ab.x, ab.y + ab.height / 2, ab.width * 0.8, -0.5, 0.5);
-        targetCtx.stroke();
-
-      } else if (char.type === 'gorira') {
-        targetCtx.fillStyle = 'rgba(230, 126, 34, 0.7)';
-        targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
-
-      } else {
-        targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
-        targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
-      }
-
+      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
+      targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
       targetCtx.restore();
     }
 
