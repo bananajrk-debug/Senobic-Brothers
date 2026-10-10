@@ -290,7 +290,7 @@
       </div>
     </div>
 
-    <!-- 2. CPU対戦 設定画面 (新機能) -->
+    <!-- 2. CPU対戦 設定画面 -->
     <div id="screen-cpu-setup" class="overlay hidden">
       <h2 style="font-size: 24px; margin-bottom: 10px;">CPU対戦 設定</h2>
       
@@ -407,9 +407,11 @@
     let selectedIndex = 0;
     let currentGameState = 'TITLE';
     let playersData = {};
+    let itemsData = [];
     let activeStamps = {};
     let isReady = false;
     let isCpuModeGame = false;
+    let visualEffects = [];
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
 
@@ -435,9 +437,7 @@
       renderCharCards();
     });
 
-    socket.on('joinError', (msg) => {
-      errorMsg.textContent = msg;
-    });
+    socket.on('joinError', (msg) => { errorMsg.textContent = msg; });
 
     socket.on('stageUpdated', (data) => {
       selectedStage = data.selectedStage;
@@ -455,6 +455,14 @@
 
     socket.on('stampTriggered', (data) => {
       activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 };
+    });
+
+    socket.on('koEffect', (data) => {
+      visualEffects.push({ type: 'KO', x: data.x, y: data.y, timer: 40 });
+    });
+
+    socket.on('itemCollected', (data) => {
+      visualEffects.push({ type: 'ITEM_GET', playerId: data.playerId, itemType: data.type, timer: 40 });
     });
 
     socket.on('gameState', (data) => {
@@ -480,6 +488,8 @@
       isCpuModeGame = !!data.isCpuMode;
       countdownOverlay.classList.add('hidden');
       playersData = data.players;
+      itemsData = [];
+      visualEffects = [];
       if (data.selectedStage) selectedStage = data.selectedStage;
       updateUI();
     });
@@ -487,6 +497,7 @@
     socket.on('updateState', (data) => {
       if (currentGameState === 'PLAYING') {
         playersData = data.players;
+        itemsData = data.items || [];
         renderGame();
       }
     });
@@ -494,7 +505,7 @@
     socket.on('gameOver', (data) => {
       currentGameState = 'FINISHED';
       isCpuModeGame = !!data.isCpuMode;
-      winnerText.textContent = `${data.winnerName} VICTORY!`;
+      winnerText.textContent = `${data.winnerName} VICTORY! (K.O.)`;
       updateUI();
     });
 
@@ -840,6 +851,26 @@
 
       drawStageBackground(selectedStage);
 
+      // アイテム描画
+      itemsData.forEach(item => {
+        ctx.save();
+        ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#e74c3c');
+        ctx.beginPath();
+        ctx.arc(item.x + 15, item.y + 15, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
+        ctx.fillText(label, item.x + 15, item.y + 20);
+        ctx.restore();
+      });
+
+      // プレイヤー描画
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
@@ -864,13 +895,41 @@
         ctx.textAlign = 'center';
         ctx.fillText(p.name, p.x + char.width / 2, p.y - 10);
 
+        // バフ表示アイコン
+        if (p.buffAtkTimer > 0 || p.buffSpeedTimer > 0) {
+          ctx.font = '12px sans-serif';
+          let buffStr = '';
+          if (p.buffAtkTimer > 0) buffStr += '⭐ATK ';
+          if (p.buffSpeedTimer > 0) buffStr += '👟SPD';
+          ctx.fillStyle = '#f1c40f';
+          ctx.fillText(buffStr, p.x + char.width / 2, p.y - 25);
+        }
+
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + char.width / 2, p.y - 40, activeStamps[p.id].stamp);
+          drawStampEffect(ctx, p.x + char.width / 2, p.y - 45, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
         }
 
         ctx.restore();
       });
+
+      // ビジュアルエフェクト（KO演出など）
+      for (let i = visualEffects.length - 1; i >= 0; i--) {
+        const fx = visualEffects[i];
+        ctx.save();
+        if (fx.type === 'KO') {
+          ctx.fillStyle = 'rgba(231, 76, 60, 0.8)';
+          ctx.font = '900 60px Impact, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.shadowColor = '#f1c40f';
+          ctx.shadowBlur = 15;
+          ctx.fillText('K.O.!!', 500, 250);
+        }
+        ctx.restore();
+
+        fx.timer--;
+        if (fx.timer <= 0) visualEffects.splice(i, 1);
+      }
 
       drawHUD();
     }
