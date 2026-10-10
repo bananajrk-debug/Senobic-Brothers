@@ -212,6 +212,7 @@
       border-radius: 6px;
       overflow: hidden;
       border: 1px solid #222;
+      position: relative;
     }
     .char-stats {
       font-size: 10px;
@@ -248,7 +249,7 @@
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
       <h1 style="font-size: 36px; margin-bottom: 6px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 18px;">REAL 2D FIGHTING BATTLE (MAX 4 PLAYERS LOBBY)</p>
+      <p style="color: #888; font-size: 14px; margin-bottom: 18px;">REAL 2D FIGHTING BATTLE (OPTIMIZED BALANCED)</p>
       
       <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
         <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
@@ -297,7 +298,7 @@
       </div>
     </div>
 
-    <!-- 3. オンラインロビー画面 (4人表示) -->
+    <!-- 3. オンラインロビー画面 -->
     <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
       <div id="lobby-ui">
         <div class="lobby-top">
@@ -357,7 +358,7 @@
   </div>
 
   <div id="controls-guide">
-    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> (クールタイム: 0.2秒) ｜ 残機: 3つ
+    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ 残機: 3つ
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -385,16 +386,16 @@
     let myPlayerNum = null;
     let currentCode = null;
     let characters = {
-      futsuo: { name: 'フツオ (ファイター)', hp: 100, atk: 10, speed: 7.5, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: '万能格闘家' },
-      debugon: { name: 'デブゴン (ヘビー)', hp: 150, atk: 18, speed: 4.5, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: '不屈のアーマー' },
-      garinoshin: { name: 'ガリノシン (アスリート)', hp: 70, atk: 8, speed: 12, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
-      chibikoro: { name: 'チビコロ (ダイバー)', hp: 120, atk: 12, speed: 6, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '急降下アタック' },
-      hime: { name: 'ヒメ (クノイチ)', hp: 85, atk: 14, speed: 9.5, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避' },
-      gorira: { name: 'ゴリラ (バーサーカー)', hp: 170, atk: 22, speed: 5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '破壊力重視' },
-      ninja: { name: 'ニンジャ (シノビ)', hp: 75, atk: 13, speed: 13, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '高速移動' },
-      robot: { name: 'ロボット (サイボーグ)', hp: 140, atk: 17, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐熱装甲' },
-      samurai: { name: 'サムライ (剣豪)', hp: 95, atk: 19, speed: 9, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '一閃攻撃' },
-      wizard: { name: 'ウィザード (メイジ)', hp: 70, atk: 15, speed: 8.5, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '魔術展開' }
+      futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
+      debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
+      garinoshin: { name: 'ガリノシン (アスリート)', hp: 85,  atk: 10, speed: 9.5, jumpPower: 20, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
+      chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
+      hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避' },
+      gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣遠距離' },
+      robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ' },
+      samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
+      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔術展開' }
     };
     let characterKeys = Object.keys(characters);
     let selectedStage = 1;
@@ -460,27 +461,48 @@
       } catch (e) {}
     }
 
+    // ★ 重厚スピーディーな戦闘BGMサウンド生成 ★
     function startBGM() {
       if (bgmTimer) return;
-      const notes = [220, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00];
+      const bassSeq = [110, 110, 130.81, 110, 146.83, 130.81, 123.47, 110];
+      const melodySeq = [220, 261.63, 293.66, 329.63, 392.00, 329.63, 293.66, 261.63];
       let step = 0;
+
       bgmTimer = setInterval(() => {
         if (currentGameState !== 'PLAYING') return;
         try {
           initAudio();
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-          gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-          osc.start();
-          osc.stop(audioCtx.currentTime + 0.15);
+          const now = audioCtx.currentTime;
+
+          // ベース音
+          const bassOsc = audioCtx.createOscillator();
+          const bassGain = audioCtx.createGain();
+          bassOsc.type = 'sawtooth';
+          bassOsc.frequency.setValueAtTime(bassSeq[step % bassSeq.length], now);
+          bassOsc.connect(bassGain);
+          bassGain.connect(audioCtx.destination);
+          bassGain.gain.setValueAtTime(0.06, now);
+          bassGain.gain.linearRampToValueAtTime(0.001, now + 0.12);
+          bassOsc.start(now);
+          bassOsc.stop(now + 0.12);
+
+          // メロディ音（1拍おき）
+          if (step % 2 === 0) {
+            const melOsc = audioCtx.createOscillator();
+            const melGain = audioCtx.createGain();
+            melOsc.type = 'square';
+            melOsc.frequency.setValueAtTime(melodySeq[(step / 2) % melodySeq.length], now);
+            melOsc.connect(melGain);
+            melGain.connect(audioCtx.destination);
+            melGain.gain.setValueAtTime(0.04, now);
+            melGain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+            melOsc.start(now);
+            melOsc.stop(now + 0.18);
+          }
+
           step++;
         } catch(e) {}
-      }, 250);
+      }, 160);
     }
 
     function stopBGM() {
@@ -813,6 +835,7 @@
       });
     }
 
+    // ★ 完全修復：選択画面のドアップ解消＆枠内ぴったり収め ★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -824,8 +847,9 @@
       const char = characters[key];
 
       pCtx.save();
-      pCtx.translate(70, 75);
-      const fitScale = Math.min(0.32, 65 / char.height);
+      // キャラクターの高さに合わせて枠内にぴったり入るスケールを自動計算
+      const fitScale = Math.min(0.48, 55 / char.height);
+      pCtx.translate(70, 72); // 中央下に基準を合わせる
       pCtx.scale(fitScale, fitScale);
 
       const dummyPlayer = {
@@ -852,7 +876,6 @@
         ctx.fillStyle = '#111116';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // ★ 最大4人のロビー表示レイアウト
         const positions = [
           { x: 300, y: 480 },
           { x: 500, y: 480 },
@@ -1014,14 +1037,12 @@
       drawHUD();
     }
 
-    // ★ 凝った高品質背景描画（山脈・雲・街並み夜景・巨大土星・マグマ・神殿柱） ★
     function drawStageBackground(stageId) {
       if (stageId === 1) { // 平原
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#2b5876'); grad.addColorStop(0.6, '#4e4376'); grad.addColorStop(1, '#1e1e24');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 遠くの山脈
         ctx.fillStyle = '#1c3144';
         ctx.beginPath();
         ctx.moveTo(0, 520); ctx.lineTo(200, 260); ctx.lineTo(450, 520); ctx.fill();
@@ -1030,26 +1051,22 @@
         ctx.beginPath();
         ctx.moveTo(800, 520); ctx.lineTo(1050, 300); ctx.lineTo(1200, 520); ctx.fill();
 
-        // 風車アニメーション風シルエット
         ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(150, 320, 16, 200);
-        ctx.fillRect(850, 340, 14, 180);
+        ctx.fillRect(150, 320, 16, 200); ctx.fillRect(850, 340, 14, 180);
 
         ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#2ecc71'; ctx.fillRect(0, 520, canvas.width, 5);
 
-      } else if (stageId === 2) { // 浮島 (サイバー夜景)
+      } else if (stageId === 2) { // 浮島
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#0f0c29'); grad.addColorStop(0.5, '#24243e'); grad.addColorStop(1, '#302b63');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 満月
         ctx.fillStyle = '#f39c12';
         ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 30;
         ctx.beginPath(); ctx.arc(1000, 120, 65, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 遠くのビルのビル群シルエット
         ctx.fillStyle = '#151522';
         ctx.fillRect(100, 300, 70, 220); ctx.fillRect(220, 240, 90, 280);
         ctx.fillRect(350, 340, 80, 180); ctx.fillRect(750, 260, 100, 260); ctx.fillRect(880, 320, 80, 200);
@@ -1063,12 +1080,11 @@
           ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
         });
 
-      } else if (stageId === 3) { // スリル (溶岩洞窟)
+      } else if (stageId === 3) { // スリル
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#110000'); grad.addColorStop(0.7, '#4a0e0e'); grad.addColorStop(1, '#e74c3c');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 溶岩の滝
         ctx.fillStyle = 'rgba(230, 126, 34, 0.8)';
         ctx.fillRect(180, 0, 40, 520); ctx.fillRect(1000, 0, 50, 520);
 
@@ -1083,7 +1099,6 @@
         grad.addColorStop(0, '#09203f'); grad.addColorStop(1, '#537895');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 巨大な古代の列柱
         ctx.fillStyle = '#1c2833';
         ctx.fillRect(100, 80, 55, 440); ctx.fillRect(320, 80, 55, 440);
         ctx.fillRect(825, 80, 55, 440); ctx.fillRect(1045, 80, 55, 440);
@@ -1098,7 +1113,6 @@
       } else if (stageId === 5) { // 宇宙
         ctx.fillStyle = '#01010a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 土星風の巨大惑星
         ctx.save();
         ctx.translate(950, 180);
         ctx.rotate(-0.3);
@@ -1108,7 +1122,6 @@
         ctx.beginPath(); ctx.ellipse(0, 0, 160, 35, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
-        // 地球
         ctx.fillStyle = '#2980b9';
         ctx.beginPath(); ctx.arc(220, 480, 140, 0, Math.PI * 2); ctx.fill();
 
@@ -1367,7 +1380,6 @@
       targetCtx.restore();
     }
 
-    // ★ 修正：残機表示付きHUD UI (ハートマークアイコン付き) ★
     function drawHUD() {
       const p1 = Object.values(playersData).find(p => p.playerNum === 1);
       const p2 = Object.values(playersData).find(p => p.playerNum === 2);
@@ -1385,7 +1397,6 @@
         ctx.textAlign = 'left';
         ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
 
-        // 残機（ストック）表示
         let livesStr = '残機: ';
         for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
         ctx.fillStyle = '#e74c3c';
@@ -1406,7 +1417,6 @@
         ctx.textAlign = 'right';
         ctx.fillText(`${p2.name} (${char2.name})`, 1200 - 20, 15);
 
-        // 残機（ストック）表示
         let livesStr = '残機: ';
         for (let l = 0; l < (p2.lives || 0); l++) livesStr += '❤️ ';
         ctx.fillStyle = '#e74c3c';
