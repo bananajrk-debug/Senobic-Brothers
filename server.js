@@ -61,6 +61,7 @@ function createRoom(code) {
   return {
     code: code,
     players: {},
+    items: [], // ドロップアイテム管理
     gameState: 'LOBBY',
     isCpuMode: false,
     selectedStage: 1,
@@ -104,7 +105,6 @@ io.on('connection', (socket) => {
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
-  // CPU対戦モード（キャラ指定とステージ指定を反映）
   socket.on('startCpuMode', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
@@ -139,7 +139,10 @@ io.on('connection', (socket) => {
       stunFrames: 0,
       invincibleFrames: 0,
       jumpCount: 0,
-      stamp: null
+      stamp: null,
+      isKilled: false,
+      buffAtkTimer: 0,
+      buffSpeedTimer: 0
     };
 
     room.players[socket.id].ready = true;
@@ -228,15 +231,16 @@ io.on('connection', (socket) => {
     if (!room || room.gameState !== 'PLAYING') return;
 
     const p = room.players[socket.id];
-    if (!p || p.stunFrames > 0) return;
+    if (!p || p.stunFrames > 0 || p.isKilled) return;
 
     const char = CHARACTERS[p.characterKey];
+    let speedMult = p.buffSpeedTimer > 0 ? 1.5 : 1.0;
 
     if (input.left) {
-      p.vx = -char.speed;
+      p.vx = -char.speed * speedMult;
       p.facing = 'left';
     } else if (input.right) {
-      p.vx = char.speed;
+      p.vx = char.speed * speedMult;
       p.facing = 'right';
     } else {
       p.vx = 0;
@@ -261,11 +265,12 @@ io.on('connection', (socket) => {
       let reach = isPunch ? 50 : 80;
       let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
-      let dmg = isPunch ? char.atk : Math.round(char.atk * 1.3);
+      let atkMult = p.buffAtkTimer > 0 ? 1.8 : 1.0;
+      let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.3)) * atkMult);
 
       if (char.type === 'chibikoro' && !p.isGrounded) {
         p.vy = 20;
-        dmg = 20;
+        dmg = Math.round(20 * atkMult);
         reach = 90;
       } else if (char.type === 'hime') {
         p.vx = p.facing === 'right' ? -12 : 12;
@@ -286,15 +291,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 再戦リクエスト（CPU戦・対人戦）
   socket.on('requestRematch', () => {
     const room = getRoomBySocket(socket);
     if (room && room.gameState === 'FINISHED') {
       if (room.isCpuMode) {
-        // CPU戦の即時リトライ
         startMatch(room);
       } else {
         room.gameState = 'LOBBY';
+        room.items = [];
         Object.values(room.players).forEach(p => { p.ready = false; });
         io.to(room.code).emit('gameState', { state: 'LOBBY', players: room.players, isCpuMode: false, code: room.code, selectedStage: room.selectedStage });
       }
@@ -324,6 +328,7 @@ io.on('connection', (socket) => {
 
 function startMatch(room) {
   room.gameState = 'PLAYING';
+  room.items = [];
   Object.values(room.players).forEach(pl => {
     const char = CHARACTERS[pl.characterKey];
     pl.hp = char.hp;
@@ -335,6 +340,9 @@ function startMatch(room) {
     pl.facing = pl.playerNum === 1 ? 'right' : 'left';
     pl.jumpCount = 0;
     pl.stamp = null;
+    pl.isKilled = false;
+    pl.buffAtkTimer = 0;
+    pl.buffSpeedTimer = 0;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
@@ -361,7 +369,10 @@ function createPlayerData(socketId, playerNum, name) {
     stunFrames: 0,
     invincibleFrames: 0,
     jumpCount: 0,
-    stamp: null
+    stamp: null,
+    isKilled: false,
+    buffAtkTimer: 0,
+    buffSpeedTimer: 0
   };
 }
 
@@ -374,27 +385,26 @@ function getRoomBySocket(socket) {
 
 // 弱体化版 CPU AI
 function updateCpuAI(cpu, target) {
-  if (!cpu || !target || cpu.stunFrames > 0) return;
+  if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled) return;
 
   const cpuChar = CHARACTERS[cpu.characterKey];
   const distance = (target.x + CHARACTERS[target.characterKey].width / 2) - (cpu.x + cpuChar.width / 2);
 
   cpu.facing = distance > 0 ? 'right' : 'left';
 
-  // 移動速度をプレイヤーの50%に落として少しゆっくりに
+  let speedMult = cpu.buffSpeedTimer > 0 ? 1.5 : 1.0;
+
   if (Math.abs(distance) > 70) {
-    cpu.vx = distance > 0 ? cpuChar.speed * 0.5 : -cpuChar.speed * 0.5;
+    cpu.vx = distance > 0 ? cpuChar.speed * 0.5 * speedMult : -cpuChar.speed * 0.5 * speedMult;
   } else {
     cpu.vx = 0;
   }
 
-  // ジャンプ確率を下げる
   if (Math.random() < 0.008 && cpu.isGrounded) {
     cpu.vy = -cpuChar.jumpPower;
     cpu.isGrounded = false;
   }
 
-  // 攻撃確率を下げて隙を大きくする
   if (Math.abs(distance) <= 75 && !cpu.attacking && Math.random() < 0.035) {
     cpu.attacking = true;
     const isPunch = Math.random() < 0.7;
@@ -404,18 +414,37 @@ function updateCpuAI(cpu, target) {
     const attackHeight = isPunch ? cpuChar.height * 0.4 : cpuChar.height * 0.3;
     const attackYOffset = isPunch ? cpuChar.height * 0.2 : cpuChar.height * 0.4;
 
+    let atkMult = cpu.buffAtkTimer > 0 ? 1.8 : 1.0;
+
     cpu.attackBox = {
       x: cpu.facing === 'right' ? cpu.x + cpuChar.width : cpu.x - reach,
       y: cpu.y + attackYOffset,
       width: reach,
       height: attackHeight,
-      damage: isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.3),
+      damage: Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.3)) * atkMult),
       type: cpu.attackType
     };
 
     setTimeout(() => { cpu.attackBox = null; }, 120);
-    setTimeout(() => { cpu.attacking = false; }, 500); // 硬直時間を長めに設定
+    setTimeout(() => { cpu.attacking = false; }, 500);
   }
+}
+
+// アイテム生成処理
+function spawnRandomItem(room) {
+  if (room.items.length >= 2) return; // 最大画面上に2個まで
+  const types = ['heal', 'atk', 'speed'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  room.items.push({
+    id: Date.now() + Math.random(),
+    type: type,
+    x: 100 + Math.random() * 800,
+    y: -30,
+    vy: 2.5,
+    width: 30,
+    height: 30,
+    isGrounded: false
+  });
 }
 
 // メイン物理ループ
@@ -434,6 +463,11 @@ setInterval(() => {
     const p1 = room.players[playerIds[0]];
     const p2 = room.players[playerIds[1]];
 
+    // 低確率でアイテムドロップ (約12秒に1回のペース)
+    if (Math.random() < 0.0014) {
+      spawnRandomItem(room);
+    }
+
     if (room.isCpuMode && p2 && p2.isCpu && p1) {
       updateCpuAI(p2, p1);
     }
@@ -441,8 +475,64 @@ setInterval(() => {
     const playersArr = [p1, p2];
     const currentPlatforms = STAGES[room.selectedStage].platforms;
 
+    // --- アイテムの移動＆回収判定 ---
+    for (let i = room.items.length - 1; i >= 0; i--) {
+      const item = room.items[i];
+      if (!item.isGrounded) {
+        item.y += item.vy;
+        if (item.y + item.height >= GROUND_Y) {
+          item.y = GROUND_Y - item.height;
+          item.isGrounded = true;
+        }
+      }
+
+      // プレイヤー接触判定
+      playersArr.forEach(p => {
+        if (!p || p.isKilled) return;
+        const char = CHARACTERS[p.characterKey];
+        if (
+          p.x < item.x + item.width &&
+          p.x + char.width > item.x &&
+          p.y < item.y + item.height &&
+          p.y + char.height > item.y
+        ) {
+          // アイテム効果適用
+          if (item.type === 'heal') {
+            p.hp = Math.min(p.maxHp, p.hp + 30);
+          } else if (item.type === 'atk') {
+            p.buffAtkTimer = 360; // 6秒間効果
+          } else if (item.type === 'speed') {
+            p.buffSpeedTimer = 360; // 6秒間効果
+          }
+
+          io.to(code).emit('itemCollected', { playerId: p.id, type: item.type });
+          room.items.splice(i, 1);
+        }
+      });
+    }
+
+    // --- プレイヤー物理挙動 ---
     playersArr.forEach(p => {
       if (!p) return;
+
+      // バフタイマー減少
+      if (p.buffAtkTimer > 0) p.buffAtkTimer--;
+      if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
+
+      // 吹き飛び状態（KO演出中）の処理
+      if (p.isKilled) {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // 画面外に吹っ飛んだらゲーム終了決定
+        if (p.x < -150 || p.x > STAGE_WIDTH + 150 || p.y < -200 || p.y > GROUND_Y + 200) {
+          const winner = playersArr.find(pl => pl && pl.id !== p.id);
+          room.gameState = 'FINISHED';
+          io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
+        }
+        return;
+      }
+
       const char = CHARACTERS[p.characterKey];
 
       if (p.stunFrames > 0) {
@@ -488,10 +578,11 @@ setInterval(() => {
       if (p.x + char.width > STAGE_WIDTH) p.x = STAGE_WIDTH - char.width;
     });
 
+    // --- 攻撃当たり判定 ---
     playersArr.forEach((attacker) => {
-      if (!attacker) return;
+      if (!attacker || attacker.isKilled) return;
       const defender = playersArr.find(p => p && p.id !== attacker.id);
-      if (!defender) return;
+      if (!defender || defender.isKilled) return;
 
       const defenderChar = CHARACTERS[defender.characterKey];
 
@@ -509,7 +600,14 @@ setInterval(() => {
 
           const isDebugonArmored = defenderChar.type === 'debugon' && defender.attacking;
 
-          if (!isDebugonArmored) {
+          if (defender.hp <= 0) {
+            // HPが0になったらスマブラ風・超高速画面外吹き飛び！
+            defender.hp = 0;
+            defender.isKilled = true;
+            defender.vx = attacker.facing === 'right' ? 35 : -35;
+            defender.vy = -28;
+            io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
+          } else if (!isDebugonArmored) {
             defender.stunFrames = defenderChar.type === 'futsuo' ? 8 : 12;
             defender.vy = -5;
             defender.vx = attacker.facing === 'right' ? 10 : -10;
@@ -517,17 +615,11 @@ setInterval(() => {
 
           defender.invincibleFrames = 24;
           attacker.attackBox = null;
-
-          if (defender.hp <= 0) {
-            defender.hp = 0;
-            room.gameState = 'FINISHED';
-            io.to(code).emit('gameOver', { winnerName: attacker.name, winnerNum: attacker.playerNum, isCpuMode: room.isCpuMode });
-          }
         }
       }
     });
 
-    io.to(code).emit('updateState', { players: room.players });
+    io.to(code).emit('updateState', { players: room.players, items: room.items });
   }
 }, 1000 / 60);
 
