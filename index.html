@@ -139,12 +139,41 @@
       align-items: flex-end;
     }
 
+    /* ブロスタ風 スタンプパネル */
+    #stamp-bar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 12;
+      pointer-events: auto;
+    }
+    .stamp-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #2c3e50;
+      border: 2px solid #3498db;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: transform 0.1s, background 0.2s;
+    }
+    .stamp-btn:hover {
+      transform: scale(1.15);
+      background: #34495e;
+    }
+
     #countdown-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 90px;
+      font-size: 100px;
       font-weight: 900;
       color: #f1c40f;
       text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
@@ -228,6 +257,14 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="1000" height="500"></canvas>
 
+    <!-- スタンプバー (ブロスタ風) -->
+    <div id="stamp-bar" class="hidden">
+      <button class="stamp-btn" onclick="sendStamp('👍')" title="グッド [1]">👍</button>
+      <button class="stamp-btn" onclick="sendStamp('👎')" title="バット [2]">👎</button>
+      <button class="stamp-btn" onclick="sendStamp('❤️')" title="ハート [3]">❤️</button>
+      <button class="stamp-btn" onclick="sendStamp('💢')" title="怒り [4]">💢</button>
+    </div>
+
     <!-- カウントダウン表示 -->
     <div id="countdown-overlay" class="hidden">3</div>
 
@@ -256,7 +293,7 @@
       </div>
     </div>
 
-    <!-- 2. ロビー画面 -->
+    <!-- 2. ロビー画面 (自分中心レイアウト) -->
     <div id="screen-lobby" class="overlay hidden" style="background: transparent;">
       <div id="lobby-ui">
         <div class="lobby-top">
@@ -282,7 +319,7 @@
 
     <!-- 3. キャラクター選択画面 -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 20px;">キャラクターを選択 (能力付き)</h2>
+      <h2 style="font-size: 20px;">キャラクターを選択</h2>
       <div class="char-list" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()">決定</button>
     </div>
@@ -295,7 +332,7 @@
   </div>
 
   <div id="controls-guide">
-    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span>
+    操作方法: [A] 左 ｜ [D] 右 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ <span style="color: #3498db;">[1-4] スタンプ</span>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -309,6 +346,7 @@
     const screenGameover = document.getElementById('screen-gameover');
     const selectModal = document.getElementById('select-modal');
     const countdownOverlay = document.getElementById('countdown-overlay');
+    const stampBar = document.getElementById('stamp-bar');
     const charListContainer = document.getElementById('char-list');
     const winnerText = document.getElementById('winner-text');
     const readyBtn = document.getElementById('ready-btn');
@@ -325,6 +363,7 @@
     let selectedIndex = 0;
     let currentGameState = 'TITLE';
     let playersData = {};
+    let activeStamps = {};
     let isReady = false;
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
@@ -360,6 +399,13 @@
 
     socket.on('countdownCancel', () => {
       countdownOverlay.classList.add('hidden');
+    });
+
+    socket.on('stampTriggered', (data) => {
+      activeStamps[data.socketId] = {
+        stamp: data.stamp,
+        timer: 120 // 約2秒表示
+      };
     });
 
     socket.on('gameState', (data) => {
@@ -404,9 +450,14 @@
       updateUI();
     });
 
-    // キーボード入力
+    // キーボード入力（1~4でスタンプ送信機能追加）
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+
+      if (e.key === '1') sendStamp('👍');
+      if (e.key === '2') sendStamp('👎');
+      if (e.key === '3') sendStamp('❤️');
+      if (e.key === '4') sendStamp('💢');
 
       if (currentGameState === 'PLAYING') {
         if (e.key === 'a' || e.key === 'A') keys.left = true;
@@ -436,6 +487,12 @@
 
     function sendInputs() {
       socket.emit('playerInput', keys);
+    }
+
+    function sendStamp(emoji) {
+      if (currentGameState === 'LOBBY' || currentGameState === 'PLAYING') {
+        socket.emit('sendStamp', { stamp: emoji });
+      }
     }
 
     function createOnlineRoom() {
@@ -497,13 +554,17 @@
       screenLobby.classList.add('hidden');
       screenGameover.classList.add('hidden');
       selectModal.classList.add('hidden');
+      stampBar.classList.add('hidden');
 
       if (currentGameState === 'TITLE') {
         screenTitle.classList.remove('hidden');
       } else if (currentGameState === 'LOBBY') {
         screenLobby.classList.remove('hidden');
+        stampBar.classList.remove('hidden');
         updateLobbyUI();
         startLobbyAnimation();
+      } else if (currentGameState === 'PLAYING') {
+        stampBar.classList.remove('hidden');
       } else if (currentGameState === 'FINISHED') {
         screenGameover.classList.remove('hidden');
       }
@@ -580,7 +641,7 @@
       box.appendChild(pCanvas);
     }
 
-    // 横並びロビーアニメーション
+    // 自分中心レイアウトのロビーアニメーション
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
@@ -591,77 +652,89 @@
         ctx.fillStyle = '#18181c';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 台座
+        // 台座（中央: メイン台座 / 右側: サブ台座）
         ctx.fillStyle = '#22222a';
         ctx.beginPath();
-        ctx.ellipse(350, 410, 140, 25, 0, 0, Math.PI * 2);
-        ctx.ellipse(650, 410, 140, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(500, 420, 170, 30, 0, 0, Math.PI * 2); // 自分 (中央)
+        ctx.ellipse(800, 420, 110, 20, 0, 0, Math.PI * 2); // 相手 (右)
         ctx.fill();
 
         ctx.strokeStyle = '#333340';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        const p1 = Object.values(playersData).find(p => p.playerNum === 1);
-        const p2 = Object.values(playersData).find(p => p.playerNum === 2);
+        const myData = Object.values(playersData).find(p => p.playerNum === myPlayerNum);
+        const opponentData = Object.values(playersData).find(p => p.playerNum !== myPlayerNum);
 
-        // 1P描画
-        if (p1 && characters[p1.characterKey]) {
-          const char1 = characters[p1.characterKey];
+        // 1. 自分 (中央に大きく表示)
+        if (myData && characters[myData.characterKey]) {
+          const char = characters[myData.characterKey];
           ctx.save();
-          ctx.translate(350, 400);
-          ctx.scale(1.4, 1.4);
+          ctx.translate(500, 410);
+          ctx.scale(1.7, 1.7); // サイズ拡大
 
-          const lobbyP1 = {
-            x: -char1.width / 2,
-            y: -char1.height,
+          const lobbyMe = {
+            x: -char.width / 2,
+            y: -char.height,
             facing: 'right',
-            characterKey: p1.characterKey,
+            characterKey: myData.characterKey,
             stunFrames: 0
           };
-          drawGraphicCharacter(ctx, lobbyP1, char1);
+          drawGraphicCharacter(ctx, lobbyMe, char);
           ctx.restore();
 
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 16px sans-serif';
+          // 名前＆準備ステータス
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 18px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(p1.name, 350, 445);
+          ctx.fillText(`★ ${myData.name} (YOU)`, 500, 450);
 
-          ctx.fillStyle = p1.ready ? '#2ecc71' : '#e74c3c';
-          ctx.font = '13px sans-serif';
-          ctx.fillText(p1.ready ? '【 準備完了 】' : '【 選択中... 】', 350, 465);
+          ctx.fillStyle = myData.ready ? '#2ecc71' : '#e74c3c';
+          ctx.font = '14px sans-serif';
+          ctx.fillText(myData.ready ? '【 準備完了 】' : '【 選択中... 】', 500, 472);
+
+          // スタンプ表示
+          if (activeStamps[myData.id] && activeStamps[myData.id].timer > 0) {
+            drawStampEffect(ctx, 500, 210, activeStamps[myData.id].stamp);
+            activeStamps[myData.id].timer--;
+          }
         }
 
-        // 2P描画
-        if (p2 && characters[p2.characterKey]) {
-          const char2 = characters[p2.characterKey];
+        // 2. 対戦相手 (右側に少し控えめに表示)
+        if (opponentData && characters[opponentData.characterKey]) {
+          const charOp = characters[opponentData.characterKey];
           ctx.save();
-          ctx.translate(650, 400);
-          ctx.scale(1.4, 1.4);
+          ctx.translate(800, 410);
+          ctx.scale(1.2, 1.2);
 
-          const lobbyP2 = {
-            x: -char2.width / 2,
-            y: -char2.height,
+          const lobbyOp = {
+            x: -charOp.width / 2,
+            y: -charOp.height,
             facing: 'left',
-            characterKey: p2.characterKey,
+            characterKey: opponentData.characterKey,
             stunFrames: 0
           };
-          drawGraphicCharacter(ctx, lobbyP2, char2);
+          drawGraphicCharacter(ctx, lobbyOp, charOp);
           ctx.restore();
 
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 16px sans-serif';
+          ctx.font = 'bold 15px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText(p2.name, 650, 445);
+          ctx.fillText(opponentData.name, 800, 445);
 
-          ctx.fillStyle = p2.ready ? '#2ecc71' : '#e74c3c';
-          ctx.font = '13px sans-serif';
-          ctx.fillText(p2.ready ? '【 準備完了 】' : '【 選択中... 】', 650, 465);
+          ctx.fillStyle = opponentData.ready ? '#2ecc71' : '#e74c3c';
+          ctx.font = '12px sans-serif';
+          ctx.fillText(opponentData.ready ? '【 準備完了 】' : '【 選択中... 】', 800, 465);
+
+          if (activeStamps[opponentData.id] && activeStamps[opponentData.id].timer > 0) {
+            drawStampEffect(ctx, 800, 270, activeStamps[opponentData.id].stamp);
+            activeStamps[opponentData.id].timer--;
+          }
         } else {
           ctx.fillStyle = '#555';
-          ctx.font = 'bold 16px sans-serif';
+          ctx.font = 'bold 15px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('参加待ち...', 650, 380);
+          ctx.fillText('対戦相手を待機中...', 800, 390);
         }
 
         lobbyAnimId = requestAnimationFrame(loop);
@@ -702,15 +775,33 @@
           drawAttackEffect(ctx, p, char);
         }
 
+        // 名前表示
         ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(p.name, p.x + char.width / 2, p.y - 10);
 
+        // スタンプ描画
+        if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
+          drawStampEffect(ctx, p.x + char.width / 2, p.y - 40, activeStamps[p.id].stamp);
+          activeStamps[p.id].timer--;
+        }
+
         ctx.restore();
       });
 
       drawHUD();
+    }
+
+    // スタンプポップアップ描画
+    function drawStampEffect(targetCtx, x, y, emoji) {
+      targetCtx.save();
+      targetCtx.font = '36px sans-serif';
+      targetCtx.textAlign = 'center';
+      targetCtx.shadowColor = 'rgba(0,0,0,0.8)';
+      targetCtx.shadowBlur = 8;
+      targetCtx.fillText(emoji, x, y);
+      targetCtx.restore();
     }
 
     function drawGraphicCharacter(targetCtx, p, char) {
