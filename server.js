@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -24,21 +23,20 @@ app.get('/', (req, res) => {
   }
 });
 
-// キャラクターマスターデータ
+// ★ ゲームバランス最適化後のマスターデータ
 const CHARACTERS = {
-  futsuo: { name: 'フツオ (ファイター)', hp: 100, atk: 10, speed: 7.5, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: '万能格闘家' },
-  debugon: { name: 'デブゴン (ヘビー)', hp: 150, atk: 18, speed: 4.5, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: '不屈のアーマー' },
-  garinoshin: { name: 'ガリノシン (アスリート)', hp: 70, atk: 8, speed: 12, jumpPower: 21, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ' },
-  chibikoro: { name: 'チビコロ (ダイバー)', hp: 120, atk: 12, speed: 6, jumpPower: 14, width: 65, height: 60, type: 'chibikoro', ability: '急降下アタック' },
-  hime: { name: 'ヒメ (クノイチ)', hp: 85, atk: 14, speed: 9.5, jumpPower: 18, width: 45, height: 85, type: 'hime', ability: '無敵回避' },
-  gorira: { name: 'ゴリラ (バーサーカー)', hp: 170, atk: 22, speed: 5, jumpPower: 14, width: 80, height: 100, type: 'gorira', ability: '破壊力重視' },
-  ninja: { name: 'ニンジャ (シノビ)', hp: 75, atk: 13, speed: 13, jumpPower: 22, width: 40, height: 90, type: 'ninja', ability: '高速移動' },
-  robot: { name: 'ロボット (サイボーグ)', hp: 140, atk: 17, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot', ability: '高耐熱装甲' },
-  samurai: { name: 'サムライ (剣豪)', hp: 95, atk: 19, speed: 9, jumpPower: 17, width: 50, height: 95, type: 'samurai', ability: '一閃攻撃' },
-  wizard: { name: 'ウィザード (メイジ)', hp: 70, atk: 15, speed: 8.5, jumpPower: 19, width: 45, height: 95, type: 'wizard', ability: '魔術展開' }
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
+  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
+  garinoshin: { name: 'ガリノシン (アスリート)', hp: 85,  atk: 10, speed: 9.5, jumpPower: 20, width: 35, height: 105, type: 'garinoshin', ability: 'ハイジャンプ',   cd: 10 },
+  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
+  hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避',     cd: 14 },
+  gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視',   cd: 15 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 9.0, jumpPower: 21, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣遠距離', cd: 20 }, // 遠距離スキ増加
+  robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ',cd: 16 },
+  samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃',     cd: 15 },
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔術展開',     cd: 22 }  // 遠距離スキ増加
 };
 
-// 拡張ステージ定義 (1200 x 600)
 const STAGES = {
   1: { name: '平原 (PLAIN)', platforms: [
       { x: 250, y: 400, width: 220, height: 18 },
@@ -115,7 +113,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // 最大4人に拡大
     if (Object.keys(room.players).length >= 4 || room.isCpuMode) {
       socket.emit('joinError', '部屋が満員です (最大4人)。');
       return;
@@ -156,7 +153,7 @@ io.on('connection', (socket) => {
       facing: 'left',
       hp: CHARACTERS[randomCpuChar].hp,
       maxHp: CHARACTERS[randomCpuChar].hp,
-      lives: 3, // 残機3
+      lives: 3,
       isGrounded: false,
       attacking: false,
       attackCooldown: 0,
@@ -222,7 +219,7 @@ io.on('connection', (socket) => {
         io.to(room.code).emit('characterUpdated', { players: room.players });
 
         const playerList = Object.values(room.players);
-        const activePlayers = playerList.slice(0, 2); // 1Pと2Pで対戦
+        const activePlayers = playerList.slice(0, 2);
         const allReady = activePlayers.length === 2 && activePlayers.every(player => player.ready);
 
         if (allReady) {
@@ -257,7 +254,7 @@ io.on('connection', (socket) => {
     if (!p || p.stunFrames > 0 || p.isKilled) return;
 
     const char = CHARACTERS[p.characterKey];
-    let speedMult = p.buffSpeedTimer > 0 ? 1.5 : 1.0;
+    let speedMult = p.buffSpeedTimer > 0 ? 1.4 : 1.0;
 
     if (input.left) {
       p.vx = -char.speed * speedMult;
@@ -280,10 +277,11 @@ io.on('connection', (socket) => {
       }
     }
 
+    // ★ キャラごとの個別クールタイム適用
     if (input.attack && !p.attacking && p.attackCooldown <= 0) {
       p.attacking = true;
       p.attackType = input.attackType;
-      p.attackCooldown = 12;
+      p.attackCooldown = char.cd || 12;
 
       const isPunch = input.attackType === 'punch';
       let reach = isPunch ? 55 : 85;
@@ -297,25 +295,25 @@ io.on('connection', (socket) => {
       let attackHeight = isPunch ? char.height * 0.4 : char.height * 0.3;
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
       
-      let atkMult = p.buffAtkTimer > 0 ? 1.8 : 1.0;
-      if (p.senobicTimer > 0) atkMult = 50.0;
+      let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
+      if (p.senobicTimer > 0) atkMult = 1.8; // 最適化：ワンパン崩壊を防ぐ1.8倍調整
 
-      let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.3)) * atkMult);
+      let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
 
       if (char.type === 'chibikoro' && !p.isGrounded) {
         p.vy = 22;
-        dmg = Math.round(20 * atkMult);
+        dmg = Math.round(18 * atkMult);
         reach = 100;
       } else if (char.type === 'hime') {
         p.vx = p.facing === 'right' ? -14 : 14;
-        p.invincibleFrames = 14;
+        p.invincibleFrames = 12;
       }
 
       p.attackBox = {
         x: p.facing === 'right' ? p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) : p.x - reach,
         y: p.y + attackYOffset,
-        width: reach * (p.senobicTimer > 0 ? 1.8 : 1),
-        height: attackHeight * (p.senobicTimer > 0 ? 1.8 : 1),
+        width: reach * (p.senobicTimer > 0 ? 1.5 : 1),
+        height: attackHeight * (p.senobicTimer > 0 ? 1.5 : 1),
         damage: dmg,
         type: input.attackType
       };
@@ -370,7 +368,7 @@ function startMatch(room) {
     const char = CHARACTERS[pl.characterKey];
     pl.hp = char.hp;
     pl.maxHp = char.hp;
-    pl.lives = 3; // ★ 初期残機 3
+    pl.lives = 3;
     pl.x = pl.playerNum === 1 ? 250 : 1200 - 250 - char.width;
     pl.y = 520 - char.height;
     pl.vx = 0;
@@ -403,7 +401,7 @@ function createPlayerData(socketId, playerNum, name) {
     facing: playerNum === 1 ? 'right' : 'left',
     hp: 100,
     maxHp: 100,
-    lives: 3, // ★ 残機3つ
+    lives: 3,
     isGrounded: false,
     attacking: false,
     attackCooldown: 0,
@@ -437,7 +435,7 @@ function respawnPlayer(p) {
   p.vy = 0;
   p.isKilled = false;
   p.killTimer = 0;
-  p.invincibleFrames = 120; // 2秒間無敵
+  p.invincibleFrames = 120;
 }
 
 function updateCpuAI(cpu, target) {
@@ -447,7 +445,7 @@ function updateCpuAI(cpu, target) {
   const distance = (target.x + CHARACTERS[target.characterKey].width / 2) - (cpu.x + cpuChar.width / 2);
 
   cpu.facing = distance > 0 ? 'right' : 'left';
-  let speedMult = cpu.buffSpeedTimer > 0 ? 1.5 : 1.0;
+  let speedMult = cpu.buffSpeedTimer > 0 ? 1.4 : 1.0;
 
   if (Math.abs(distance) > 75) {
     cpu.vx = distance > 0 ? cpuChar.speed * 0.55 * speedMult : -cpuChar.speed * 0.55 * speedMult;
@@ -462,7 +460,7 @@ function updateCpuAI(cpu, target) {
 
   if (Math.abs(distance) <= 130 && !cpu.attacking && cpu.attackCooldown <= 0 && Math.random() < 0.038) {
     cpu.attacking = true;
-    cpu.attackCooldown = 12;
+    cpu.attackCooldown = cpuChar.cd || 12;
     const isPunch = Math.random() < 0.7;
     cpu.attackType = isPunch ? 'punch' : 'kick';
 
@@ -471,14 +469,14 @@ function updateCpuAI(cpu, target) {
 
     const attackHeight = isPunch ? cpuChar.height * 0.4 : cpuChar.height * 0.3;
     const attackYOffset = isPunch ? cpuChar.height * 0.2 : cpuChar.height * 0.4;
-    let atkMult = cpu.buffAtkTimer > 0 ? 1.8 : (cpu.senobicTimer > 0 ? 50.0 : 1.0);
+    let atkMult = cpu.buffAtkTimer > 0 ? 1.5 : (cpu.senobicTimer > 0 ? 1.8 : 1.0);
 
     cpu.attackBox = {
       x: cpu.facing === 'right' ? cpu.x + cpuChar.width : cpu.x - reach,
       y: cpu.y + attackYOffset,
       width: reach,
       height: attackHeight,
-      damage: Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.3)) * atkMult),
+      damage: Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.25)) * atkMult),
       type: cpu.attackType
     };
 
@@ -493,9 +491,9 @@ function spawnRandomItem(room) {
 
   const rand = Math.random();
   let type = 'heal';
-  if (rand < 0.18) {
+  if (rand < 0.20) {
     type = 'senobic';
-  } else if (rand < 0.45) {
+  } else if (rand < 0.50) {
     type = 'heal';
   } else if (rand < 0.75) {
     type = 'atk';
@@ -517,8 +515,8 @@ function spawnRandomItem(room) {
 }
 
 setInterval(() => {
-  const STAGE_WIDTH = 1200; // 拡張ステージ幅
-  const GROUND_Y = 520;     // 拡張床位置
+  const STAGE_WIDTH = 1200;
+  const GROUND_Y = 520;
   const GRAVITY = 0.8;
 
   for (let code in rooms) {
@@ -566,10 +564,10 @@ setInterval(() => {
           p.y + curH > item.y
         ) {
           if (item.type === 'senobic') {
-            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.5));
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
             p.senobicTimer = 480;
           } else if (item.type === 'heal') {
-            p.hp = Math.min(p.maxHp, p.hp + 35);
+            p.hp = Math.min(p.maxHp, p.hp + 30);
           } else if (item.type === 'atk') {
             p.buffAtkTimer = 360;
           } else if (item.type === 'speed') {
@@ -595,7 +593,6 @@ setInterval(() => {
         p.y += p.vy;
         p.killTimer++;
 
-        // ★ リスポーン（復活）処理またはゲームオーバー判定
         if (p.killTimer > 90) {
           if (p.lives > 0) {
             respawnPlayer(p);
@@ -677,17 +674,18 @@ setInterval(() => {
         ) {
           defender.hp -= ab.damage;
 
-          const isDebugonArmored = defenderChar.type === 'debugon' && defender.attacking;
+          // デブゴンまたは巨大化（セノビック）中はスーパーアーマー
+          const isArmored = (defenderChar.type === 'debugon' && defender.attacking) || defender.senobicTimer > 0;
 
           if (defender.hp <= 0) {
             defender.hp = 0;
-            defender.lives--; // ★ 残機を消費
+            defender.lives--;
             defender.isKilled = true;
             defender.killTimer = 0;
             defender.vx = attacker.facing === 'right' ? 24 : -24;
             defender.vy = -20;
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
-          } else if (!isDebugonArmored) {
+          } else if (!isArmored) {
             defender.stunFrames = 10;
             defender.vy = -5;
             defender.vx = attacker.facing === 'right' ? 12 : -12;
