@@ -23,7 +23,6 @@ app.get('/', (req, res) => {
   }
 });
 
-// ★ キャラクターマスターデータ (飛び道具キャラのCDを0.6秒 = 36f に統一)
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
@@ -31,14 +30,13 @@ const CHARACTERS = {
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
   hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避',     cd: 14 },
   gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視',   cd: 15 },
-  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 }, // ★ 0.6秒(36f)
-  robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ',cd: 36 }, // ★ 0.6秒(36f)
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
+  robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ',cd: 36 },
   samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃',     cd: 15 },
-  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }  // ★ 0.6秒(36f)
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
 };
 
 const STAGES = {
-  // ★ 平原ステージに中央の登れる床を追加
   1: { name: '平原 (PLAIN)', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
   2: { name: '浮島 (ISLANDS)', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
   3: { name: 'スリル (DOOM)', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
