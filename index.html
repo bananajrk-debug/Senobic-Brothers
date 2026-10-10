@@ -423,7 +423,6 @@
 
     const keys = { left: false, right: false, jump: false, jumpPrev: false, attack: false, attackType: null };
 
-    // 初期化時にカード描画を準備
     renderCharCards();
 
     socket.on('roomCreated', (data) => {
@@ -469,7 +468,9 @@
     });
 
     socket.on('koEffect', (data) => {
-      visualEffects.push({ type: 'KO', x: data.x, y: data.y, timer: 40 });
+      // 派手なスマブラ風KO爆発エフェクトを追加
+      visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 60 });
+      visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 90 });
     });
 
     socket.on('itemCollected', (data) => {
@@ -871,7 +872,7 @@
 
       drawStageBackground(selectedStage);
 
-      // アイテム描画（画面上1つ）
+      // アイテム描画
       itemsData.forEach(item => {
         ctx.save();
         ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#e74c3c');
@@ -932,17 +933,38 @@
         ctx.restore();
       });
 
-      // ビジュアルエフェクト
+      // スマブラ風KOエフェクト・スピード線の描画
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
-        if (fx.type === 'KO') {
-          ctx.fillStyle = 'rgba(231, 76, 60, 0.8)';
-          ctx.font = '900 60px Impact, sans-serif';
+        if (fx.type === 'KO_FLASH') {
+          // 画面全体の一瞬のフラッシュ ＆ 爆発円
+          ctx.fillStyle = `rgba(241, 196, 15, ${fx.timer / 80})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.strokeStyle = '#e74c3c';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(fx.x, fx.y, (60 - fx.timer) * 6, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (fx.type === 'KO_TEXT') {
+          // スピード線（集中線）風背景
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 3;
+          for (let a = 0; a < Math.PI * 2; a += 0.3) {
+            ctx.beginPath();
+            ctx.moveTo(fx.x + Math.cos(a) * 40, fx.y + Math.sin(a) * 40);
+            ctx.lineTo(fx.x + Math.cos(a) * 400, fx.y + Math.sin(a) * 400);
+            ctx.stroke();
+          }
+
+          // ド派手な K.O. ロゴ
+          ctx.fillStyle = '#e74c3c';
+          ctx.font = '900 70px Impact, sans-serif';
           ctx.textAlign = 'center';
           ctx.shadowColor = '#f1c40f';
-          ctx.shadowBlur = 15;
-          ctx.fillText('K.O.!!', 500, 250);
+          ctx.shadowBlur = 20;
+          ctx.fillText('K. O. ! !', 500, 240);
         }
         ctx.restore();
 
@@ -1008,6 +1030,13 @@
 
       if (p.stunFrames > 0) {
         targetCtx.filter = 'brightness(1.5) sepia(1)';
+      }
+
+      // ぶっ飛び中は回転・点滅演出
+      if (p.isKilled) {
+        targetCtx.translate(cx, p.y + char.height / 2);
+        targetCtx.rotate(p.killTimer * 0.25);
+        targetCtx.translate(-cx, -(p.y + char.height / 2));
       }
 
       switch (char.type) {
