@@ -468,9 +468,9 @@
     });
 
     socket.on('koEffect', (data) => {
-      // 派手なスマブラ風KO爆発エフェクトを追加
-      visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 60 });
-      visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 90 });
+      // 演出時間を約3秒間（180フレーム）に延長
+      visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 180 });
+      visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 180 });
     });
 
     socket.on('itemCollected', (data) => {
@@ -870,6 +870,7 @@
       ctx.fillStyle = '#121216';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // 高クオリティ背景描画
       drawStageBackground(selectedStage);
 
       // アイテム描画
@@ -933,37 +934,37 @@
         ctx.restore();
       });
 
-      // スマブラ風KOエフェクト・スピード線の描画
+      // スロー＆豪華KO演出描画
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
         if (fx.type === 'KO_FLASH') {
-          // 画面全体の一瞬のフラッシュ ＆ 爆発円
-          ctx.fillStyle = `rgba(241, 196, 15, ${fx.timer / 80})`;
+          // 赤い閃光と爆発リング
+          ctx.fillStyle = `rgba(231, 76, 60, ${Math.min(0.6, fx.timer / 100)})`;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.strokeStyle = '#e74c3c';
-          ctx.lineWidth = 6;
+          ctx.strokeStyle = '#f1c40f';
+          ctx.lineWidth = 8;
           ctx.beginPath();
-          ctx.arc(fx.x, fx.y, (60 - fx.timer) * 6, 0, Math.PI * 2);
+          ctx.arc(fx.x, fx.y, (180 - fx.timer) * 4, 0, Math.PI * 2);
           ctx.stroke();
         } else if (fx.type === 'KO_TEXT') {
-          // スピード線（集中線）風背景
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.lineWidth = 3;
-          for (let a = 0; a < Math.PI * 2; a += 0.3) {
+          // 画面中央に広がる集中線
+          ctx.strokeStyle = 'rgba(255, 235, 59, 0.35)';
+          ctx.lineWidth = 4;
+          for (let a = 0; a < Math.PI * 2; a += 0.25) {
             ctx.beginPath();
-            ctx.moveTo(fx.x + Math.cos(a) * 40, fx.y + Math.sin(a) * 40);
-            ctx.lineTo(fx.x + Math.cos(a) * 400, fx.y + Math.sin(a) * 400);
+            ctx.moveTo(fx.x, fx.y);
+            ctx.lineTo(fx.x + Math.cos(a) * 800, fx.y + Math.sin(a) * 800);
             ctx.stroke();
           }
 
-          // ド派手な K.O. ロゴ
-          ctx.fillStyle = '#e74c3c';
-          ctx.font = '900 70px Impact, sans-serif';
+          // ド派手な K. O. 文字
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = '900 80px Impact, sans-serif';
           ctx.textAlign = 'center';
-          ctx.shadowColor = '#f1c40f';
-          ctx.shadowBlur = 20;
+          ctx.shadowColor = '#e74c3c';
+          ctx.shadowBlur = 25;
           ctx.fillText('K. O. ! !', 500, 240);
         }
         ctx.restore();
@@ -975,39 +976,84 @@
       drawHUD();
     }
 
+    // --- 高クオリティマップ（ステージ）背景描画 ---
     function drawStageBackground(stageId) {
-      ctx.fillStyle = '#1e1e24';
-      ctx.fillRect(0, 450, canvas.width, 50);
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 450);
-      ctx.lineTo(canvas.width, 450);
-      ctx.stroke();
+      if (stageId === 1) {
+        // 平原 (PLAIN) : 朝焼けのグラデーション ＆ 豊かな緑と芝生
+        const grad = ctx.createLinearGradient(0, 0, 0, 500);
+        grad.addColorStop(0, '#2b5876');
+        grad.addColorStop(0.6, '#4e4376');
+        grad.addColorStop(1, '#1e1e24');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (stageId === 2) {
-        ctx.fillStyle = '#2c3e50';
-        ctx.strokeStyle = '#3498db';
-        ctx.lineWidth = 2;
+        // 地面 (緑の大地)
+        const groundGrad = ctx.createLinearGradient(0, 450, 0, 500);
+        groundGrad.addColorStop(0, '#27ae60');
+        groundGrad.addColorStop(0.2, '#219150');
+        groundGrad.addColorStop(1, '#145a32');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, 450, canvas.width, 50);
 
+        // 芝生の上の光ハイライト
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(0, 450, canvas.width, 4);
+
+      } else if (stageId === 2) {
+        // 浮島 (ISLANDS) : ネオンサイバー ＆ 星空
+        const grad = ctx.createLinearGradient(0, 0, 0, 500);
+        grad.addColorStop(0, '#0f0c29');
+        grad.addColorStop(0.5, '#302b63');
+        grad.addColorStop(1, '#24243e');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // メインフロア (浮遊サイバー台)
+        ctx.fillStyle = '#1a1a24';
+        ctx.fillRect(0, 450, canvas.width, 50);
+        ctx.fillStyle = '#00f2fe';
+        ctx.fillRect(0, 450, canvas.width, 3); // 青ネオンライン
+
+        // 空中プラットフォーム 3つ
         const plats = [
-          { x: 150, y: 320, w: 200, h: 15 },
-          { x: 650, y: 320, w: 200, h: 15 },
-          { x: 400, y: 220, w: 200, h: 15 }
+          { x: 150, y: 320, w: 200, h: 18 },
+          { x: 650, y: 320, w: 200, h: 18 },
+          { x: 400, y: 210, w: 200, h: 18 }
         ];
 
         plats.forEach(pt => {
+          ctx.fillStyle = '#222230';
           ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeStyle = '#4facfe';
+          ctx.lineWidth = 2;
           ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.fillStyle = '#00f2fe';
+          ctx.fillRect(pt.x, pt.y, pt.w, 3);
         });
 
       } else if (stageId === 3) {
-        ctx.fillStyle = '#8e44ad';
-        ctx.strokeStyle = '#9b59b6';
-        ctx.lineWidth = 2;
+        // スリル (DOOM) : 危険な溶岩地帯 ＆ メタルの足場
+        const grad = ctx.createLinearGradient(0, 0, 0, 500);
+        grad.addColorStop(0, '#310404');
+        grad.addColorStop(0.7, '#671010');
+        grad.addColorStop(1, '#ff4e50');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillRect(300, 330, 400, 15);
-        ctx.strokeRect(300, 330, 400, 15);
+        // 地面 (メタル)
+        ctx.fillStyle = '#2c2c2c';
+        ctx.fillRect(0, 450, canvas.width, 50);
+        ctx.fillStyle = '#f39c12';
+        ctx.fillRect(0, 450, canvas.width, 4); // 警告イエローライン
+
+        // 中央の大きなメタルプラットフォーム
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(280, 320, 440, 20);
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(280, 320, 440, 20);
+        ctx.fillStyle = '#ff4e50';
+        ctx.fillRect(280, 320, 440, 3);
       }
     }
 
@@ -1032,10 +1078,10 @@
         targetCtx.filter = 'brightness(1.5) sepia(1)';
       }
 
-      // ぶっ飛び中は回転・点滅演出
+      // KO吹き飛び中の回転アニメーション
       if (p.isKilled) {
         targetCtx.translate(cx, p.y + char.height / 2);
-        targetCtx.rotate(p.killTimer * 0.25);
+        targetCtx.rotate(p.killTimer * 0.15);
         targetCtx.translate(-cx, -(p.y + char.height / 2));
       }
 
