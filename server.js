@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
   }
 });
 
-// キャラクターマスターデータ（特殊能力パラメータ追加）
+// キャラクターマスターデータ
 const CHARACTERS = {
   futsuo: { name: 'フツオ (普通)', hp: 100, atk: 10, speed: 7, jumpPower: 17, width: 50, height: 90, type: 'futsuo', ability: 'バランス万能（低硬直）' },
   debugon: { name: 'デブゴン (デブ)', hp: 150, atk: 18, speed: 4, jumpPower: 13, width: 75, height: 95, type: 'debugon', ability: 'スーパーアーマー（攻撃中不屈）' },
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code });
   });
 
-  // 3. CPU対戦モード
+  // 3. CPU対戦
   socket.on('startCpuMode', (data) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
@@ -122,7 +122,8 @@ io.on('connection', (socket) => {
       attackBox: null,
       stunFrames: 0,
       invincibleFrames: 0,
-      jumpCount: 0
+      jumpCount: 0,
+      stamp: null
     };
 
     room.players[socket.id].ready = true;
@@ -130,10 +131,10 @@ io.on('connection', (socket) => {
     socket.join(code);
     socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS });
 
-    // 即座に試合開始
     startMatch(room);
   });
 
+  // 名前変更・キャラ変更
   socket.on('updateName', (data) => {
     const room = getRoomBySocket(socket);
     if (room && room.players[socket.id]) {
@@ -150,7 +151,21 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 準備完了 (カウントダウン連動)
+  // スタンプ（エモート）送信
+  socket.on('sendStamp', (data) => {
+    const room = getRoomBySocket(socket);
+    if (room && room.players[socket.id]) {
+      const p = room.players[socket.id];
+      p.stamp = data.stamp;
+      io.to(room.code).emit('stampTriggered', { socketId: socket.id, stamp: data.stamp });
+
+      setTimeout(() => {
+        if (p.stamp === data.stamp) p.stamp = null;
+      }, 2000);
+    }
+  });
+
+  // 準備完了
   socket.on('toggleReady', () => {
     const room = getRoomBySocket(socket);
     if (room && !room.isCpuMode) {
@@ -163,7 +178,6 @@ io.on('connection', (socket) => {
         const allReady = playerList.length === 2 && playerList.every(player => player.ready);
 
         if (allReady) {
-          // 3秒のカウントダウン開始
           room.countdownVal = 3;
           io.to(room.code).emit('countdownUpdate', { count: room.countdownVal });
 
@@ -178,7 +192,6 @@ io.on('connection', (socket) => {
           }, 1000);
 
         } else {
-          // 準備解除時はカウントダウンキャンセル
           if (room.countdownTimer) {
             clearInterval(room.countdownTimer);
             room.countdownTimer = null;
@@ -189,7 +202,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 物理パケット/操作情報の同期・特殊能力処理
+  // 操作入力
   socket.on('playerInput', (input) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -199,7 +212,6 @@ io.on('connection', (socket) => {
 
     const char = CHARACTERS[p.characterKey];
 
-    // 移動処理
     if (input.left) {
       p.vx = -char.speed;
       p.facing = 'left';
@@ -210,20 +222,17 @@ io.on('connection', (socket) => {
       p.vx = 0;
     }
 
-    // ジャンプ（ガリノシン特有の2段ジャンプ）
     if (input.jump && !input.jumpPrev) {
       if (p.isGrounded) {
         p.vy = -char.jumpPower;
         p.isGrounded = false;
         p.jumpCount = 1;
       } else if (char.type === 'garinoshin' && p.jumpCount < 2) {
-        // ガリノシン能力: 2段ジャンプ
         p.vy = -char.jumpPower * 0.9;
         p.jumpCount = 2;
       }
     }
 
-    // 攻撃動作＆特殊能力判定
     if (input.attack && !p.attacking) {
       p.attacking = true;
       p.attackType = input.attackType;
@@ -234,14 +243,11 @@ io.on('connection', (socket) => {
       let attackYOffset = isPunch ? char.height * 0.2 : char.height * 0.4;
       let dmg = isPunch ? char.atk : Math.round(char.atk * 1.3);
 
-      // --- キャラクター別・特殊能力発動 ---
       if (char.type === 'chibikoro' && !p.isGrounded) {
-        // チビコロ能力: 空中急降下アタック
-        p.vy = 20; // 超高速急降下
+        p.vy = 20;
         dmg = 20;
         reach = 90;
       } else if (char.type === 'hime') {
-        // ヒメ能力: バックステップ（後方移動＋無敵付与）
         p.vx = p.facing === 'right' ? -12 : 12;
         p.invincibleFrames = 12;
       }
@@ -306,6 +312,7 @@ function startMatch(room) {
     pl.vy = 0;
     pl.facing = pl.playerNum === 1 ? 'right' : 'left';
     pl.jumpCount = 0;
+    pl.stamp = null;
   });
   io.to(room.code).emit('gameStart', { players: room.players });
 }
@@ -331,7 +338,8 @@ function createPlayerData(socketId, playerNum, name) {
     attackBox: null,
     stunFrames: 0,
     invincibleFrames: 0,
-    jumpCount: 0
+    jumpCount: 0,
+    stamp: null
   };
 }
 
@@ -342,7 +350,7 @@ function getRoomBySocket(socket) {
   return null;
 }
 
-// CPU AI思考処理
+// CPU AI
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0) return;
 
@@ -454,11 +462,9 @@ setInterval(() => {
         ) {
           defender.hp -= ab.damage;
 
-          // デブゴン特性: 攻撃中は不屈（スーパーアーマー）でノックバック・硬直を無視
           const isDebugonArmored = defenderChar.type === 'debugon' && defender.attacking;
 
           if (!isDebugonArmored) {
-            // フツオ特性: 被弾硬直が短い
             defender.stunFrames = defenderChar.type === 'futsuo' ? 8 : 12;
             defender.vy = -5;
             defender.vx = attacker.facing === 'right' ? 10 : -10;
