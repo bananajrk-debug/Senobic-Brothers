@@ -26,11 +26,11 @@
       position: relative;
       width: 1200px;
       height: 600px;
-      border: 2px solid #3d3d4e;
-      border-radius: 8px;
+      border: 2px solid #4a4a5e;
+      border-radius: 10px;
       background-color: #08080a;
       overflow: hidden;
-      box-shadow: 0 12px 35px rgba(0,0,0,0.7);
+      box-shadow: 0 16px 45px rgba(0,0,0,0.8);
     }
     canvas {
       display: block;
@@ -43,7 +43,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #08080a;
+      background: radial-gradient(circle at center, #161622 0%, #08080a 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -54,32 +54,33 @@
       display: none !important;
     }
     .btn {
-      background: #3498db;
+      background: linear-gradient(135deg, #3498db, #2980b9);
       color: #fff;
       border: none;
-      padding: 10px 22px;
+      padding: 10px 24px;
       font-size: 15px;
       font-weight: bold;
       cursor: pointer;
       border-radius: 6px;
       margin-top: 8px;
-      transition: background 0.2s;
+      box-shadow: 0 4px 12px rgba(52,152,219,0.3);
+      transition: all 0.2s;
     }
-    .btn:hover { background: #2980b9; }
-    .btn-ready { background: #2ecc71; }
-    .btn-ready:hover { background: #27ae60; }
-    .btn-cancel { background: #e74c3c; }
-    .btn-cancel:hover { background: #c0392b; }
-    .btn-cpu { background: #9b59b6; }
-    .btn-cpu:hover { background: #8e44ad; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52,152,219,0.5); }
+    .btn-ready { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 12px rgba(46,204,113,0.3); }
+    .btn-ready:hover { box-shadow: 0 6px 16px rgba(46,204,113,0.5); }
+    .btn-cancel { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
+    .btn-cancel:hover { box-shadow: 0 6px 16px rgba(231,76,60,0.5); }
+    .btn-cpu { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
+    .btn-cpu:hover { box-shadow: 0 6px 16px rgba(155,89,182,0.5); }
     .btn-stage {
-      background: #2a2a35;
+      background: #2a2a38;
       font-size: 11px;
       padding: 5px 10px;
       margin-top: 0;
-      border: 1px solid #444;
+      border: 1px solid #555;
     }
-    .btn-stage.active { background: #f39c12; border-color: #f1c40f; }
+    .btn-stage.active { background: #f39c12; border-color: #f1c40f; box-shadow: 0 0 10px rgba(241,196,15,0.4); }
 
     input[type="text"], input[type="number"] {
       width: 180px;
@@ -112,15 +113,16 @@
       align-items: flex-start;
       width: 100%;
     }
-    .lobby-title { font-size: 22px; font-weight: bold; }
+    .lobby-title { font-size: 22px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
     .badge {
-      background: #22222a;
+      background: #1e1e28;
       padding: 6px 14px;
       border-radius: 20px;
       font-size: 14px;
       font-weight: bold;
       color: #3498db;
       border: 1px solid #3498db;
+      box-shadow: 0 2px 8px rgba(52,152,219,0.2);
     }
     .lobby-bottom {
       display: flex;
@@ -154,10 +156,10 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 90px;
+      font-size: 100px;
       font-weight: 900;
       color: #f1c40f;
-      text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+      text-shadow: 0 0 30px rgba(241, 196, 15, 0.9), 0 0 10px #000;
       pointer-events: none;
       z-index: 15;
     }
@@ -168,7 +170,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(8, 8, 10, 0.96);
+      background: rgba(10, 10, 14, 0.97);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -186,21 +188,21 @@
     .char-card {
       width: 160px;
       height: 205px;
-      border: 2px solid #333;
+      border: 2px solid #3a3a4e;
       border-radius: 8px;
       padding: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      background: #16161f;
+      background: linear-gradient(135deg, #181824, #12121b);
       cursor: pointer;
-      transition: border-color 0.2s, transform 0.2s;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
     }
     .char-card:hover, .char-card.active {
       border-color: #3498db;
-      transform: translateY(-3px);
-      box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
     }
     .char-preview-box {
       width: 100%;
@@ -208,23 +210,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0d0d12;
+      background: #08080c;
       border-radius: 6px;
       overflow: hidden;
-      border: 1px solid #222;
+      border: 1px solid #282836;
       position: relative;
     }
     .char-stats {
       font-size: 10px;
       width: 100%;
-      color: #aaa;
+      color: #bbb;
       line-height: 1.2;
     }
     .ability-box {
       font-size: 9px;
       color: #f1c40f;
       font-weight: bold;
-      background: rgba(241, 196, 15, 0.12);
+      background: rgba(241, 196, 15, 0.15);
       padding: 2px 4px;
       border-radius: 3px;
       margin-top: 2px;
@@ -248,8 +250,8 @@
 
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
-      <h1 style="font-size: 36px; margin-bottom: 6px;">セノビックブラザーズ</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 18px;">REAL 2D FIGHTING BATTLE</p>
+      <h1 style="font-size: 40px; margin-bottom: 6px; text-shadow: 0 4px 12px rgba(0,0,0,0.8); background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">セノビックブラザーズ</h1>
+      <p style="color: #999; font-size: 14px; margin-bottom: 22px; letter-spacing: 2px;">REAL 2D FIGHTING BATTLE</p>
       
       <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
         <label style="font-size: 12px; color: #aaa;">プレイヤー名:</label>
@@ -261,7 +263,7 @@
         <button class="btn btn-cpu" onclick="openCpuSetup()">1人でCPU対戦</button>
       </div>
 
-      <div style="margin-top: 15px; display: flex; flex-direction: column; align-items: center;">
+      <div style="margin-top: 18px; display: flex; flex-direction: column; align-items: center;">
         <p style="font-size: 13px; color: #aaa;">4桁の部屋コードで参加 (最大4人):</p>
         <div style="display: flex; gap: 8px; margin-top: 4px;">
           <input type="number" id="room-code-input" placeholder="1234" maxlength="4" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)">
@@ -273,17 +275,17 @@
 
     <!-- 2. CPU対戦設定画面 -->
     <div id="screen-cpu-setup" class="overlay hidden">
-      <h2 style="font-size: 22px; margin-bottom: 8px;">CPU対戦 設定</h2>
+      <h2 style="font-size: 24px; margin-bottom: 12px; text-shadow: 0 2px 6px rgba(0,0,0,0.6);">CPU対戦 設定</h2>
       
-      <div style="margin-bottom: 12px; text-align: center;">
+      <div style="margin-bottom: 14px; text-align: center;">
         <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">キャラクター:</label>
-        <div id="cpu-char-label" style="font-size: 15px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (ファイター)</div>
-        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #333;">変更する</button>
+        <div id="cpu-char-label" style="font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (ファイター)</div>
+        <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #3a3a4e;">変更する</button>
       </div>
 
-      <div style="margin-bottom: 15px; text-align: center;">
-        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">ステージ:</label>
-        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 400px;">
+      <div style="margin-bottom: 18px; text-align: center;">
+        <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 6px;">ステージ:</label>
+        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 420px;">
           <button class="btn btn-stage active" id="btn-cpu-stage-1" onclick="selectCpuStage(1)">平原</button>
           <button class="btn btn-stage" id="btn-cpu-stage-2" onclick="selectCpuStage(2)">浮島</button>
           <button class="btn btn-stage" id="btn-cpu-stage-3" onclick="selectCpuStage(3)">スリル</button>
@@ -304,7 +306,7 @@
         <div class="lobby-top">
           <div class="lobby-title">
             LOBBY (MAX 4 PLAYERS)
-            <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
+            <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;" class="interactive">
               <button class="btn btn-stage active" id="btn-stage-1" onclick="selectStage(1)">平原</button>
               <button class="btn btn-stage" id="btn-stage-2" onclick="selectStage(2)">浮島</button>
               <button class="btn btn-stage" id="btn-stage-3" onclick="selectStage(3)">スリル</button>
@@ -330,7 +332,7 @@
               <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">名前変更:</label>
               <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
             </div>
-            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 6px 12px; background: #333;">キャラ変更</button>
+            <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 6px 12px; background: #3a3a4e;">キャラ変更</button>
           </div>
 
           <div class="interactive">
@@ -342,14 +344,14 @@
 
     <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 18px; margin-bottom: 5px;">リアルキャラクターを選択</h2>
+      <h2 style="font-size: 20px; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
-      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 22px;">決定</button>
+      <button class="btn" onclick="closeCharSelect()" style="padding: 8px 24px; margin-top: 10px;">決定</button>
     </div>
 
     <!-- 5. 勝敗画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 32px; color: #f1c40f; margin-bottom: 15px;">PLAYER 1 WIN!</h2>
+      <h2 id="winner-text" style="font-size: 34px; color: #f1c40f; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241,196,15,0.6);">PLAYER 1 WIN!</h2>
       <div style="display: flex; gap: 12px;">
         <button class="btn btn-ready" onclick="requestRematch()">もう一度 (Enter)</button>
         <button class="btn" onclick="returnFromGameover()" style="background: #555;">タイトルへ</button>
@@ -392,10 +394,10 @@
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
       hime:       { name: 'ヒメ (クノイチ)',       hp: 90,  atk: 14, speed: 8.5, jumpPower: 18, width: 45, height: 85,  type: 'hime',       ability: '無敵回避' },
       gorira:     { name: 'ゴリラ (バーサーカー)', hp: 135, atk: 18, speed: 5.2, jumpPower: 14, width: 80, height: 100, type: 'gorira',     ability: '破壊力重視' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:1.5秒)' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)' },
       robot:      { name: 'ロボット (サイボーグ)', hp: 125, atk: 15, speed: 5.5, jumpPower: 12, width: 70, height: 100, type: 'robot',      ability: 'ロケットパンチ' },
       samurai:    { name: 'サムライ (剣豪)',       hp: 95,  atk: 17, speed: 7.5, jumpPower: 17, width: 50, height: 95,  type: 'samurai',    ability: '一閃攻撃' },
-      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(画面端まで)' }
+      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
     };
     let characterKeys = Object.keys(characters);
     let selectedStage = 1;
@@ -875,7 +877,7 @@
       function loop() {
         if (currentGameState !== 'LOBBY') return;
 
-        ctx.fillStyle = '#111116';
+        ctx.fillStyle = '#0d0d12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const positions = [
@@ -889,7 +891,7 @@
 
         for (let i = 0; i < 4; i++) {
           const pos = positions[i];
-          ctx.fillStyle = '#1c1c24';
+          ctx.fillStyle = '#181822';
           ctx.beginPath();
           ctx.ellipse(pos.x, pos.y, 80, 18, 0, 0, Math.PI * 2);
           ctx.fill();
@@ -998,9 +1000,9 @@
         const curH = char.height * scale;
 
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.beginPath();
-        ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.5, 7, 0, 0, Math.PI * 2);
+        ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.55, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
         drawRealisticHumanoid(ctx, p, char);
@@ -1063,24 +1065,23 @@
     }
 
     function drawStageBackground(stageId) {
-      if (stageId === 1) { // 平原
+      if (stageId === 1) { // 平原 (グラフィック向上＆新プラットフォーム対応)
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#2b5876'); grad.addColorStop(0.6, '#4e4376'); grad.addColorStop(1, '#1e1e24');
+        grad.addColorStop(0, '#1a365d'); grad.addColorStop(0.6, '#2a4365'); grad.addColorStop(1, '#0f172a');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#1c3144';
+        // 背景の美しい山・木々のシルエット
+        ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.moveTo(0, 520); ctx.lineTo(200, 260); ctx.lineTo(450, 520); ctx.fill();
+        ctx.moveTo(0, 520); ctx.lineTo(180, 240); ctx.lineTo(420, 520); ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(350, 520); ctx.lineTo(650, 200); ctx.lineTo(950, 520); ctx.fill();
+        ctx.moveTo(320, 520); ctx.lineTo(600, 180); ctx.lineTo(920, 520); ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(800, 520); ctx.lineTo(1050, 300); ctx.lineTo(1200, 520); ctx.fill();
+        ctx.moveTo(780, 520); ctx.lineTo(1040, 280); ctx.lineTo(1200, 520); ctx.fill();
 
-        ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(150, 320, 16, 200); ctx.fillRect(850, 340, 14, 180);
-
-        ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#2ecc71'; ctx.fillRect(0, 520, canvas.width, 5);
+        // 地面
+        ctx.fillStyle = '#166534'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 6);
 
       } else if (stageId === 2) { // 浮島
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
@@ -1088,7 +1089,7 @@
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = '#f39c12';
-        ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 30;
+        ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
         ctx.beginPath(); ctx.arc(1000, 120, 65, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -1160,6 +1161,23 @@
         plats.forEach(pt => {
           ctx.fillStyle = '#1a1a2e'; ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
           ctx.strokeStyle = '#ff007f'; ctx.lineWidth = 2; ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+        });
+      }
+
+      // ★ 全ステージ共通のプラットフォーム（床）を高画質に描画
+      if (STAGES[stageId] && STAGES[stageId].platforms) {
+        STAGES[stageId].platforms.forEach(pt => {
+          ctx.save();
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(pt.x, pt.y, pt.w, pt.h);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(pt.x, pt.y, pt.w, pt.h);
+          
+          // 装飾のハイライトライン
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+          ctx.fillRect(pt.x + 4, pt.y + 3, pt.w - 8, 3);
+          ctx.restore();
         });
       }
     }
