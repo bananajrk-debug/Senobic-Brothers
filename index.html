@@ -859,7 +859,7 @@
       });
     }
 
-    // ★★★ 高解像度（2倍内部解像度）を保ちつつ、全身が綺麗に納まる最適なサイズ（0.85）に拡大 ★★★
+    // ★★★ プレビューサイズを少し大きく（1.3倍に拡大）調整したバージョン ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -878,9 +878,9 @@
       pCtx.fillStyle = '#08080c';
       pCtx.fillRect(0, 0, 290, 200);
 
-      // 中央基準位置で、ちょうど良い大きさ（0.85）に調整
+      // プレビュー枠いっぱいに大きめに見えるようスケールを1.3に調整
       pCtx.translate(145, 100);
-      pCtx.scale(0.85, 0.85);
+      pCtx.scale(1.3, 1.3);
 
       const dummyPlayer = {
         x: -char.width / 2,
