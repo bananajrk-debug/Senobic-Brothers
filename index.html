@@ -859,17 +859,15 @@
       });
     }
 
-    // ★★★ 高解像度化＆高画質化（内部解像度を2倍にしてCSSで縮小表示、サイズをさらに縮小） ★★★
+    // ★★★ 高解像度（2倍内部解像度）を保ちつつ、全身が綺麗に納まる最適なサイズ（0.85）に拡大 ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
       box.innerHTML = '';
 
       const pCanvas = document.createElement('canvas');
-      // 内部解像度を2倍(290x200)にしてドットの粗さ・ぼやけを解消
       pCanvas.width = 290;
       pCanvas.height = 200;
-      // CSSで表示サイズを指定して綺麗に縮小表示させる
       pCanvas.style.width = '145px';
       pCanvas.style.height = '100px';
 
@@ -880,9 +878,9 @@
       pCtx.fillStyle = '#08080c';
       pCtx.fillRect(0, 0, 290, 200);
 
-      // 解像度倍率に合わせて中心座標とスケールを調整（より小さく全身が収まるように設定）
+      // 中央基準位置で、ちょうど良い大きさ（0.85）に調整
       pCtx.translate(145, 100);
-      pCtx.scale(0.32, 0.32);
+      pCtx.scale(0.85, 0.85);
 
       const dummyPlayer = {
         x: -char.width / 2,
