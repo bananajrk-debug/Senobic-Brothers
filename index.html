@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Senobic Brothers!!! (Senobic Brothers)</title>
+  <title>セノビックブラザーズ (Senobic Brothers)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -349,7 +349,7 @@
 
     <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">キャラクターを選択</h2>
+      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
@@ -405,8 +405,8 @@
       1: { name: '平原', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
       2: { name: '浮島', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
       3: { name: 'スリル', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
-      4: { name: '神殿', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
-      5: { name: '宇宙', platforms: [{ x: 150, y: 420, width: 250, height: 16 }, { x: 800, y: 420, width: 250, height: 16 }, { x: 460, y: 290, width: 280, height: 16 }] }
+      4: { name: '神殿', platforms: [{ x: 200, y: 390, width: 220, height: 20, type: 'gold' }, { x: 780, y: 390, width: 220, height: 20, type: 'gold' }, { x: 480, y: 260, width: 240, height: 22, type: 'gold' }] },
+      5: { name: '宇宙', platforms: [{ x: 150, y: 420, width: 250, height: 16, type: 'neon' }, { x: 800, y: 420, width: 250, height: 16, type: 'neon' }, { x: 460, y: 290, width: 280, height: 16, type: 'neon' }] }
     };
 
     let characterKeys = Object.keys(characters);
@@ -859,7 +859,6 @@
       });
     }
 
-    // ★★★ プレビューサイズを少し大きく（1.3倍に拡大）調整したバージョン ★★★
     function drawCardMiniPreview(key) {
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
@@ -878,7 +877,6 @@
       pCtx.fillStyle = '#08080c';
       pCtx.fillRect(0, 0, 290, 200);
 
-      // プレビュー枠いっぱいに大きめに見えるようスケールを1.3に調整
       pCtx.translate(145, 100);
       pCtx.scale(1.3, 1.3);
 
@@ -1085,96 +1083,164 @@
       drawHUD();
     }
 
+    // ★★★ ステージ背景・グラフィック・ギミックの大幅強化 ★★★
     function drawStageBackground(stageId) {
+      const now = Date.now();
+
       if (stageId === 1) { // 平原
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#1a365d'); grad.addColorStop(0.6, '#2a4365'); grad.addColorStop(1, '#0f172a');
+        grad.addColorStop(0, '#0f2027'); grad.addColorStop(0.5, '#203a43'); grad.addColorStop(1, '#2c5364');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // 遠景の山脈
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
-        ctx.moveTo(0, 520); ctx.lineTo(180, 240); ctx.lineTo(420, 520); ctx.fill();
+        ctx.moveTo(0, 520); ctx.lineTo(200, 200); ctx.lineTo(450, 520); ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(320, 520); ctx.lineTo(600, 180); ctx.lineTo(920, 520); ctx.fill();
+        ctx.moveTo(300, 520); ctx.lineTo(600, 150); ctx.lineTo(900, 520); ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(780, 520); ctx.lineTo(1040, 280); ctx.lineTo(1200, 520); ctx.fill();
+        ctx.moveTo(700, 520); ctx.lineTo(1000, 220); ctx.lineTo(1200, 520); ctx.fill();
 
-        ctx.fillStyle = '#166534'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 6);
+        // 豊かな草地エリア
+        ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 8);
 
       } else if (stageId === 2) { // 浮島
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#0f0c29'); grad.addColorStop(0.5, '#24243e'); grad.addColorStop(1, '#302b63');
+        grad.addColorStop(0, '#0b0c10'); grad.addColorStop(0.5, '#1f2833'); grad.addColorStop(1, '#0b0c10');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#f39c12';
-        ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 35;
-        ctx.beginPath(); ctx.arc(1000, 120, 65, 0, Math.PI * 2); ctx.fill();
+        // 紫のオーロラ雲
+        ctx.fillStyle = 'rgba(147, 51, 234, 0.15)';
+        ctx.beginPath();
+        ctx.ellipse(600, 120, 500, 80, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 巨大な月
+        ctx.fillStyle = '#fef08a';
+        ctx.shadowColor = '#fde047'; ctx.shadowBlur = 40;
+        ctx.beginPath(); ctx.arc(1000, 110, 60, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#151522';
-        ctx.fillRect(100, 300, 70, 220); ctx.fillRect(220, 240, 90, 280);
-        ctx.fillRect(350, 340, 80, 180); ctx.fillRect(750, 260, 100, 260); ctx.fillRect(880, 320, 80, 200);
-
-        ctx.fillStyle = '#1a1a24'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#00f2fe'; ctx.fillRect(0, 520, canvas.width, 4);
+        // 底なしの穴（ステージ下部の危険ゾーン表現）
+        ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, canvas.width, 2);
 
       } else if (stageId === 3) { // スリル
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#110000'); grad.addColorStop(0.7, '#4a0e0e'); grad.addColorStop(1, '#e74c3c');
+        grad.addColorStop(0, '#110000'); grad.addColorStop(0.6, '#450a0a'); grad.addColorStop(1, '#7f1d1d');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = 'rgba(230, 126, 34, 0.8)';
-        ctx.fillRect(180, 0, 40, 520); ctx.fillRect(1000, 0, 50, 520);
+        // マグマの泡・アニメーション効果
+        ctx.fillStyle = '#f97316';
+        for (let i = 0; i < 5; i++) {
+          const bubbleX = (now / 10 + i * 240) % 1200;
+          const bubbleY = 530 + Math.sin(now / 200 + i) * 6;
+          ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 12, 0, Math.PI * 2); ctx.fill();
+        }
 
-        ctx.fillStyle = '#2c2c2c'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#f39c12'; ctx.fillRect(0, 520, canvas.width, 6);
+        // マグマ地獄の床
+        ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, canvas.width, 6);
 
-      } else if (stageId === 4) { // 神殿
+      } else if (stageId === 4) { // 神殿（クオリティ大幅アップ！）
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
-        grad.addColorStop(0, '#09203f'); grad.addColorStop(1, '#537895');
+        grad.addColorStop(0, '#020617'); grad.addColorStop(0.5, '#0f172a'); grad.addColorStop(1, '#1e1b4b');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#1c2833';
-        ctx.fillRect(100, 80, 55, 440); ctx.fillRect(320, 80, 55, 440);
-        ctx.fillRect(825, 80, 55, 440); ctx.fillRect(1045, 80, 55, 440);
+        // ★ 背景の古代ギリシャ風巨大神殿・ギリシャ宮殿構造
+        ctx.fillStyle = '#1e293b';
+        // 神殿の屋根（三角ペディメント）
+        ctx.beginPath();
+        ctx.moveTo(350, 180); ctx.lineTo(600, 70); ctx.lineTo(850, 180); ctx.fill();
+        ctx.fillRect(350, 180, 500, 20); // 梁
 
-        ctx.fillStyle = '#d4af37'; ctx.fillRect(0, 520, canvas.width, 80);
+        // 巨大な古代の石柱（複数）
+        for (let x = 380; x <= 820; x += 80) {
+          ctx.fillRect(x, 200, 40, 320);
+          // 柱の模様（縦溝）
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(x + 12, 200, 16, 320);
+          ctx.fillStyle = '#1e293b';
+        }
 
-      } else if (stageId === 5) { // 宇宙
-        ctx.fillStyle = '#01010a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 左右の古代トーチと揺らめく聖なる炎（ギミック演出）
+        [120, 1080].forEach((tx, idx) => {
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(tx - 10, 280, 20, 140); ctx.fillRect(tx - 25, 260, 50, 20);
+          // 炎のアニメーション
+          const flameOffset = Math.sin(now / 80 + idx) * 4;
+          const flameGrad = ctx.createRadialGradient(tx, 240, 2, tx, 240, 25);
+          flameGrad.addColorStop(0, '#fef08a'); flameGrad.addColorStop(0.5, '#f97316'); flameGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = flameGrad;
+          ctx.beginPath(); ctx.arc(tx + flameOffset, 240, 28, 0, Math.PI * 2); ctx.fill();
+        });
 
+        // 黄金の神聖な床
+        ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, canvas.width, 6);
+
+      } else if (stageId === 5) { // 宇宙（銀河・流星エフェクト追加）
+        ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 土星風の惑星
         ctx.save();
-        ctx.translate(950, 180);
+        ctx.translate(920, 160);
         ctx.rotate(-0.3);
-        ctx.fillStyle = '#8e44ad';
-        ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 14;
-        ctx.beginPath(); ctx.ellipse(0, 0, 160, 35, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath(); ctx.arc(0, 0, 75, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(250, 204, 21, 0.6)'; ctx.lineWidth = 12;
+        ctx.beginPath(); ctx.ellipse(0, 0, 140, 28, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = '#2980b9';
-        ctx.beginPath(); ctx.arc(220, 480, 140, 0, Math.PI * 2); ctx.fill();
+        // 流星・星屑アニメーション（ギミック演出）
+        for (let i = 0; i < 20; i++) {
+          const starX = (i * 97 + now / 15) % 1200;
+          const starY = (i * 53 + Math.sin(i) * 200) % 500;
+          ctx.fillStyle = i % 2 === 0 ? '#38bdf8' : '#fff';
+          ctx.fillRect(starX, starY, 2, 2);
+        }
 
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(120, 60, 3, 3); ctx.fillRect(350, 110, 2, 2); ctx.fillRect(600, 80, 3, 3); ctx.fillRect(820, 150, 2, 2);
-
-        ctx.fillStyle = '#111122'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#ff007f'; ctx.fillRect(0, 520, canvas.width, 4);
+        // ネオンのハイテク宇宙床
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, canvas.width, 80);
+        ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, canvas.width, 4);
       }
 
+      // プラットフォーム（足場）のスタイル・装飾設定
       const currentStageObj = stages[stageId];
       if (currentStageObj && currentStageObj.platforms) {
         currentStageObj.platforms.forEach(pt => {
           ctx.save();
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(pt.x, pt.y, pt.width || pt.w, pt.height || pt.h);
-          
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
-          ctx.fillRect(pt.x + 4, pt.y + 3, (pt.width || pt.w) - 8, 3);
+          const pw = pt.width || pt.w;
+          const ph = pt.height || pt.h;
+
+          if (pt.type === 'gold') { // 神殿ステージの黄金足場
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(pt.x, pt.y, pw, ph);
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(pt.x, pt.y, pw, ph);
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(pt.x + 4, pt.y + 2, pw - 8, 3);
+
+          } else if (pt.type === 'neon') { // 宇宙ステージのサイバー足場
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(pt.x, pt.y, pw, ph);
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 10;
+            ctx.strokeRect(pt.x, pt.y, pw, ph);
+            ctx.shadowBlur = 0;
+
+          } else { // 通常足場
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(pt.x, pt.y, pw, ph);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(pt.x, pt.y, pw, ph);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.3)';
+            ctx.fillRect(pt.x + 4, pt.y + 3, pw - 8, 3);
+          }
           ctx.restore();
         });
       }
