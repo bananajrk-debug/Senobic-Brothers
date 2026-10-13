@@ -11,7 +11,6 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const GAME_VERSION = "v1.2.0"; // バージョン表記
 
 app.use(express.static(__dirname));
 
@@ -26,7 +25,7 @@ app.get('/', (req, res) => {
 
 // 厳選された5キャラのデータ定義
 const CHARACTERS = {
-  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
@@ -75,7 +74,7 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
 
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
@@ -97,7 +96,7 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, assignedNum, data.playerName || `Player ${assignedNum}`);
 
     socket.join(code);
-    socket.emit('roomJoined', { code: code, playerNum: assignedNum, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
+    socket.emit('roomJoined', { code: code, playerNum: assignedNum, characters: CHARACTERS, stages: STAGES });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
@@ -142,13 +141,12 @@ io.on('connection', (socket) => {
       killTimer: 0,
       buffAtkTimer: 0,
       buffSpeedTimer: 0,
-      senobicTimer: 0,
-      oneHitKill: false
+      senobicTimer: 0
     };
 
     room.players[socket.id].ready = true;
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
     startMatch(room);
   });
 
@@ -260,16 +258,8 @@ io.on('connection', (socket) => {
 
       const isPunch = input.attackType === 'punch';
       let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
+      if (p.senobicTimer > 0) atkMult = 1.8;
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
-
-      if (p.senobicTimer > 0) {
-        if (p.oneHitKill) {
-          dmg = 9999; // ワンパン効果発動！
-          p.oneHitKill = false; // 消費
-        } else {
-          dmg = Math.round(dmg * 1.8);
-        }
-      }
 
       if (char.type === 'ninja' || char.type === 'wizard') {
         const isRight = p.facing === 'right';
@@ -297,8 +287,7 @@ io.on('connection', (socket) => {
 
         if (char.type === 'chibikoro' && !p.isGrounded) {
           p.vy = 22;
-          dmg = p.oneHitKill ? 9999 : Math.round(18 * atkMult);
-          if (p.oneHitKill) p.oneHitKill = false;
+          dmg = Math.round(18 * atkMult);
           reach = 100;
         }
 
@@ -378,7 +367,6 @@ function startMatch(room) {
     pl.buffAtkTimer = 0;
     pl.buffSpeedTimer = 0;
     pl.senobicTimer = 0;
-    pl.oneHitKill = false;
     pl.attackCooldown = 0;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
@@ -413,8 +401,7 @@ function createPlayerData(socketId, playerNum, name) {
     killTimer: 0,
     buffAtkTimer: 0,
     buffSpeedTimer: 0,
-    senobicTimer: 0,
-    oneHitKill: false
+    senobicTimer: 0
   };
 }
 
@@ -466,11 +453,6 @@ function updateCpuAI(cpu, target) {
     let atkMult = cpu.buffAtkTimer > 0 ? 1.5 : (cpu.senobicTimer > 0 ? 1.8 : 1.0);
     let dmg = Math.round((isPunch ? cpuChar.atk : Math.round(cpuChar.atk * 1.25)) * atkMult);
 
-    if (cpu.senobicTimer > 0 && cpu.oneHitKill) {
-      dmg = 9999;
-      cpu.oneHitKill = false;
-    }
-
     if (cpuChar.type === 'ninja' || cpuChar.type === 'wizard') {
       const isRight = cpu.facing === 'right';
       const projSpeed = cpuChar.type === 'ninja' ? 16 : 12;
@@ -507,38 +489,16 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// セノビックドリンクの確率条件判定ロジック
 function spawnRandomItem(room) {
   if (room.items.length >= 1) return;
   if (room.spawnedItemCount >= 4) return;
 
-  const playerIds = Object.keys(room.players).filter(id => id !== 'cpu_player' || room.isCpuMode);
-  let p1 = room.players[playerIds[0]];
-  let p2 = room.players[playerIds[1]];
-
-  let p1Lives = p1 ? p1.lives : 3;
-  let p2Lives = p2 ? p2.lives : 3;
-
-  // 確率の決定 (通常5%, どちらか1人でも残機1なら10%, 2と1なら20%, 1と1なら30%)
-  let senobicChance = 0.05;
-  if (p1Lives === 1 && p2Lives === 1) {
-    senobicChance = 0.30;
-  } else if ((p1Lives === 2 && p2Lives === 1) || (p1Lives === 1 && p2Lives === 2)) {
-    senobicChance = 0.20;
-  } else if (p1Lives === 1 || p2Lives === 1) {
-    senobicChance = 0.10;
-  }
-
   const rand = Math.random();
   let type = 'heal';
-  if (rand < senobicChance) {
-    type = 'senobic';
-  } else {
-    const subRand = Math.random();
-    if (subRand < 0.4) type = 'heal';
-    else if (subRand < 0.75) type = 'atk';
-    else type = 'speed';
-  }
+  if (rand < 0.20) type = 'senobic';
+  else if (rand < 0.50) type = 'heal';
+  else if (rand < 0.75) type = 'atk';
+  else type = 'speed';
 
   room.items.push({
     id: Date.now() + Math.random(),
@@ -546,8 +506,8 @@ function spawnRandomItem(room) {
     x: 150 + Math.random() * 900,
     y: -40,
     vy: 2.5,
-    width: 55,  // 大きめにして見やすく
-    height: 55, // 大きめにして見やすく
+    width: 45,
+    height: 45,
     isGrounded: false
   });
   room.spawnedItemCount++;
@@ -643,9 +603,8 @@ setInterval(() => {
           p.y + curH > item.y
         ) {
           if (item.type === 'senobic') {
-            p.hp = p.maxHp;         // 体力全快
-            p.senobicTimer = 480;   // 巨大化
-            p.oneHitKill = true;    // 次の攻撃ワンパン付与
+            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
+            p.senobicTimer = 480;
           } else if (item.type === 'heal') {
             p.hp = Math.min(p.maxHp, p.hp + 30);
           } else if (item.type === 'atk') {
@@ -669,7 +628,6 @@ setInterval(() => {
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
       if (p.senobicTimer > 0) p.senobicTimer--;
-      if (p.senobicTimer <= 0) p.oneHitKill = false; // 効果切れたらワンパンも終了
 
       if (p.isKilled) {
         p.x += p.vx;
@@ -783,5 +741,6 @@ setInterval(() => {
 }, 1000 / 60);
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} (${GAME_VERSION})`);
+  console.log(`Server running on port ${PORT}`);
 });
+
