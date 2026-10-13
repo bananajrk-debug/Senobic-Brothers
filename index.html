@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -394,11 +395,11 @@
     let currentCode = null;
 
     let characters = {
-      futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
+      futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(10秒)' },
       debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(CT:2秒)' },
-      chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投(CT:0.6秒)' },
-      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
+      chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投' },
+      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '巨大貫通魔法弾' }
     };
 
     let stages = {
@@ -577,6 +578,8 @@
       else if (data.type === 'debugon_fire') text = '💥着地・超衝撃波発射！';
       else if (data.type === 'ninja_ready') text = '🌟手裏剣3連投スタンバイ！';
       else if (data.type === 'ninja_throw') text = '🌀手裏剣発射！';
+      else if (data.type === 'chibikoro_mega') text = '💥巨大大爆発ボム！！';
+      else if (data.type === 'wizard_mega') text = '✨究極メガ魔法弾発射！！';
       visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: text, timer: 70 });
     });
 
@@ -1040,9 +1043,24 @@
           ctx.beginPath();
           ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
           ctx.fill();
-        } else if (proj.type === 'wizard_giant') {
-          ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(proj.x + 32, proj.y + 32, 30, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(proj.x + 32, proj.y + 32, 14, 0, Math.PI * 2); ctx.fill();
+        } else if (proj.type === 'wizard_giant' || proj.type === 'wizard_mega_giant') {
+          const size = proj.width || 85;
+          const cx = proj.x + size / 2;
+          const cy = proj.y + size / 2;
+          ctx.translate(cx, cy);
+          ctx.rotate(Date.now() * 0.08);
+
+          // 魔法陣エフェクト
+          ctx.strokeStyle = '#a855f7';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#c084fc';
+          ctx.beginPath(); ctx.arc(0, 0, size * 0.45, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath(); ctx.arc(0, 0, size * 0.22, 0, Math.PI * 2); ctx.fill();
         } else if (proj.type === 'debugon_wave') {
           ctx.fillStyle = 'rgba(211, 84, 0, 0.9)';
           ctx.fillRect(proj.x, proj.y, proj.width || 40, proj.height || 95);
@@ -1074,6 +1092,16 @@
           ctx.strokeRect(p.x - 4, p.y - 4, curW + 8, curH + 8);
         }
 
+        // フツオの覚醒中の派手なオーラ
+        if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
+          ctx.strokeStyle = '#e74c3c';
+          ctx.lineWidth = 4;
+          ctx.shadowColor = '#f1c40f';
+          ctx.shadowBlur = 15;
+          ctx.strokeRect(p.x - 6, p.y - 6, curW + 12, curH + 12);
+          ctx.shadowBlur = 0;
+        }
+
         drawRealisticHumanoid(ctx, p, char);
 
         if (p.attackBox) {
@@ -1088,18 +1116,38 @@
         let statusStr = '';
         if (p.debugonSpecialArmed) statusStr += '⚡[JUMP & LANDで衝撃波] ';
         if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣残数: ${p.ninjaSpecialShurikenCount}発 `;
-        if (p.specialActiveTimer > 0) statusStr += '🔥SPECIAL! ';
+        
+        // フツオの10秒間タイマーゲージの表示
+        if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
+          const sec = (p.specialActiveTimer / 60).toFixed(1);
+          statusStr += `🔥覚醒中残り: ${sec}秒 `;
+        }
+
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
         if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
+
         if (statusStr) {
           ctx.font = 'bold 13px sans-serif';
           ctx.fillStyle = '#f1c40f';
           ctx.fillText(statusStr, p.x + curW / 2, p.y - 30);
         }
 
+        // フツオ覚醒中の頭上タイマーゲージバー
+        if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
+          const barW = curW;
+          const ratio = p.specialActiveTimer / 600;
+          ctx.fillStyle = '#333';
+          ctx.fillRect(p.x, p.y - 42, barW, 6);
+          ctx.fillStyle = '#e74c3c';
+          ctx.fillRect(p.x, p.y - 42, barW * ratio, 6);
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(p.x, p.y - 42, barW, 6);
+        }
+
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + curW / 2, p.y - 50, activeStamps[p.id].stamp);
+          drawStampEffect(ctx, p.x + curW / 2, p.y - 55, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
         }
 
@@ -1530,8 +1578,13 @@
     function drawCustomAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
-      targetCtx.fillStyle = ab.type === 'special_bomb' ? 'rgba(231, 76, 60, 0.8)' : (ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)');
+      targetCtx.fillStyle = ab.type === 'special_bomb' ? 'rgba(231, 76, 60, 0.95)' : (ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)');
       targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
+      if (ab.type === 'special_bomb') {
+        targetCtx.strokeStyle = '#f1c40f';
+        targetCtx.lineWidth = 4;
+        targetCtx.strokeRect(ab.x, ab.y, ab.width, ab.height);
+      }
       targetCtx.restore();
     }
 
