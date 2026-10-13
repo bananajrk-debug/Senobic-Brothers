@@ -23,7 +23,6 @@ app.get('/', (req, res) => {
   }
 });
 
-// 厳選された5キャラのデータ定義（デブゴンのjumpPowerを17に変更）
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 17, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
@@ -143,8 +142,8 @@ io.on('connection', (socket) => {
       senobicTimer: 0,
       specialGauge: 0,
       specialActiveTimer: 0,
-      specialCharges: 3,
-      debugonShockwaveReady: false
+      specialReady: false,
+      debugonSpecialArmed: false
     };
 
     room.players[socket.id].ready = true;
@@ -223,57 +222,44 @@ io.on('connection', (socket) => {
     }
   });
 
-  // スペースキーでの必殺技発動
+  // スペースキーでの必殺技スタンバイ発動
   socket.on('triggerSpecial', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
-    if (!p || p.isKilled || p.specialGauge < 100) return;
+    if (!p || p.isKilled || !p.specialReady) return;
     const char = CHARACTERS[p.characterKey];
+
+    p.specialReady = false;
+    p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
       p.specialActiveTimer = 600;
-      p.specialGauge = 0;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'ninja') {
-      if (p.specialCharges > 0) {
-        p.specialCharges--;
-        p.specialGauge = 0;
-        const isRight = p.facing === 'right';
-        room.projectiles.push({
-          id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant',
-          x: isRight ? p.x + char.width : p.x - 50, y: p.y + char.height * 0.3,
-          vx: isRight ? 20 : -20, width: 48, height: 40, damage: Math.round(char.atk * 2.0)
-        });
-        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
-      }
+      const isRight = p.facing === 'right';
+      room.projectiles.push({
+        id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant',
+        x: isRight ? p.x + char.width : p.x - 60, y: p.y + char.height * 0.3,
+        vx: isRight ? 20 : -20, width: 50, height: 40, damage: Math.round(char.atk * 2.2)
+      });
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
     } else if (char.type === 'debugon') {
-      if (p.specialCharges > 0) {
-        p.specialCharges--;
-        p.specialGauge = 0;
-        p.debugonShockwaveReady = true;
-        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon' });
-      }
+      // デブゴン専用：次の一回、ジャンプ時に高木の衝撃波を放つ状態になる
+      p.debugonSpecialArmed = true;
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_ready' });
     } else if (char.type === 'chibikoro') {
-      if (p.specialCharges > 0) {
-        p.specialCharges--;
-        p.specialGauge = 0;
-        p.attackBox = { x: p.x - 80, y: p.y - 40, width: char.width + 160, height: char.height + 80, damage: 40, type: 'special_bomb' };
-        setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 200);
-        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro' });
-      }
+      p.attackBox = { x: p.x - 90, y: p.y - 50, width: char.width + 180, height: char.height + 100, damage: 45, type: 'special_bomb' };
+      setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 250);
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro' });
     } else if (char.type === 'wizard') {
-      if (p.specialCharges > 0) {
-        p.specialCharges--;
-        p.specialGauge = 0;
-        const isRight = p.facing === 'right';
-        room.projectiles.push({
-          id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_giant',
-          x: isRight ? p.x + char.width : p.x - 60, y: p.y + char.height * 0.3,
-          vx: isRight ? 14 : -14, width: 55, height: 55, damage: Math.round(char.atk * 2.2), pierce: true
-        });
-        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard' });
-      }
+      const isRight = p.facing === 'right';
+      room.projectiles.push({
+        id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_giant',
+        x: isRight ? p.x + char.width : p.x - 70, y: p.y + char.height * 0.25,
+        vx: isRight ? 13 : -13, width: 65, height: 65, damage: Math.round(char.atk * 2.5), pierce: true
+      });
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard' });
     }
   });
 
@@ -302,6 +288,24 @@ io.on('connection', (socket) => {
         p.vy = -char.jumpPower;
         p.isGrounded = false;
         p.jumpCount = 1;
+
+        // デブゴンの必殺技：スペース発動後にジャンプしたら左右に背の高さと同じ衝撃波を飛ばす
+        if (p.debugonSpecialArmed && char.type === 'debugon') {
+          p.debugonSpecialArmed = false;
+          const waveHeight = char.height; // 背の高さ
+          const waveWidth = 40;
+          room.projectiles.push({
+            id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+            x: p.x + char.width, y: p.y + char.height - waveHeight,
+            vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+          });
+          room.projectiles.push({
+            id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+            x: p.x - waveWidth, y: p.y + char.height - waveHeight,
+            vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+          });
+          io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
+        }
       } else if (char.type === 'ninja' && p.jumpCount < 2) {
         p.vy = -char.jumpPower * 0.9;
         p.jumpCount = 2;
@@ -430,8 +434,8 @@ function startMatch(room) {
     pl.attackCooldown = 0;
     pl.specialGauge = 0;
     pl.specialActiveTimer = 0;
-    pl.specialCharges = 3;
-    pl.debugonShockwaveReady = false;
+    pl.specialReady = false;
+    pl.debugonSpecialArmed = false;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
@@ -468,8 +472,8 @@ function createPlayerData(socketId, playerNum, name) {
     senobicTimer: 0,
     specialGauge: 0,
     specialActiveTimer: 0,
-    specialCharges: 3,
-    debugonShockwaveReady: false
+    specialReady: false,
+    debugonSpecialArmed: false
   };
 }
 
@@ -510,12 +514,22 @@ function updateCpuAI(cpu, target) {
   if (Math.random() < 0.008 && cpu.isGrounded) {
     cpu.vy = -cpuChar.jumpPower;
     cpu.isGrounded = false;
+    if (cpu.debugonSpecialArmed && cpuChar.type === 'debugon') {
+      cpu.debugonSpecialArmed = false;
+      const waveHeight = cpuChar.height;
+      getRoomBySocket({ id: cpu.id })?.projectiles.push({
+        id: Date.now() + Math.random(), ownerId: cpu.id, type: 'debugon_wave',
+        x: cpu.x + cpuChar.width, y: cpu.y + cpuChar.height - waveHeight,
+        vx: 14, width: 40, height: waveHeight, damage: Math.round(cpuChar.atk * 2.2), groundAligned: true
+      });
+    }
   }
 
-  if (cpu.specialGauge >= 100) {
+  if (cpu.specialReady) {
+    cpu.specialReady = false;
     cpu.specialGauge = 0;
     if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 600;
-    else if (cpu.specialCharges > 0) cpu.specialCharges--;
+    else if (cpuChar.type === 'debugon') cpu.debugonSpecialArmed = true;
   }
 
   if (Math.abs(distance) <= 300 && !cpu.attacking && cpu.attackCooldown <= 0 && Math.random() < 0.038) {
@@ -613,7 +627,11 @@ setInterval(() => {
       const proj = room.projectiles[i];
       proj.x += proj.vx;
 
-      if (proj.x < -50 || proj.x > STAGE_WIDTH + 50) {
+      if (proj.groundAligned) {
+        proj.y = GROUND_Y - proj.height;
+      }
+
+      if (proj.x < -100 || proj.x > STAGE_WIDTH + 100) {
         room.projectiles.splice(i, 1);
         continue;
       }
@@ -633,8 +651,9 @@ setInterval(() => {
           proj.y + proj.height > db.y
         ) {
           target.hp -= proj.damage;
-          if (attacker && !attacker.isKilled) {
+          if (attacker && !attacker.isKilled && attacker.specialGauge < 100) {
             attacker.specialGauge = Math.min(100, attacker.specialGauge + proj.damage * 2.5);
+            if (attacker.specialGauge >= 100) attacker.specialReady = true;
           }
 
           const isArmored = (targetChar.type === 'debugon' && target.attacking) || target.senobicTimer > 0;
@@ -743,18 +762,12 @@ setInterval(() => {
       p.x += p.vx;
       p.y += p.vy;
 
-      let wasGrounded = p.isGrounded;
       p.isGrounded = false;
       const curH = char.height * (p.senobicTimer > 0 ? 2 : 1);
 
       if (p.y + curH >= GROUND_Y) {
         p.y = GROUND_Y - curH;
         p.vy = 0;
-        if (!wasGrounded && p.debugonShockwaveReady && char.type === 'debugon') {
-          p.debugonShockwaveReady = false;
-          room.projectiles.push({ id: Date.now() + Math.random(), ownerId: p.id, type: 'shockwave', x: p.x + curH / 2, y: GROUND_Y - 35, vx: 12, width: 35, height: 35, damage: Math.round(char.atk * 2.0) });
-          room.projectiles.push({ id: Date.now() + Math.random(), ownerId: p.id, type: 'shockwave', x: p.x + curH / 2, y: GROUND_Y - 35, vx: -12, width: 35, height: 35, damage: Math.round(char.atk * 2.0) });
-        }
         p.isGrounded = true;
         p.jumpCount = 0;
       }
@@ -770,11 +783,6 @@ setInterval(() => {
           ) {
             p.y = plat.y - curH;
             p.vy = 0;
-            if (!wasGrounded && p.debugonShockwaveReady && char.type === 'debugon') {
-              p.debugonShockwaveReady = false;
-              room.projectiles.push({ id: Date.now() + Math.random(), ownerId: p.id, type: 'shockwave', x: p.x + curW / 2, y: plat.y - 35, vx: 12, width: 35, height: 35, damage: Math.round(char.atk * 2.0) });
-              room.projectiles.push({ id: Date.now() + Math.random(), ownerId: p.id, type: 'shockwave', x: p.x + curW / 2, y: plat.y - 35, vx: -12, width: 35, height: 35, damage: Math.round(char.atk * 2.0) });
-            }
             p.isGrounded = true;
             p.jumpCount = 0;
           }
@@ -806,7 +814,10 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
-          attacker.specialGauge = Math.min(100, attacker.specialGauge + ab.damage * 2.5);
+          if (attacker.specialGauge < 100) {
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + ab.damage * 2.5);
+            if (attacker.specialGauge >= 100) attacker.specialReady = true;
+          }
 
           const isArmored = (defenderChar.type === 'debugon' && defender.attacking) || defender.senobicTimer > 0;
 
