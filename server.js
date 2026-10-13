@@ -11,6 +11,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+const GAME_VERSION = "v2.2.0";
 
 app.use(express.static(__dirname));
 
@@ -23,9 +24,8 @@ app.get('/', (req, res) => {
   }
 });
 
-// 厳選された5キャラのデータ定義
 const CHARACTERS = {
-  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',   cd: 12 },
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, 1, data.playerName || 'Player 1');
 
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
@@ -96,7 +96,7 @@ io.on('connection', (socket) => {
     room.players[socket.id] = createPlayerData(socket.id, assignedNum, data.playerName || `Player ${assignedNum}`);
 
     socket.join(code);
-    socket.emit('roomJoined', { code: code, playerNum: assignedNum, characters: CHARACTERS, stages: STAGES });
+    socket.emit('roomJoined', { code: code, playerNum: assignedNum, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code: code, selectedStage: room.selectedStage });
   });
 
@@ -120,10 +120,7 @@ io.on('connection', (socket) => {
       characterKey: randomCpuChar,
       ready: true,
       isCpu: true,
-      x: 850,
-      y: 400,
-      vx: 0,
-      vy: 0,
+      x: 850, y: 400, vx: 0, vy: 0,
       facing: 'left',
       hp: CHARACTERS[randomCpuChar].hp,
       maxHp: CHARACTERS[randomCpuChar].hp,
@@ -139,14 +136,16 @@ io.on('connection', (socket) => {
       stamp: null,
       isKilled: false,
       killTimer: 0,
-      buffAtkTimer: 0,
-      buffSpeedTimer: 0,
-      senobicTimer: 0
+      specialGauge: 0,
+      specialActiveTimer: 0,
+      specialCharges: 3,
+      senobicTimer: 0,
+      oneHitKill: false
     };
 
     room.players[socket.id].ready = true;
     socket.join(code);
-    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES });
+    socket.emit('roomCreated', { code: code, playerNum: 1, characters: CHARACTERS, stages: STAGES, version: GAME_VERSION });
     startMatch(room);
   });
 
@@ -220,6 +219,91 @@ io.on('connection', (socket) => {
     }
   });
 
+  // スペースキー押下時（必殺技発動）
+  socket.on('triggerSpecial', () => {
+    const room = getRoomBySocket(socket);
+    if (!room || room.gameState !== 'PLAYING') return;
+
+    const p = room.players[socket.id];
+    if (!p || p.isKilled || p.specialGauge < 100) return;
+
+    const char = CHARACTERS[p.characterKey];
+
+    if (char.type === 'futsuo') {
+      // フツオ：10秒間(600フレーム)攻撃範囲2倍 & ダメージ1.5倍
+      p.specialActiveTimer = 600;
+      p.specialGauge = 0;
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
+
+    } else if (char.type === 'ninja') {
+      // ニンジャ：3回限定、巨大手裏剣（ダメージ2倍）
+      if (p.specialCharges > 0) {
+        p.specialCharges--;
+        p.specialGauge = 0;
+        const isRight = p.facing === 'right';
+        room.projectiles.push({
+          id: Date.now() + Math.random(),
+          ownerId: p.id,
+          type: 'ninja_giant',
+          x: isRight ? p.x + char.width : p.x - 50,
+          y: p.y + char.height * 0.3,
+          vx: isRight ? 20 : -20,
+          width: 48,
+          height: 40,
+          damage: Math.round(char.atk * 2.2)
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
+      }
+
+    } else if (char.type === 'debugon') {
+      // デブゴン：3回限定、着地時に波動を出すフラグを立てる（あるいはストック）
+      if (p.specialCharges > 0) {
+        p.specialCharges--;
+        p.specialGauge = 0;
+        p.debugonShockwaveReady = true;
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon' });
+      }
+
+    } else if (char.type === 'chibikoro') {
+      // チビコロ：3回限定、超強力な範囲爆風アタック
+      if (p.specialCharges > 0) {
+        p.specialCharges--;
+        p.specialGauge = 0;
+        p.attackBox = {
+          x: p.x - 80,
+          y: p.y - 40,
+          width: char.width + 160,
+          height: char.height + 80,
+          damage: 45,
+          type: 'special_bomb'
+        };
+        setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 200);
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro' });
+      }
+
+    } else if (char.type === 'wizard') {
+      // ウィザード：3回限定、巨大貫通魔法弾
+      if (p.specialCharges > 0) {
+        p.specialCharges--;
+        p.specialGauge = 0;
+        const isRight = p.facing === 'right';
+        room.projectiles.push({
+          id: Date.now() + Math.random(),
+          ownerId: p.id,
+          type: 'wizard_giant',
+          x: isRight ? p.x + char.width : p.x - 60,
+          y: p.y + char.height * 0.3,
+          vx: isRight ? 14 : -14,
+          width: 55,
+          height: 55,
+          damage: Math.round(char.atk * 2.5),
+          pierce: true
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard' });
+      }
+    }
+  });
+
   socket.on('playerInput', (input) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -258,8 +342,18 @@ io.on('connection', (socket) => {
 
       const isPunch = input.attackType === 'punch';
       let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
-      if (p.senobicTimer > 0) atkMult = 1.8;
+      if (p.specialActiveTimer > 0 && char.type === 'futsuo') atkMult *= 1.5;
+
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
+
+      if (p.senobicTimer > 0) {
+        if (p.oneHitKill) {
+          dmg = 9999;
+          p.oneHitKill = false;
+        } else {
+          dmg = Math.round(dmg * 1.8);
+        }
+      }
 
       if (char.type === 'ninja' || char.type === 'wizard') {
         const isRight = p.facing === 'right';
@@ -280,6 +374,7 @@ io.on('connection', (socket) => {
         });
       } else {
         let reach = isPunch ? 55 : 85;
+        if (p.specialActiveTimer > 0 && char.type === 'futsuo') reach *= 2;
 
         const isGiant = p.senobicTimer > 0;
         let attackHeight = (isPunch ? char.height * 0.4 : char.height * 0.3) * (isGiant ? 2.2 : 1);
@@ -287,7 +382,8 @@ io.on('connection', (socket) => {
 
         if (char.type === 'chibikoro' && !p.isGrounded) {
           p.vy = 22;
-          dmg = Math.round(18 * atkMult);
+          dmg = p.oneHitKill ? 9999 : Math.round(18 * atkMult);
+          if (p.oneHitKill) p.oneHitKill = false;
           reach = 100;
         }
 
@@ -357,8 +453,7 @@ function startMatch(room) {
     pl.lives = 3;
     pl.x = pl.playerNum === 1 ? 250 : 1200 - 250 - char.width;
     pl.y = 520 - char.height;
-    pl.vx = 0;
-    pl.vy = 0;
+    pl.vx = 0; pl.vy = 0;
     pl.facing = pl.playerNum === 1 ? 'right' : 'left';
     pl.jumpCount = 0;
     pl.stamp = null;
@@ -367,7 +462,12 @@ function startMatch(room) {
     pl.buffAtkTimer = 0;
     pl.buffSpeedTimer = 0;
     pl.senobicTimer = 0;
+    pl.oneHitKill = false;
     pl.attackCooldown = 0;
+    pl.specialGauge = 0;
+    pl.specialActiveTimer = 0;
+    pl.specialCharges = 3;
+    pl.debugonShockwaveReady = false;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
@@ -382,11 +482,9 @@ function createPlayerData(socketId, playerNum, name) {
     isCpu: false,
     x: playerNum === 1 ? 250 : 850,
     y: 400,
-    vx: 0,
-    vy: 0,
+    vx: 0, vy: 0,
     facing: playerNum === 1 ? 'right' : 'left',
-    hp: 100,
-    maxHp: 100,
+    hp: 100, maxHp: 100,
     lives: 3,
     isGrounded: false,
     attacking: false,
@@ -401,7 +499,12 @@ function createPlayerData(socketId, playerNum, name) {
     killTimer: 0,
     buffAtkTimer: 0,
     buffSpeedTimer: 0,
-    senobicTimer: 0
+    senobicTimer: 0,
+    oneHitKill: false,
+    specialGauge: 0,
+    specialActiveTimer: 0,
+    specialCharges: 3,
+    debugonShockwaveReady: false
   };
 }
 
@@ -417,8 +520,7 @@ function respawnPlayer(p) {
   p.hp = p.maxHp;
   p.x = p.playerNum === 1 ? 250 : 1200 - 250 - char.width;
   p.y = 100;
-  p.vx = 0;
-  p.vy = 0;
+  p.vx = 0; p.vy = 0;
   p.isKilled = false;
   p.killTimer = 0;
   p.invincibleFrames = 120;
@@ -426,7 +528,6 @@ function respawnPlayer(p) {
 
 function updateCpuAI(cpu, target) {
   if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled) return;
-
   const cpuChar = CHARACTERS[cpu.characterKey];
   const distance = (target.x + CHARACTERS[target.characterKey].width / 2) - (cpu.x + cpuChar.width / 2);
 
@@ -442,6 +543,13 @@ function updateCpuAI(cpu, target) {
   if (Math.random() < 0.008 && cpu.isGrounded) {
     cpu.vy = -cpuChar.jumpPower;
     cpu.isGrounded = false;
+  }
+
+  // ゲージが溜まったらCPUも必殺技を使用
+  if (cpu.specialGauge >= 100) {
+    cpu.specialGauge = 0;
+    if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 600;
+    else if (cpu.specialCharges > 0) cpu.specialCharges--;
   }
 
   if (Math.abs(distance) <= 300 && !cpu.attacking && cpu.attackCooldown <= 0 && Math.random() < 0.038) {
@@ -464,8 +572,7 @@ function updateCpuAI(cpu, target) {
         x: isRight ? cpu.x + cpuChar.width : cpu.x - 30,
         y: cpu.y + cpuChar.height * 0.35,
         vx: isRight ? projSpeed : -projSpeed,
-        width: 26,
-        height: 22,
+        width: 26, height: 22,
         damage: dmg
       });
     } else {
@@ -476,38 +583,47 @@ function updateCpuAI(cpu, target) {
       cpu.attackBox = {
         x: cpu.facing === 'right' ? cpu.x + cpuChar.width : cpu.x - reach,
         y: cpu.y + attackYOffset,
-        width: reach,
-        height: attackHeight,
+        width: reach, height: attackHeight,
         damage: dmg,
         type: cpu.attackType
       };
 
       setTimeout(() => { cpu.attackBox = null; }, 120);
     }
-
     setTimeout(() => { cpu.attacking = false; }, 200);
   }
 }
 
 function spawnRandomItem(room) {
-  if (room.items.length >= 1) return;
-  if (room.spawnedItemCount >= 4) return;
+  if (room.items.length >= 1 || room.spawnedItemCount >= 4) return;
+  const playerIds = Object.keys(room.players).filter(id => id !== 'cpu_player' || room.isCpuMode);
+  let p1 = room.players[playerIds[0]];
+  let p2 = room.players[playerIds[1]];
+  let p1Lives = p1 ? p1.lives : 3;
+  let p2Lives = p2 ? p2.lives : 3;
+
+  let senobicChance = 0.05;
+  if (p1Lives === 1 && p2Lives === 1) senobicChance = 0.30;
+  else if ((p1Lives === 2 && p2Lives === 1) || (p1Lives === 1 && p2Lives === 2)) senobicChance = 0.20;
+  else if (p1Lives === 1 || p2Lives === 1) senobicChance = 0.10;
 
   const rand = Math.random();
   let type = 'heal';
-  if (rand < 0.20) type = 'senobic';
-  else if (rand < 0.50) type = 'heal';
-  else if (rand < 0.75) type = 'atk';
-  else type = 'speed';
+  if (rand < senobicChance) {
+    type = 'senobic';
+  } else {
+    const subRand = Math.random();
+    if (subRand < 0.4) type = 'heal';
+    else if (subRand < 0.75) type = 'atk';
+    else type = 'speed';
+  }
 
   room.items.push({
     id: Date.now() + Math.random(),
     type: type,
     x: 150 + Math.random() * 900,
-    y: -40,
-    vy: 2.5,
-    width: 45,
-    height: 45,
+    y: -40, vy: 2.5,
+    width: 55, height: 55,
     isGrounded: false
   });
   room.spawnedItemCount++;
@@ -535,6 +651,7 @@ setInterval(() => {
       updateCpuAI(p2, p1);
     }
 
+    // 弾薬・投擲物の更新
     for (let i = room.projectiles.length - 1; i >= 0; i--) {
       const proj = room.projectiles[i];
       proj.x += proj.vx;
@@ -545,6 +662,8 @@ setInterval(() => {
       }
 
       const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
+      const attacker = playersArr.find(p => p && p.id === proj.ownerId);
+
       if (target && target.invincibleFrames === 0) {
         const targetChar = CHARACTERS[target.characterKey];
         const defScale = target.senobicTimer > 0 ? 2 : 1;
@@ -557,6 +676,12 @@ setInterval(() => {
           proj.y + proj.height > db.y
         ) {
           target.hp -= proj.damage;
+          
+          // ダメージを与えたのでアタッカーのゲージ増加（例：ダメージ値×2.5）
+          if (attacker && !attacker.isKilled) {
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + proj.damage * 2.5);
+          }
+
           const isArmored = (targetChar.type === 'debugon' && target.attacking) || target.senobicTimer > 0;
 
           if (target.hp <= 0) {
@@ -574,11 +699,14 @@ setInterval(() => {
           }
 
           target.invincibleFrames = 24;
-          room.projectiles.splice(i, 1);
+          if (!proj.pierce) {
+            room.projectiles.splice(i, 1);
+          }
         }
       }
     }
 
+    // アイテム判定
     for (let i = room.items.length - 1; i >= 0; i--) {
       const item = room.items[i];
       if (!item.isGrounded) {
@@ -603,8 +731,9 @@ setInterval(() => {
           p.y + curH > item.y
         ) {
           if (item.type === 'senobic') {
-            p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
+            p.hp = p.maxHp;
             p.senobicTimer = 480;
+            p.oneHitKill = true;
           } else if (item.type === 'heal') {
             p.hp = Math.min(p.maxHp, p.hp + 30);
           } else if (item.type === 'atk') {
@@ -628,6 +757,8 @@ setInterval(() => {
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
       if (p.senobicTimer > 0) p.senobicTimer--;
+      if (p.senobicTimer <= 0) p.oneHitKill = false;
+      if (p.specialActiveTimer > 0) p.specialActiveTimer--;
 
       if (p.isKilled) {
         p.x += p.vx;
@@ -662,12 +793,35 @@ setInterval(() => {
       p.x += p.vx;
       p.y += p.vy;
 
+      let wasGrounded = p.isGrounded;
       p.isGrounded = false;
       const curH = char.height * (p.senobicTimer > 0 ? 2 : 1);
 
       if (p.y + curH >= GROUND_Y) {
         p.y = GROUND_Y - curH;
         p.vy = 0;
+        if (!wasGrounded && p.debugonShockwaveReady && char.type === 'debugon') {
+          // デブゴンの着地波動発生！
+          p.debugonShockwaveReady = false;
+          room.projectiles.push({
+            id: Date.now() + Math.random(),
+            ownerId: p.id,
+            type: 'shockwave',
+            x: p.x + curH / 2,
+            y: GROUND_Y - 35,
+            vx: 12, width: 35, height: 35,
+            damage: Math.round(char.atk * 2)
+          });
+          room.projectiles.push({
+            id: Date.now() + Math.random(),
+            ownerId: p.id,
+            type: 'shockwave',
+            x: p.x + curH / 2,
+            y: GROUND_Y - 35,
+            vx: -12, width: 35, height: 35,
+            damage: Math.round(char.atk * 2)
+          });
+        }
         p.isGrounded = true;
         p.jumpCount = 0;
       }
@@ -683,6 +837,27 @@ setInterval(() => {
           ) {
             p.y = plat.y - curH;
             p.vy = 0;
+            if (!wasGrounded && p.debugonShockwaveReady && char.type === 'debugon') {
+              p.debugonShockwaveReady = false;
+              room.projectiles.push({
+                id: Date.now() + Math.random(),
+                ownerId: p.id,
+                type: 'shockwave',
+                x: p.x + curW / 2,
+                y: plat.y - 35,
+                vx: 12, width: 35, height: 35,
+                damage: Math.round(char.atk * 2)
+              });
+              room.projectiles.push({
+                id: Date.now() + Math.random(),
+                ownerId: p.id,
+                type: 'shockwave',
+                x: p.x + curW / 2,
+                y: plat.y - 35,
+                vx: -12, width: 35, height: 35,
+                damage: Math.round(char.atk * 2)
+              });
+            }
             p.isGrounded = true;
             p.jumpCount = 0;
           }
@@ -695,6 +870,7 @@ setInterval(() => {
       }
     });
 
+    // 通常攻撃の判定
     playersArr.forEach((attacker) => {
       if (!attacker || attacker.isKilled) return;
       const defender = playersArr.find(p => p && p.id !== attacker.id);
@@ -714,6 +890,10 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
+
+          // 通常攻撃ヒット時もゲージ増加（ダメージ値×2.5）
+          attacker.specialGauge = Math.min(100, attacker.specialGauge + ab.damage * 2.5);
+
           const isArmored = (defenderChar.type === 'debugon' && defender.attacking) || defender.senobicTimer > 0;
 
           if (defender.hp <= 0) {
@@ -741,6 +921,5 @@ setInterval(() => {
 }, 1000 / 60);
 
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} (${GAME_VERSION})`);
 });
-
