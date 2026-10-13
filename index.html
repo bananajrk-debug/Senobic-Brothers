@@ -450,11 +450,11 @@
           osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'special') {
           osc.type = 'square';
-          osc.frequency.setValueAtTime(200, now);
-          osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-          gain.gain.setValueAtTime(0.3, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
-          osc.start(now); osc.stop(now + 0.3);
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(900, now + 0.35);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now); osc.stop(now + 0.35);
         } else if (type === 'item') {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(300, now);
@@ -572,7 +572,7 @@
 
     socket.on('specialTriggered', (data) => {
       playSE('special');
-      visualEffects.push({ type: 'SPECIAL_FLASH', playerId: data.playerId, timer: 60 });
+      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: data.type === 'debugon_ready' ? '⚡必殺技スタンバイ！' : (data.type === 'debugon_fire' ? '💥超衝撃波発射！' : '🔥必殺技発動！'), timer: 70 });
     });
 
     socket.on('koEffect', (data) => {
@@ -1010,11 +1010,11 @@
           ctx.fillRect(-12, -3, 24, 6);
           ctx.fillRect(-3, -12, 6, 24);
         } else if (proj.type === 'ninja_giant') {
-          ctx.translate(proj.x + 24, proj.y + 20);
-          ctx.rotate(Date.now() * 0.03);
+          ctx.translate(proj.x + 25, proj.y + 20);
+          ctx.rotate(Date.now() * 0.04);
           ctx.fillStyle = '#f1c40f';
-          ctx.fillRect(-22, -6, 44, 12);
-          ctx.fillRect(-6, -22, 12, 44);
+          ctx.fillRect(-24, -6, 48, 12);
+          ctx.fillRect(-6, -24, 12, 48);
         } else if (proj.type === 'wizard') {
           ctx.fillStyle = '#9b59b6';
           ctx.beginPath();
@@ -1025,10 +1025,15 @@
           ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
           ctx.fill();
         } else if (proj.type === 'wizard_giant') {
-          ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(proj.x + 27, proj.y + 27, 26, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(proj.x + 27, proj.y + 27, 12, 0, Math.PI * 2); ctx.fill();
-        } else if (proj.type === 'shockwave') {
-          ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 18, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(proj.x + 32, proj.y + 32, 30, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(proj.x + 32, proj.y + 32, 14, 0, Math.PI * 2); ctx.fill();
+        } else if (proj.type === 'debugon_wave') {
+          // デブゴンの背の高さに沿わせた強力な衝撃波バー
+          ctx.fillStyle = 'rgba(211, 84, 0, 0.9)';
+          ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+          ctx.strokeStyle = '#f1c40f';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(proj.x, proj.y, proj.width, proj.height);
         }
         ctx.restore();
       });
@@ -1048,6 +1053,13 @@
         ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.55, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // デブゴンの必殺技スタンバイ中のオーラ表現
+        if (p.debugonSpecialArmed) {
+          ctx.strokeStyle = '#f1c40f';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(p.x - 4, p.y - 4, curW + 8, curH + 8);
+        }
+
         drawRealisticHumanoid(ctx, p, char);
 
         if (p.attackBox) {
@@ -1060,6 +1072,7 @@
         ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
 
         let statusStr = '';
+        if (p.debugonSpecialArmed) statusStr += '⚡[JUMPで衝撃波] ';
         if (p.specialActiveTimer > 0) statusStr += '🔥SPECIAL! ';
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
@@ -1099,8 +1112,13 @@
           ctx.shadowColor = '#e74c3c';
           ctx.shadowBlur = 25;
           ctx.fillText('K. O. ! !', 600, 280);
-        } else if (fx.type === 'SPECIAL_FLASH') {
-          ctx.fillStyle = 'rgba(241, 196, 15, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (fx.type === 'SPECIAL_POP') {
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = '900 32px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.shadowColor = '#e74c3c';
+          ctx.shadowBlur = 12;
+          ctx.fillText(fx.text, 600, 180);
         }
         ctx.restore();
         fx.timer--;
@@ -1519,16 +1537,23 @@
         ctx.fillStyle = '#f1c40f'; ctx.fillRect(20, 48, Math.max(0, ((p1.specialGauge || 0) / 100) * 400), 12);
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(20, 48, 400, 12);
 
+        // ゲージがMAX時の「MAX!」ピカッと光るエフェクト文字
+        if (p1.specialReady) {
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('⚡ SPECIAL READY! [Space] ⚡', 230, 60);
+        }
+
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`${p1.name} (${char1.name}) ゲージMAXで[Space]`, 20, 15);
+        ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
 
         let livesStr = '残機: ';
         for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
         ctx.fillStyle = '#e74c3c';
         ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(livesStr, 20, 78);
+        ctx.fillText(livesStr, 20, 82);
       }
 
       if (p2 && characters[p2.characterKey]) {
@@ -1539,10 +1564,16 @@
         ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
         ctx.fillRect(1200 - 20 - hp2Width, 20, hp2Width, 24);
 
-        // 黄色い必殺技ゲージ
         ctx.fillStyle = '#333'; ctx.fillRect(1200 - 420, 48, 400, 12);
         ctx.fillStyle = '#f1c40f'; ctx.fillRect(1200 - 20 - Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 48, Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 12);
         ctx.strokeRect(1200 - 420, 48, 400, 12);
+
+        if (p2.specialReady) {
+          ctx.fillStyle = '#f1c40f';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText('⚡ SPECIAL READY! ⚡', 1200 - 430, 60);
+        }
 
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
@@ -1554,7 +1585,7 @@
         ctx.fillStyle = '#e74c3c';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(livesStr, 1200 - 20, 78);
+        ctx.fillText(livesStr, 1200 - 20, 82);
       }
     }
   </script>
