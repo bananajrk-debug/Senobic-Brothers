@@ -64,6 +64,13 @@ function createRoom(code) {
   };
 }
 
+function getRoomBySocket(socket) {
+  for (let code in rooms) {
+    if (rooms[code].players[socket.id]) return rooms[code];
+  }
+  return null;
+}
+
 io.on('connection', (socket) => {
   socket.on('createRoom', (data) => {
     const code = generateRoomCode();
@@ -457,13 +464,6 @@ function createPlayerData(socketId, playerNum, name) {
   };
 }
 
-function getRoomBySocket(socket) {
-  for (let code in rooms) {
-    if (rooms[code].players[socket.id]) return rooms[code];
-  }
-  return null;
-}
-
 function respawnPlayer(p) {
   const char = CHARACTERS[p.characterKey];
   p.hp = p.maxHp;
@@ -604,7 +604,7 @@ setInterval(() => {
       proj.x += proj.vx;
 
       if (proj.groundAligned) {
-        proj.y = GROUND_Y - proj.height;
+        proj.y = GROUND_Y - (proj.height || 95);
       }
 
       if (proj.x < -100 || proj.x > STAGE_WIDTH + 100) {
@@ -622,9 +622,9 @@ setInterval(() => {
 
         if (
           proj.x < db.x + db.width &&
-          proj.x + proj.width > db.x &&
+          proj.x + (proj.width || 40) > db.x &&
           proj.y < db.y + db.height &&
-          proj.y + proj.height > db.y
+          proj.y + (proj.height || 95) > db.y
         ) {
           target.hp -= proj.damage;
           if (attacker && !attacker.isKilled && attacker.specialGauge < 100) {
@@ -772,12 +772,12 @@ setInterval(() => {
         const waveWidth = 40;
         room.projectiles.push({
           id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-          x: p.x + curW, y: p.y + curH - waveHeight,
+          x: p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)), y: GROUND_Y - waveHeight,
           vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
         });
         room.projectiles.push({
           id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-          x: p.x - waveWidth, y: p.y + curH - waveHeight,
+          x: p.x - waveWidth, y: GROUND_Y - waveHeight,
           vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
         });
         io.to(code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
