@@ -1032,10 +1032,10 @@
           ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(proj.x + 32, proj.y + 32, 14, 0, Math.PI * 2); ctx.fill();
         } else if (proj.type === 'debugon_wave') {
           ctx.fillStyle = 'rgba(211, 84, 0, 0.9)';
-          ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
+          ctx.fillRect(proj.x, proj.y, proj.width || 40, proj.height || 95);
           ctx.strokeStyle = '#f1c40f';
           ctx.lineWidth = 3;
-          ctx.strokeRect(proj.x, proj.y, proj.width, proj.height);
+          ctx.strokeRect(proj.x, proj.y, proj.width || 40, proj.height || 95);
         }
         ctx.restore();
       });
