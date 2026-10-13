@@ -365,7 +365,7 @@
   </div>
 
   <div id="controls-guide">
-    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ <span style="color: #f1c40f;">[K] パンチ</span> ｜ <span style="color: #e74c3c;">[O] キック</span> ｜ 残機: 3つ
+    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ [K] パンチ ｜ [O] キック ｜ <span style="color: #f1c40f;">[Space] 必殺技</span>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -395,7 +395,7 @@
 
     let characters = {
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
-      debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 13, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
+      debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 17, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー' },
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
       ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)' },
       wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
@@ -448,6 +448,13 @@
           gain.gain.setValueAtTime(0.3, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
           osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'special') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(200, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
         } else if (type === 'item') {
           osc.type = 'sine';
           osc.frequency.setValueAtTime(300, now);
@@ -563,6 +570,11 @@
       activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 };
     });
 
+    socket.on('specialTriggered', (data) => {
+      playSE('special');
+      visualEffects.push({ type: 'SPECIAL_FLASH', playerId: data.playerId, timer: 60 });
+    });
+
     socket.on('koEffect', (data) => {
       playSE('ko');
       visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 180 });
@@ -643,6 +655,7 @@
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
+        if (e.code === 'Space') { socket.emit('triggerSpecial'); }
 
         if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
           if (now - lastAttackTime >= 200) {
@@ -851,7 +864,7 @@
           <div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
           <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
-            HP:char.hpATK:{char.atk}<br>SPD:${char.speed}
+            HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
             <div class="ability-box">${char.ability}</div>
           </div>
         `;
@@ -933,7 +946,7 @@
             ctx.fillStyle = pl.playerNum === myPlayerNum ? '#f1c40f' : '#fff';
             ctx.font = 'bold 13px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`pl.name({pl.playerNum}P)`, pos.x, pos.y + 22);
+            ctx.fillText(`${pl.name} (${pl.playerNum}P)`, pos.x, pos.y + 22);
             ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
             ctx.font = '11px sans-serif';
             ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 38);
@@ -996,6 +1009,12 @@
           ctx.fillStyle = '#bdc3c7';
           ctx.fillRect(-12, -3, 24, 6);
           ctx.fillRect(-3, -12, 6, 24);
+        } else if (proj.type === 'ninja_giant') {
+          ctx.translate(proj.x + 24, proj.y + 20);
+          ctx.rotate(Date.now() * 0.03);
+          ctx.fillStyle = '#f1c40f';
+          ctx.fillRect(-22, -6, 44, 12);
+          ctx.fillRect(-6, -22, 12, 44);
         } else if (proj.type === 'wizard') {
           ctx.fillStyle = '#9b59b6';
           ctx.beginPath();
@@ -1005,6 +1024,11 @@
           ctx.beginPath();
           ctx.arc(proj.x + 13, proj.y + 11, 7, 0, Math.PI * 2);
           ctx.fill();
+        } else if (proj.type === 'wizard_giant') {
+          ctx.fillStyle = '#a855f7'; ctx.beginPath(); ctx.arc(proj.x + 27, proj.y + 27, 26, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(proj.x + 27, proj.y + 27, 12, 0, Math.PI * 2); ctx.fill();
+        } else if (proj.type === 'shockwave') {
+          ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(proj.x, proj.y, 18, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
       });
@@ -1036,6 +1060,7 @@
         ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
 
         let statusStr = '';
+        if (p.specialActiveTimer > 0) statusStr += '🔥SPECIAL! ';
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
         if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
@@ -1074,6 +1099,8 @@
           ctx.shadowColor = '#e74c3c';
           ctx.shadowBlur = 25;
           ctx.fillText('K. O. ! !', 600, 280);
+        } else if (fx.type === 'SPECIAL_FLASH') {
+          ctx.fillStyle = 'rgba(241, 196, 15, 0.4)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         ctx.restore();
         fx.timer--;
@@ -1083,16 +1110,14 @@
       drawHUD();
     }
 
-    // ★★★ ステージ背景・グラフィック・ギミックの大幅強化 ★★★
     function drawStageBackground(stageId) {
       const now = Date.now();
 
-      if (stageId === 1) { // 平原
+      if (stageId === 1) {
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#0f2027'); grad.addColorStop(0.5, '#203a43'); grad.addColorStop(1, '#2c5364');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 遠景の山脈
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
         ctx.moveTo(0, 520); ctx.lineTo(200, 200); ctx.lineTo(450, 520); ctx.fill();
@@ -1101,37 +1126,32 @@
         ctx.beginPath();
         ctx.moveTo(700, 520); ctx.lineTo(1000, 220); ctx.lineTo(1200, 520); ctx.fill();
 
-        // 豊かな草地エリア
         ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 8);
 
-      } else if (stageId === 2) { // 浮島
+      } else if (stageId === 2) {
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#0b0c10'); grad.addColorStop(0.5, '#1f2833'); grad.addColorStop(1, '#0b0c10');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 紫のオーロラ雲
         ctx.fillStyle = 'rgba(147, 51, 234, 0.15)';
         ctx.beginPath();
         ctx.ellipse(600, 120, 500, 80, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 巨大な月
         ctx.fillStyle = '#fef08a';
         ctx.shadowColor = '#fde047'; ctx.shadowBlur = 40;
         ctx.beginPath(); ctx.arc(1000, 110, 60, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 底なしの穴（ステージ下部の危険ゾーン表現）
         ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, canvas.width, 2);
 
-      } else if (stageId === 3) { // スリル
+      } else if (stageId === 3) {
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#110000'); grad.addColorStop(0.6, '#450a0a'); grad.addColorStop(1, '#7f1d1d');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // マグマの泡・アニメーション効果
         ctx.fillStyle = '#f97316';
         for (let i = 0; i < 5; i++) {
           const bubbleX = (now / 10 + i * 240) % 1200;
@@ -1139,36 +1159,29 @@
           ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 12, 0, Math.PI * 2); ctx.fill();
         }
 
-        // マグマ地獄の床
         ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, canvas.width, 6);
 
-      } else if (stageId === 4) { // 神殿（クオリティ大幅アップ！）
+      } else if (stageId === 4) {
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#020617'); grad.addColorStop(0.5, '#0f172a'); grad.addColorStop(1, '#1e1b4b');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // ★ 背景の古代ギリシャ風巨大神殿・ギリシャ宮殿構造
         ctx.fillStyle = '#1e293b';
-        // 神殿の屋根（三角ペディメント）
         ctx.beginPath();
         ctx.moveTo(350, 180); ctx.lineTo(600, 70); ctx.lineTo(850, 180); ctx.fill();
-        ctx.fillRect(350, 180, 500, 20); // 梁
+        ctx.fillRect(350, 180, 500, 20);
 
-        // 巨大な古代の石柱（複数）
         for (let x = 380; x <= 820; x += 80) {
           ctx.fillRect(x, 200, 40, 320);
-          // 柱の模様（縦溝）
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(x + 12, 200, 16, 320);
           ctx.fillStyle = '#1e293b';
         }
 
-        // 左右の古代トーチと揺らめく聖なる炎（ギミック演出）
         [120, 1080].forEach((tx, idx) => {
           ctx.fillStyle = '#475569';
           ctx.fillRect(tx - 10, 280, 20, 140); ctx.fillRect(tx - 25, 260, 50, 20);
-          // 炎のアニメーション
           const flameOffset = Math.sin(now / 80 + idx) * 4;
           const flameGrad = ctx.createRadialGradient(tx, 240, 2, tx, 240, 25);
           flameGrad.addColorStop(0, '#fef08a'); flameGrad.addColorStop(0.5, '#f97316'); flameGrad.addColorStop(1, 'transparent');
@@ -1176,14 +1189,12 @@
           ctx.beginPath(); ctx.arc(tx + flameOffset, 240, 28, 0, Math.PI * 2); ctx.fill();
         });
 
-        // 黄金の神聖な床
         ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, canvas.width, 6);
 
-      } else if (stageId === 5) { // 宇宙（銀河・流星エフェクト追加）
+      } else if (stageId === 5) {
         ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 土星風の惑星
         ctx.save();
         ctx.translate(920, 160);
         ctx.rotate(-0.3);
@@ -1193,7 +1204,6 @@
         ctx.beginPath(); ctx.ellipse(0, 0, 140, 28, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
-        // 流星・星屑アニメーション（ギミック演出）
         for (let i = 0; i < 20; i++) {
           const starX = (i * 97 + now / 15) % 1200;
           const starY = (i * 53 + Math.sin(i) * 200) % 500;
@@ -1201,12 +1211,10 @@
           ctx.fillRect(starX, starY, 2, 2);
         }
 
-        // ネオンのハイテク宇宙床
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, canvas.width, 4);
       }
 
-      // プラットフォーム（足場）のスタイル・装飾設定
       const currentStageObj = stages[stageId];
       if (currentStageObj && currentStageObj.platforms) {
         currentStageObj.platforms.forEach(pt => {
@@ -1214,7 +1222,7 @@
           const pw = pt.width || pt.w;
           const ph = pt.height || pt.h;
 
-          if (pt.type === 'gold') { // 神殿ステージの黄金足場
+          if (pt.type === 'gold') {
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#eab308';
@@ -1222,8 +1230,7 @@
             ctx.strokeRect(pt.x, pt.y, pw, ph);
             ctx.fillStyle = '#fef08a';
             ctx.fillRect(pt.x + 4, pt.y + 2, pw - 8, 3);
-
-          } else if (pt.type === 'neon') { // 宇宙ステージのサイバー足場
+          } else if (pt.type === 'neon') {
             ctx.fillStyle = '#090d16';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#00f2fe';
@@ -1231,8 +1238,7 @@
             ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 10;
             ctx.strokeRect(pt.x, pt.y, pw, ph);
             ctx.shadowBlur = 0;
-
-          } else { // 通常足場
+          } else {
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#38bdf8';
@@ -1278,28 +1284,28 @@
       const isKicking = p.attacking && p.attackType === 'kick';
 
       switch (char.type) {
-        case 'futsuo': // ファイター
+        case 'futsuo':
           drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.38, '#2980b9', '#1a5276');
           drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1c2833', dir, isKicking);
           drawRealisticFace(targetCtx, cx, topY + h * 0.22, w * 0.35, h * 0.22, '#f5cba7', '#2c3e50', dir);
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#f5cba7', dir, isPunching);
           break;
 
-        case 'debugon': // ヘビー
+        case 'debugon':
           drawRealisticBody(targetCtx, cx, topY + h * 0.42, w * 0.8, h * 0.44, '#d35400', '#7e5109', true);
           drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.65, h * 0.28, '#2c3e50', dir, isKicking);
           drawRealisticFace(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.2, '#f5cba7', '#5d4037', dir, false, true);
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.8, '#f5cba7', dir, isPunching);
           break;
 
-        case 'chibikoro': // ダイバー
+        case 'chibikoro':
           drawRealisticBody(targetCtx, cx, topY + h * 0.4, w * 0.72, h * 0.42, '#c0392b', '#641e16');
           drawRealisticLegs(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#111', dir, isKicking);
           drawDiverHelmet(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, '#e74c3c', dir);
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.72, '#e74c3c', dir, isPunching);
           break;
 
-        case 'ninja': // シノビ
+        case 'ninja':
           drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#1b1b1b', '#000');
           drawNinjaScarf(targetCtx, cx, topY + h * 0.28, dir);
           drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#111', dir, isKicking);
@@ -1307,7 +1313,7 @@
           drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#333', dir, isPunching);
           break;
 
-        case 'wizard': // メイジ
+        case 'wizard':
           drawWizardRobeBody(targetCtx, cx, topY + h * 0.5, w * 0.62, h * 0.48);
           drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.45, h * 0.28, '#111', dir, isKicking);
           drawWizardHoodHead(targetCtx, cx, topY + h * 0.22, w * 0.36, h * 0.22, dir);
@@ -1491,7 +1497,7 @@
     function drawCustomAttackEffect(targetCtx, p, char) {
       targetCtx.save();
       const ab = p.attackBox;
-      targetCtx.fillStyle = ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)';
+      targetCtx.fillStyle = ab.type === 'special_bomb' ? 'rgba(231, 76, 60, 0.8)' : (ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)');
       targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
       targetCtx.restore();
     }
@@ -1508,16 +1514,21 @@
         ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
         ctx.fillRect(20, 20, hp1Width, 24);
 
+        // 黄色い必殺技ゲージ
+        ctx.fillStyle = '#333'; ctx.fillRect(20, 48, 400, 12);
+        ctx.fillStyle = '#f1c40f'; ctx.fillRect(20, 48, Math.max(0, ((p1.specialGauge || 0) / 100) * 400), 12);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(20, 48, 400, 12);
+
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`p1.name({char1.name})`, 20, 15);
+        ctx.fillText(`${p1.name} (${char1.name}) ゲージMAXで[Space]`, 20, 15);
 
         let livesStr = '残機: ';
         for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
         ctx.fillStyle = '#e74c3c';
         ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(livesStr, 20, 60);
+        ctx.fillText(livesStr, 20, 78);
       }
 
       if (p2 && characters[p2.characterKey]) {
@@ -1528,20 +1539,24 @@
         ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
         ctx.fillRect(1200 - 20 - hp2Width, 20, hp2Width, 24);
 
+        // 黄色い必殺技ゲージ
+        ctx.fillStyle = '#333'; ctx.fillRect(1200 - 420, 48, 400, 12);
+        ctx.fillStyle = '#f1c40f'; ctx.fillRect(1200 - 20 - Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 48, Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 12);
+        ctx.strokeRect(1200 - 420, 48, 400, 12);
+
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`p2.name({char2.name})`, 1200 - 20, 15);
+        ctx.fillText(`${p2.name} (${char2.name})`, 1200 - 20, 15);
 
         let livesStr = '残機: ';
         for (let l = 0; l < (p2.lives || 0); l++) livesStr += '❤️ ';
         ctx.fillStyle = '#e74c3c';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(livesStr, 1200 - 20, 60);
+        ctx.fillText(livesStr, 1200 - 20, 78);
       }
     }
   </script>
 </body>
 </html>
-
