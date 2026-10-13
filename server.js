@@ -11,7 +11,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const GAME_VERSION = "v2.3.0";
+const GAME_VERSION = "Ver 2.2.0";
 
 app.use(express.static(__dirname));
 
@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
       hp: CHARACTERS[randomCpuChar].hp, maxHp: CHARACTERS[randomCpuChar].hp, lives: 3,
       isGrounded: false, attacking: false, attackCooldown: 0, attackType: null, attackBox: null,
       stunFrames: 0, invincibleFrames: 0, jumpCount: 0, stamp: null, isKilled: false, killTimer: 0,
-      specialGauge: 0, specialActiveTimer: 0, specialCharges: 3, senobicTimer: 0, oneHitKill: false
+      specialGauge: 0, specialActiveTimer: 0, specialCharges: 3, senobicTimer: 0, oneHitKill: false, debugonShockwaveReady: false
     };
 
     room.players[socket.id].ready = true;
@@ -179,12 +179,10 @@ io.on('connection', (socket) => {
     const char = CHARACTERS[p.characterKey];
 
     if (char.type === 'futsuo') {
-      // フツオ：10秒間(600フレーム)攻撃範囲2倍 & ダメージ1.5倍
       p.specialActiveTimer = 600;
       p.specialGauge = 0;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'ninja') {
-      // 忍者：3回限定、巨大手裏剣（ダメージ2倍）
       if (p.specialCharges > 0) {
         p.specialCharges--;
         p.specialGauge = 0;
@@ -197,7 +195,6 @@ io.on('connection', (socket) => {
         io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
       }
     } else if (char.type === 'debugon') {
-      // デブゴン：3回限定、着地時に波動を出すフラグ
       if (p.specialCharges > 0) {
         p.specialCharges--;
         p.specialGauge = 0;
@@ -281,7 +278,6 @@ io.on('connection', (socket) => {
           p.vy = 22;
           dmg = p.oneHitKill ? 9999 : Math.round(18 * atkMult);
           if (p.oneHitKill) p.oneHitKill = false;
-          reach = 100;
         }
 
         p.attackBox = {
@@ -384,6 +380,36 @@ function updateCpuAI(cpu, target) {
   }
 }
 
+function spawnRandomItem(room) {
+  if (room.items.length >= 1 || room.spawnedItemCount >= 4) return;
+  const playerIds = Object.keys(room.players).filter(id => id !== 'cpu_player' || room.isCpuMode);
+  let p1 = room.players[playerIds[0]];
+  let p2 = room.players[playerIds[1]];
+  let p1Lives = p1 ? p1.lives : 3;
+  let p2Lives = p2 ? p2.lives : 3;
+
+  let senobicChance = 0.05;
+  if (p1Lives === 1 && p2Lives === 1) senobicChance = 0.30;
+  else if ((p1Lives === 2 && p2Lives === 1) || (p1Lives === 1 && p2Lives === 2)) senobicChance = 0.20;
+  else if (p1Lives === 1 || p2Lives === 1) senobicChance = 0.10;
+
+  const rand = Math.random();
+  let type = 'heal';
+  if (rand < senobicChance) { type = 'senobic'; }
+  else {
+    const subRand = Math.random();
+    if (subRand < 0.4) type = 'heal';
+    else if (subRand < 0.75) type = 'atk';
+    else type = 'speed';
+  }
+
+  room.items.push({
+    id: Date.now() + Math.random(), type: type,
+    x: 150 + Math.random() * 900, y: -40, vy: 2.5, width: 55, height: 55, isGrounded: false
+  });
+  room.spawnedItemCount++;
+}
+
 setInterval(() => {
   const STAGE_WIDTH = 1200;
   const GROUND_Y = 520;
@@ -399,9 +425,9 @@ setInterval(() => {
     const p2 = room.players[playerIds[1]];
     const playersArr = [p1, p2];
 
+    if (Math.random() < 0.0015) spawnRandomItem(room);
     if (room.isCpuMode && p2 && p2.isCpu && p1) { updateCpuAI(p2, p1); }
 
-    // 投擲物・弾の判定
     for (let i = room.projectiles.length - 1; i >= 0; i--) {
       const proj = room.projectiles[i];
       proj.x += proj.vx;
@@ -417,7 +443,6 @@ setInterval(() => {
 
         if (proj.x < db.x + db.width && proj.x + proj.width > db.x && proj.y < db.y + db.height && proj.y + proj.height > db.y) {
           target.hp -= proj.damage;
-          // ダメージを与えたのでアタッカーのゲージ増加
           if (attacker && !attacker.isKilled) {
             attacker.specialGauge = Math.min(100, attacker.specialGauge + proj.damage * 2.5);
           }
@@ -432,6 +457,32 @@ setInterval(() => {
           if (!proj.pierce) room.projectiles.splice(i, 1);
         }
       }
+    }
+
+    for (let i = room.items.length - 1; i >= 0; i--) {
+      const item = room.items[i];
+      if (!item.isGrounded) {
+        item.y += item.vy;
+        if (item.y + item.height >= GROUND_Y) { item.y = GROUND_Y - item.height; item.isGrounded = true; }
+      }
+
+      playersArr.forEach(p => {
+        if (!p || p.isKilled) return;
+        const char = CHARACTERS[p.characterKey];
+        const scale = p.senobicTimer > 0 ? 2 : 1;
+        const curW = char.width * scale;
+        const curH = char.height * scale;
+
+        if (p.x < item.x + item.width && p.x + curW > item.x && p.y < item.y + item.height && p.y + curH > item.y) {
+          if (item.type === 'senobic') { p.hp = p.maxHp; p.senobicTimer = 480; p.oneHitKill = true; }
+          else if (item.type === 'heal') { p.hp = Math.min(p.maxHp, p.hp + 30); }
+          else if (item.type === 'atk') { p.buffAtkTimer = 360; }
+          else if (item.type === 'speed') { p.buffSpeedTimer = 360; }
+
+          io.to(code).emit('itemCollected', { playerId: p.id, type: item.type });
+          room.items.splice(i, 1);
+        }
+      });
     }
 
     const currentPlatforms = STAGES[room.selectedStage].platforms;
@@ -500,7 +551,6 @@ setInterval(() => {
       }
     });
 
-    // 通常攻撃の判定
     playersArr.forEach((attacker) => {
       if (!attacker || attacker.isKilled) return;
       const defender = playersArr.find(p => p && p.id !== attacker.id);
@@ -515,7 +565,6 @@ setInterval(() => {
 
         if (ab.x < db.x + db.width && ab.x + ab.width > db.x && ab.y < db.y + db.height && ab.y + ab.height > db.y) {
           defender.hp -= ab.damage;
-          // 通常攻撃ヒット時もゲージ増加
           attacker.specialGauge = Math.min(100, attacker.specialGauge + ab.damage * 2.5);
 
           if (defender.hp <= 0) {
