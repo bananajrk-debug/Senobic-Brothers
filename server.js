@@ -222,7 +222,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // スペースキーでの必殺技スタンバイ発動
+  // Jキーでの必殺技スタンバイ発動
   socket.on('triggerSpecial', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -245,7 +245,6 @@ io.on('connection', (socket) => {
       });
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
     } else if (char.type === 'debugon') {
-      // デブゴン専用：次の一回、ジャンプ時に高木の衝撃波を放つ状態になる
       p.debugonSpecialArmed = true;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_ready' });
     } else if (char.type === 'chibikoro') {
@@ -288,24 +287,6 @@ io.on('connection', (socket) => {
         p.vy = -char.jumpPower;
         p.isGrounded = false;
         p.jumpCount = 1;
-
-        // デブゴンの必殺技：スペース発動後にジャンプしたら左右に背の高さと同じ衝撃波を飛ばす
-        if (p.debugonSpecialArmed && char.type === 'debugon') {
-          p.debugonSpecialArmed = false;
-          const waveHeight = char.height; // 背の高さ
-          const waveWidth = 40;
-          room.projectiles.push({
-            id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-            x: p.x + char.width, y: p.y + char.height - waveHeight,
-            vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
-          });
-          room.projectiles.push({
-            id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-            x: p.x - waveWidth, y: p.y + char.height - waveHeight,
-            vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
-          });
-          io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
-        }
       } else if (char.type === 'ninja' && p.jumpCount < 2) {
         p.vy = -char.jumpPower * 0.9;
         p.jumpCount = 2;
@@ -514,15 +495,6 @@ function updateCpuAI(cpu, target) {
   if (Math.random() < 0.008 && cpu.isGrounded) {
     cpu.vy = -cpuChar.jumpPower;
     cpu.isGrounded = false;
-    if (cpu.debugonSpecialArmed && cpuChar.type === 'debugon') {
-      cpu.debugonSpecialArmed = false;
-      const waveHeight = cpuChar.height;
-      getRoomBySocket({ id: cpu.id })?.projectiles.push({
-        id: Date.now() + Math.random(), ownerId: cpu.id, type: 'debugon_wave',
-        x: cpu.x + cpuChar.width, y: cpu.y + cpuChar.height - waveHeight,
-        vx: 14, width: 40, height: waveHeight, damage: Math.round(cpuChar.atk * 2.2), groundAligned: true
-      });
-    }
   }
 
   if (cpu.specialReady) {
@@ -651,8 +623,9 @@ setInterval(() => {
           proj.y + proj.height > db.y
         ) {
           target.hp -= proj.damage;
+          // 10発で100%になるよう、1ヒットにつき10固定でゲージ増加
           if (attacker && !attacker.isKilled && attacker.specialGauge < 100) {
-            attacker.specialGauge = Math.min(100, attacker.specialGauge + proj.damage * 2.5);
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
             if (attacker.specialGauge >= 100) attacker.specialReady = true;
           }
 
@@ -758,6 +731,7 @@ setInterval(() => {
       }
 
       const prevY = p.y;
+      const wasGrounded = p.isGrounded; // 前フレームの接地状態を記録
       p.vy += GRAVITY;
       p.x += p.vx;
       p.y += p.vy;
@@ -789,6 +763,24 @@ setInterval(() => {
         });
       }
 
+      // 空中から地面に着地した瞬間を検知 (デブゴンの必殺技発動)
+      if (!wasGrounded && p.isGrounded && p.debugonSpecialArmed && char.type === 'debugon') {
+        p.debugonSpecialArmed = false;
+        const waveHeight = char.height;
+        const waveWidth = 40;
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+          x: p.x + curW, y: p.y + curH - waveHeight,
+          vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+        });
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+          x: p.x - waveWidth, y: p.y + curH - waveHeight,
+          vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+        });
+        io.to(code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
+      }
+
       if (p.x < 0) p.x = 0;
       if (p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) > STAGE_WIDTH) {
         p.x = STAGE_WIDTH - (char.width * (p.senobicTimer > 0 ? 2 : 1));
@@ -814,8 +806,9 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
+          // 10発で100%になるよう、1ヒットにつき10固定でゲージ増加
           if (attacker.specialGauge < 100) {
-            attacker.specialGauge = Math.min(100, attacker.specialGauge + ab.damage * 2.5);
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
             if (attacker.specialGauge >= 100) attacker.specialReady = true;
           }
 
