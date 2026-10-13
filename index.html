@@ -572,7 +572,7 @@
 
     socket.on('specialTriggered', (data) => {
       playSE('special');
-      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: data.type === 'debugon_ready' ? '⚡必殺技スタンバイ！' : (data.type === 'debugon_fire' ? '💥超衝撃波発射！' : '🔥必殺技発動！'), timer: 70 });
+      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: data.type === 'debugon_ready' ? '⚡必殺技スタンバイ！' : (data.type === 'debugon_fire' ? '💥着地・超衝撃波発射！' : '🔥必殺技発動！'), timer: 70 });
     });
 
     socket.on('koEffect', (data) => {
@@ -655,9 +655,8 @@
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
-        // 必殺技の発動キーを [J] キーに変更（スペースキーでも反応するように両対応）
         if (e.key === 'j' || e.key === 'J' || e.code === 'Space') { 
-          e.preventDefault(); // スペースのスクロールも完全防止
+          e.preventDefault();
           socket.emit('triggerSpecial'); 
         }
 
@@ -1074,7 +1073,7 @@
         ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
 
         let statusStr = '';
-        if (p.debugonSpecialArmed) statusStr += '⚡[JUMPで衝撃波] ';
+        if (p.debugonSpecialArmed) statusStr += '⚡[JUMP & LANDで衝撃波] ';
         if (p.specialActiveTimer > 0) statusStr += '🔥SPECIAL! ';
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
