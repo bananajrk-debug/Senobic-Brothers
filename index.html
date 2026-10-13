@@ -397,7 +397,7 @@
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家' },
       debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(CT:2秒)' },
       chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)' },
+      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投(CT:0.6秒)' },
       wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)' }
     };
 
@@ -572,7 +572,12 @@
 
     socket.on('specialTriggered', (data) => {
       playSE('special');
-      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: data.type === 'debugon_ready' ? '⚡必殺技スタンバイ！' : (data.type === 'debugon_fire' ? '💥着地・超衝撃波発射！' : '🔥必殺技発動！'), timer: 70 });
+      let text = '🔥必殺技発動！';
+      if (data.type === 'debugon_ready') text = '⚡必殺技スタンバイ！';
+      else if (data.type === 'debugon_fire') text = '💥着地・超衝撃波発射！';
+      else if (data.type === 'ninja_ready') text = '🌟手裏剣3連投スタンバイ！';
+      else if (data.type === 'ninja_throw') text = '🌀手裏剣発射！';
+      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: text, timer: 70 });
     });
 
     socket.on('koEffect', (data) => {
@@ -1012,12 +1017,20 @@
           ctx.fillStyle = '#bdc3c7';
           ctx.fillRect(-12, -3, 24, 6);
           ctx.fillRect(-3, -12, 6, 24);
-        } else if (proj.type === 'ninja_giant') {
-          ctx.translate(proj.x + 25, proj.y + 20);
-          ctx.rotate(Date.now() * 0.04);
+        } else if (proj.type === 'ninja_giant' || proj.type === 'ninja_giant_yellow') {
+          const hw = (proj.width || 60) / 2;
+          const hh = (proj.height || 60) / 2;
+          ctx.translate(proj.x + hw, proj.y + hh);
+          ctx.rotate(Date.now() * 0.05);
           ctx.fillStyle = '#f1c40f';
-          ctx.fillRect(-24, -6, 48, 12);
-          ctx.fillRect(-6, -24, 12, 48);
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.rect(-hw, -hh * 0.25, proj.width || 60, hh * 0.5);
+          ctx.rect(-hw * 0.25, -hh, hw * 0.5, proj.height || 60);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#e74c3c';
+          ctx.beginPath(); ctx.arc(0, 0, hw * 0.35, 0, Math.PI * 2); ctx.fill();
         } else if (proj.type === 'wizard') {
           ctx.fillStyle = '#9b59b6';
           ctx.beginPath();
@@ -1074,18 +1087,19 @@
 
         let statusStr = '';
         if (p.debugonSpecialArmed) statusStr += '⚡[JUMP & LANDで衝撃波] ';
+        if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣残数: ${p.ninjaSpecialShurikenCount}発 `;
         if (p.specialActiveTimer > 0) statusStr += '🔥SPECIAL! ';
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
         if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
         if (statusStr) {
-          ctx.font = 'bold 11px sans-serif';
+          ctx.font = 'bold 13px sans-serif';
           ctx.fillStyle = '#f1c40f';
-          ctx.fillText(statusStr, p.x + curW / 2, p.y - 28);
+          ctx.fillText(statusStr, p.x + curW / 2, p.y - 30);
         }
 
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + curW / 2, p.y - 45, activeStamps[p.id].stamp);
+          drawStampEffect(ctx, p.x + curW / 2, p.y - 50, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
         }
 
