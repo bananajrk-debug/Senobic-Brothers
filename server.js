@@ -27,7 +27,7 @@ const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(CT:2秒)', cd: 120 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
-  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投(CT:0.6秒)', cd: 36 },
   wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
 };
 
@@ -150,7 +150,8 @@ io.on('connection', (socket) => {
       specialGauge: 0,
       specialActiveTimer: 0,
       specialReady: false,
-      debugonSpecialArmed: false
+      debugonSpecialArmed: false,
+      ninjaSpecialShurikenCount: 0
     };
 
     room.players[socket.id].ready = true;
@@ -233,23 +234,47 @@ io.on('connection', (socket) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
-    if (!p || p.isKilled || !p.specialReady) return;
+    if (!p || p.isKilled) return;
     const char = CHARACTERS[p.characterKey];
 
+    // ニンジャ専用の連続手裏剣発射処理
+    if (char.type === 'ninja') {
+      if (p.ninjaSpecialShurikenCount > 0) {
+        p.ninjaSpecialShurikenCount--;
+        const isRight = p.facing === 'right';
+        const shurikenSize = Math.round(char.width * 1.5);
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant_yellow',
+          x: isRight ? p.x + char.width : p.x - shurikenSize, y: p.y + char.height * 0.25,
+          vx: isRight ? 18 : -18, width: shurikenSize, height: shurikenSize, damage: Math.round(char.atk * 1.5)
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja_throw' });
+        if (p.ninjaSpecialShurikenCount <= 0) {
+          p.specialReady = false;
+          p.specialGauge = 0;
+        }
+      } else if (p.specialReady) {
+        p.ninjaSpecialShurikenCount = 3;
+        p.ninjaSpecialShurikenCount--;
+        const isRight = p.facing === 'right';
+        const shurikenSize = Math.round(char.width * 1.5);
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant_yellow',
+          x: isRight ? p.x + char.width : p.x - shurikenSize, y: p.y + char.height * 0.25,
+          vx: isRight ? 18 : -18, width: shurikenSize, height: shurikenSize, damage: Math.round(char.atk * 1.5)
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja_ready' });
+      }
+      return;
+    }
+
+    if (!p.specialReady) return;
     p.specialReady = false;
     p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
       p.specialActiveTimer = 600;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
-    } else if (char.type === 'ninja') {
-      const isRight = p.facing === 'right';
-      room.projectiles.push({
-        id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant',
-        x: isRight ? p.x + char.width : p.x - 60, y: p.y + char.height * 0.3,
-        vx: isRight ? 20 : -20, width: 50, height: 40, damage: Math.round(char.atk * 2.2)
-      });
-      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja' });
     } else if (char.type === 'debugon') {
       p.debugonSpecialArmed = true;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_ready' });
@@ -423,6 +448,7 @@ function startMatch(room) {
     pl.specialActiveTimer = 0;
     pl.specialReady = false;
     pl.debugonSpecialArmed = false;
+    pl.ninjaSpecialShurikenCount = 0;
   });
   io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
 }
@@ -460,7 +486,8 @@ function createPlayerData(socketId, playerNum, name) {
     specialGauge: 0,
     specialActiveTimer: 0,
     specialReady: false,
-    debugonSpecialArmed: false
+    debugonSpecialArmed: false,
+    ninjaSpecialShurikenCount: 0
   };
 }
 
