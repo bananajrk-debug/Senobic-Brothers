@@ -24,11 +24,11 @@ app.get('/', (req, res) => {
 });
 
 const CHARACTERS = {
-  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(10秒)',  cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(CT:2秒)', cd: 120 },
-  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
-  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投(CT:0.6秒)', cd: 36 },
-  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
+  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム', cd: 12 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投', cd: 36 },
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '巨大貫通魔法弾', cd: 36 }
 };
 
 const STAGES = {
@@ -237,7 +237,6 @@ io.on('connection', (socket) => {
     if (!p || p.isKilled) return;
     const char = CHARACTERS[p.characterKey];
 
-    // ニンジャ専用の連続手裏剣発射処理
     if (char.type === 'ninja') {
       if (p.ninjaSpecialShurikenCount > 0) {
         p.ninjaSpecialShurikenCount--;
@@ -273,23 +272,23 @@ io.on('connection', (socket) => {
     p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
-      p.specialActiveTimer = 600;
+      p.specialActiveTimer = 600; // 10秒間 (60fps * 10)
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'debugon') {
       p.debugonSpecialArmed = true;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_ready' });
     } else if (char.type === 'chibikoro') {
-      p.attackBox = { x: p.x - 90, y: p.y - 50, width: char.width + 180, height: char.height + 100, damage: 45, type: 'special_bomb' };
-      setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 250);
-      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro' });
+      p.attackBox = { x: p.x - 140, y: p.y - 90, width: char.width + 280, height: char.height + 180, damage: 55, type: 'special_bomb' };
+      setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 300);
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro_mega' });
     } else if (char.type === 'wizard') {
       const isRight = p.facing === 'right';
       room.projectiles.push({
-        id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_giant',
-        x: isRight ? p.x + char.width : p.x - 70, y: p.y + char.height * 0.25,
-        vx: isRight ? 13 : -13, width: 65, height: 65, damage: Math.round(char.atk * 2.5), pierce: true
+        id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_mega_giant',
+        x: isRight ? p.x + char.width : p.x - 90, y: p.y + char.height * 0.15,
+        vx: isRight ? 14 : -14, width: 85, height: 85, damage: Math.round(char.atk * 3.0), pierce: true
       });
-      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard' });
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard_mega' });
     }
   });
 
