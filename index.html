@@ -251,7 +251,7 @@
     <div id="countdown-overlay" class="hidden">3</div>
 
     <!-- 1. タイトル画面 -->
-    <div id="screen-title" class="overlay" style="position: relative;">
+    <div id="screen-title" class="overlay">
       <h1 style="font-size: 40px; margin-bottom: 6px; text-shadow: 0 4px 12px rgba(0,0,0,0.8); background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">セノビックブラザーズ</h1>
       <p style="color: #999; font-size: 14px; margin-bottom: 22px; letter-spacing: 2px;">REAL 2D FIGHTING BATTLE</p>
       
@@ -273,9 +273,6 @@
         </div>
         <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 6px;"></p>
       </div>
-
-      <!-- 右下のバージョン表示 -->
-      <div style="position: absolute; bottom: 15px; right: 20px; font-size: 13px; color: #718096; font-weight: bold; letter-spacing: 1px;">Ver 2.1.0</div>
     </div>
 
     <!-- 2. CPU対戦設定画面 -->
@@ -352,7 +349,7 @@
 
     <!-- 4. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">リアルキャラクターを選択</h2>
+      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">キャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
@@ -854,7 +851,7 @@
           <div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
           <div class="char-preview-box" id="box-${key}"></div>
           <div class="char-stats">
-            HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
+            HP:char.hpATK:{char.atk}<br>SPD:${char.speed}
             <div class="ability-box">${char.ability}</div>
           </div>
         `;
@@ -936,7 +933,7 @@
             ctx.fillStyle = pl.playerNum === myPlayerNum ? '#f1c40f' : '#fff';
             ctx.font = 'bold 13px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`${pl.name} (${pl.playerNum}P)`, pos.x, pos.y + 22);
+            ctx.fillText(`pl.name({pl.playerNum}P)`, pos.x, pos.y + 22);
             ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
             ctx.font = '11px sans-serif';
             ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 38);
@@ -965,24 +962,24 @@
 
         if (item.type === 'senobic') {
           ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(-18, -22, 36, 44);
+          ctx.fillRect(-14, -18, 28, 36);
           ctx.fillStyle = '#f1c40f';
-          ctx.fillRect(-13, -13, 26, 26);
+          ctx.fillRect(-10, -10, 20, 20);
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 11px sans-serif';
+          ctx.font = 'bold 10px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText('SEN', 0, 4);
         } else {
           ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : (item.type === 'atk' ? '#f1c40f' : '#3498db');
           ctx.beginPath();
-          ctx.arc(0, 0, 26, 0, Math.PI * 2);
+          ctx.arc(0, 0, 22, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = '#fff';
           ctx.lineWidth = 3;
           ctx.stroke();
 
           ctx.fillStyle = '#fff';
-          ctx.font = 'bold 20px sans-serif';
+          ctx.font = 'bold 18px sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           const label = item.type === 'heal' ? '🍖' : (item.type === 'atk' ? '⭐' : '👟');
@@ -1040,7 +1037,6 @@
 
         let statusStr = '';
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
-        if (p.oneHitKill) statusStr += '⚡ONE-HIT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
         if (p.buffSpeedTimer > 0) statusStr += '👟SPD';
         if (statusStr) {
@@ -1087,6 +1083,7 @@
       drawHUD();
     }
 
+    // ★★★ ステージ背景・グラフィック・ギミックの大幅強化 ★★★
     function drawStageBackground(stageId) {
       const now = Date.now();
 
@@ -1095,6 +1092,7 @@
         grad.addColorStop(0, '#0f2027'); grad.addColorStop(0.5, '#203a43'); grad.addColorStop(1, '#2c5364');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // 遠景の山脈
         ctx.fillStyle = '#1e293b';
         ctx.beginPath();
         ctx.moveTo(0, 520); ctx.lineTo(200, 200); ctx.lineTo(450, 520); ctx.fill();
@@ -1103,6 +1101,7 @@
         ctx.beginPath();
         ctx.moveTo(700, 520); ctx.lineTo(1000, 220); ctx.lineTo(1200, 520); ctx.fill();
 
+        // 豊かな草地エリア
         ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 8);
 
@@ -1111,16 +1110,19 @@
         grad.addColorStop(0, '#0b0c10'); grad.addColorStop(0.5, '#1f2833'); grad.addColorStop(1, '#0b0c10');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // 紫のオーロラ雲
         ctx.fillStyle = 'rgba(147, 51, 234, 0.15)';
         ctx.beginPath();
         ctx.ellipse(600, 120, 500, 80, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // 巨大な月
         ctx.fillStyle = '#fef08a';
         ctx.shadowColor = '#fde047'; ctx.shadowBlur = 40;
         ctx.beginPath(); ctx.arc(1000, 110, 60, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
+        // 底なしの穴（ステージ下部の危険ゾーン表現）
         ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, canvas.width, 2);
 
@@ -1129,6 +1131,7 @@
         grad.addColorStop(0, '#110000'); grad.addColorStop(0.6, '#450a0a'); grad.addColorStop(1, '#7f1d1d');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // マグマの泡・アニメーション効果
         ctx.fillStyle = '#f97316';
         for (let i = 0; i < 5; i++) {
           const bubbleX = (now / 10 + i * 240) % 1200;
@@ -1136,29 +1139,36 @@
           ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 12, 0, Math.PI * 2); ctx.fill();
         }
 
+        // マグマ地獄の床
         ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, canvas.width, 6);
 
-      } else if (stageId === 4) { // 神殿
+      } else if (stageId === 4) { // 神殿（クオリティ大幅アップ！）
         const grad = ctx.createLinearGradient(0, 0, 0, 600);
         grad.addColorStop(0, '#020617'); grad.addColorStop(0.5, '#0f172a'); grad.addColorStop(1, '#1e1b4b');
         ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // ★ 背景の古代ギリシャ風巨大神殿・ギリシャ宮殿構造
         ctx.fillStyle = '#1e293b';
+        // 神殿の屋根（三角ペディメント）
         ctx.beginPath();
         ctx.moveTo(350, 180); ctx.lineTo(600, 70); ctx.lineTo(850, 180); ctx.fill();
-        ctx.fillRect(350, 180, 500, 20);
+        ctx.fillRect(350, 180, 500, 20); // 梁
 
+        // 巨大な古代の石柱（複数）
         for (let x = 380; x <= 820; x += 80) {
           ctx.fillRect(x, 200, 40, 320);
+          // 柱の模様（縦溝）
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(x + 12, 200, 16, 320);
           ctx.fillStyle = '#1e293b';
         }
 
+        // 左右の古代トーチと揺らめく聖なる炎（ギミック演出）
         [120, 1080].forEach((tx, idx) => {
           ctx.fillStyle = '#475569';
           ctx.fillRect(tx - 10, 280, 20, 140); ctx.fillRect(tx - 25, 260, 50, 20);
+          // 炎のアニメーション
           const flameOffset = Math.sin(now / 80 + idx) * 4;
           const flameGrad = ctx.createRadialGradient(tx, 240, 2, tx, 240, 25);
           flameGrad.addColorStop(0, '#fef08a'); flameGrad.addColorStop(0.5, '#f97316'); flameGrad.addColorStop(1, 'transparent');
@@ -1166,12 +1176,14 @@
           ctx.beginPath(); ctx.arc(tx + flameOffset, 240, 28, 0, Math.PI * 2); ctx.fill();
         });
 
+        // 黄金の神聖な床
         ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, canvas.width, 6);
 
-      } else if (stageId === 5) { // 宇宙
+      } else if (stageId === 5) { // 宇宙（銀河・流星エフェクト追加）
         ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // 土星風の惑星
         ctx.save();
         ctx.translate(920, 160);
         ctx.rotate(-0.3);
@@ -1181,6 +1193,7 @@
         ctx.beginPath(); ctx.ellipse(0, 0, 140, 28, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
 
+        // 流星・星屑アニメーション（ギミック演出）
         for (let i = 0; i < 20; i++) {
           const starX = (i * 97 + now / 15) % 1200;
           const starY = (i * 53 + Math.sin(i) * 200) % 500;
@@ -1188,10 +1201,12 @@
           ctx.fillRect(starX, starY, 2, 2);
         }
 
+        // ネオンのハイテク宇宙床
         ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, canvas.width, 80);
         ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, canvas.width, 4);
       }
 
+      // プラットフォーム（足場）のスタイル・装飾設定
       const currentStageObj = stages[stageId];
       if (currentStageObj && currentStageObj.platforms) {
         currentStageObj.platforms.forEach(pt => {
@@ -1199,7 +1214,7 @@
           const pw = pt.width || pt.w;
           const ph = pt.height || pt.h;
 
-          if (pt.type === 'gold') {
+          if (pt.type === 'gold') { // 神殿ステージの黄金足場
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#eab308';
@@ -1207,7 +1222,8 @@
             ctx.strokeRect(pt.x, pt.y, pw, ph);
             ctx.fillStyle = '#fef08a';
             ctx.fillRect(pt.x + 4, pt.y + 2, pw - 8, 3);
-          } else if (pt.type === 'neon') {
+
+          } else if (pt.type === 'neon') { // 宇宙ステージのサイバー足場
             ctx.fillStyle = '#090d16';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#00f2fe';
@@ -1215,7 +1231,8 @@
             ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 10;
             ctx.strokeRect(pt.x, pt.y, pw, ph);
             ctx.shadowBlur = 0;
-          } else {
+
+          } else { // 通常足場
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(pt.x, pt.y, pw, ph);
             ctx.strokeStyle = '#38bdf8';
@@ -1494,7 +1511,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
+        ctx.fillText(`p1.name({char1.name})`, 20, 15);
 
         let livesStr = '残機: ';
         for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
@@ -1514,7 +1531,7 @@
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`${p2.name} (${char2.name})`, 1200 - 20, 15);
+        ctx.fillText(`p2.name({char2.name})`, 1200 - 20, 15);
 
         let livesStr = '残機: ';
         for (let l = 0; l < (p2.lives || 0); l++) livesStr += '❤️ ';
@@ -1527,3 +1544,4 @@
   </script>
 </body>
 </html>
+
