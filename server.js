@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: '万能格闘家',  cd: 12 },
-  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 17, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 14 },
+  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(CT:2秒)', cd: 120 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '急降下アタック', cd: 12 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣(CT:0.6秒)', cd: 36 },
   wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾(CT:0.6秒)', cd: 36 }
@@ -222,7 +222,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Jキーでの必殺技スタンバイ発動
   socket.on('triggerSpecial', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -517,7 +516,12 @@ function updateCpuAI(cpu, target) {
       const isRight = cpu.facing === 'right';
       const projSpeed = cpuChar.type === 'ninja' ? 16 : 12;
 
-      getRoomBySocket({ id: cpu.id })?.projectiles.push({
+      let roomRef = null;
+      for (let c in rooms) {
+        if (rooms[c].players[cpu.id]) { roomRef = rooms[c]; break; }
+      }
+
+      roomRef?.projectiles.push({
         id: Date.now() + Math.random(),
         ownerId: cpu.id,
         type: cpuChar.type,
@@ -623,7 +627,6 @@ setInterval(() => {
           proj.y + proj.height > db.y
         ) {
           target.hp -= proj.damage;
-          // 10発で100%になるよう、1ヒットにつき10固定でゲージ増加
           if (attacker && !attacker.isKilled && attacker.specialGauge < 100) {
             attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
             if (attacker.specialGauge >= 100) attacker.specialReady = true;
@@ -731,7 +734,7 @@ setInterval(() => {
       }
 
       const prevY = p.y;
-      const wasGrounded = p.isGrounded; // 前フレームの接地状態を記録
+      const wasGrounded = p.isGrounded;
       p.vy += GRAVITY;
       p.x += p.vx;
       p.y += p.vy;
@@ -763,7 +766,6 @@ setInterval(() => {
         });
       }
 
-      // 空中から地面に着地した瞬間を検知 (デブゴンの必殺技発動)
       if (!wasGrounded && p.isGrounded && p.debugonSpecialArmed && char.type === 'debugon') {
         p.debugonSpecialArmed = false;
         const waveHeight = char.height;
@@ -806,7 +808,6 @@ setInterval(() => {
           ab.y + ab.height > db.y
         ) {
           defender.hp -= ab.damage;
-          // 10発で100%になるよう、1ヒットにつき10固定でゲージ増加
           if (attacker.specialGauge < 100) {
             attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
             if (attacker.specialGauge >= 100) attacker.specialReady = true;
