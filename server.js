@@ -60,7 +60,8 @@ function createRoom(code) {
     isCpuMode: false,
     selectedStage: 1,
     countdownTimer: null,
-    countdownVal: 0
+    countdownVal: 0,
+    stageWidth: 1200
   };
 }
 
@@ -174,8 +175,7 @@ io.on('connection', (socket) => {
         io.to(room.code).emit('characterUpdated', { players: room.players });
 
         const playerList = Object.values(room.players);
-        const activePlayers = playerList.slice(0, 2);
-        const allReady = activePlayers.length === 2 && activePlayers.every(player => player.ready);
+        const allReady = playerList.length >= 2 && playerList.every(player => player.ready);
 
         if (allReady) {
           room.countdownVal = 3;
@@ -205,7 +205,6 @@ io.on('connection', (socket) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
-    // 樽持ってる間は必殺技不可
     if (!p || p.isKilled || p.barrierTimer > 0 || p.hasBarrel) return;
     const char = CHARACTERS[p.characterKey];
 
@@ -272,7 +271,7 @@ io.on('connection', (socket) => {
     p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
-      p.specialActiveTimer = 300; // 5秒
+      p.specialActiveTimer = 300;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'debugon') {
       p.debugonSpecialArmed = true;
@@ -329,7 +328,6 @@ io.on('connection', (socket) => {
     }
 
     if (input.attack) {
-      // 爆弾樽を持っている場合、投げる処理
       if (p.hasBarrel) {
         p.hasBarrel = false;
         const isRight = p.facing === 'right';
@@ -348,19 +346,11 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // 通常攻撃処理
       if (!p.attacking && p.attackCooldown <= 0) {
         const isPunch = input.attackType === 'punch';
-        
         p.attacking = true;
         p.attackType = input.attackType;
-        
-        // キックのクールダウンを1秒 (60フレーム) に設定
-        if (isPunch) {
-          p.attackCooldown = char.cd || 12;
-        } else {
-          p.attackCooldown = 60; // 1秒間冷却
-        }
+        p.attackCooldown = isPunch ? (char.cd || 12) : 60;
 
         let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
         if (p.senobicTimer > 0) atkMult = 1.8;
@@ -454,21 +444,32 @@ io.on('connection', (socket) => {
 });
 
 function startMatch(room) {
+  const playerCount = Object.keys(room.players).length;
+  // 4人対戦時はマップを広げる（1600px）
+  room.stageWidth = playerCount >= 3 ? 1600 : 1200;
   room.gameState = 'PLAYING';
   room.items = [];
   room.projectiles = [];
   room.spawnedItemCount = 0;
 
-  Object.values(room.players).forEach(pl => {
+  const spawnPositions = [
+    { x: 200, facing: 'right' },
+    { x: room.stageWidth - 250, facing: 'left' },
+    { x: 450, facing: 'right' },
+    { x: room.stageWidth - 450, facing: 'left' }
+  ];
+
+  Object.values(room.players).forEach((pl, idx) => {
     const char = CHARACTERS[pl.characterKey];
+    const spawn = spawnPositions[idx % 4];
     pl.hp = char.hp;
     pl.maxHp = char.hp;
     pl.lives = 3;
-    pl.x = pl.playerNum === 1 ? 250 : 1200 - 250 - char.width;
+    pl.x = spawn.x;
     pl.y = 520 - char.height;
     pl.vx = 0;
     pl.vy = 0;
-    pl.facing = pl.playerNum === 1 ? 'right' : 'left';
+    pl.facing = spawn.facing;
     pl.jumpCount = 0;
     pl.stamp = null;
     pl.isKilled = false;
@@ -488,7 +489,13 @@ function startMatch(room) {
     pl.downPressed = false;
     pl.hasBarrel = false;
   });
-  io.to(room.code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage, isCpuMode: room.isCpuMode });
+
+  io.to(room.code).emit('gameStart', { 
+    players: room.players, 
+    selectedStage: room.selectedStage, 
+    isCpuMode: room.isCpuMode,
+    stageWidth: room.stageWidth
+  });
 }
 
 function createPlayerData(socketId, playerNum, name) {
@@ -499,11 +506,11 @@ function createPlayerData(socketId, playerNum, name) {
     characterKey: 'futsuo',
     ready: false,
     isCpu: false,
-    x: playerNum === 1 ? 250 : 850,
+    x: 250,
     y: 400,
     vx: 0,
     vy: 0,
-    facing: playerNum === 1 ? 'right' : 'left',
+    facing: 'right',
     hp: 100,
     maxHp: 100,
     lives: 3,
@@ -535,10 +542,10 @@ function createPlayerData(socketId, playerNum, name) {
   };
 }
 
-function respawnPlayer(p) {
+function respawnPlayer(p, stageWidth) {
   const char = CHARACTERS[p.characterKey];
   p.hp = p.maxHp;
-  p.x = p.playerNum === 1 ? 250 : 1200 - 250 - char.width;
+  p.x = p.playerNum === 1 ? 250 : stageWidth - 250 - char.width;
   p.y = 100;
   p.vx = 0;
   p.vy = 0;
@@ -548,7 +555,7 @@ function respawnPlayer(p) {
   p.hasBarrel = false;
 }
 
-function updateCpuAI(cpu, target) {
+function updateCpuAI(cpu, target, roomRef) {
   if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled || cpu.barrierTimer > 0) return;
 
   const cpuChar = CHARACTERS[cpu.characterKey];
@@ -569,9 +576,6 @@ function updateCpuAI(cpu, target) {
   }
 
   if (cpu.hasBarrel) {
-    // 樽を持ってたら投げる
-    let roomRef = null;
-    for (let c in rooms) { if (rooms[c].players[cpu.id]) { roomRef = rooms[c]; break; } }
     cpu.hasBarrel = false;
     const isRight = cpu.facing === 'right';
     roomRef?.projectiles.push({
@@ -608,9 +612,6 @@ function updateCpuAI(cpu, target) {
       const isRight = cpu.facing === 'right';
       const projSpeed = cpuChar.type === 'ninja' ? 16 : 12;
 
-      let roomRef = null;
-      for (let c in rooms) { if (rooms[c].players[cpu.id]) { roomRef = rooms[c]; break; } }
-
       roomRef?.projectiles.push({
         id: Date.now() + Math.random(), ownerId: cpu.id, type: cpuChar.type,
         x: isRight ? cpu.x + cpuChar.width : cpu.x - 30, y: cpu.y + cpuChar.height * 0.35,
@@ -633,22 +634,23 @@ function updateCpuAI(cpu, target) {
   }
 }
 
-// スピードブーツ（speed）を廃止し、爆弾樽（barrel）を追加
 function spawnRandomItem(room) {
-  if (room.items.length >= 1) return;
-  if (room.spawnedItemCount >= 4) return;
+  if (room.items.length >= 2) return;
+  if (room.spawnedItemCount >= 6) return;
 
   const rand = Math.random();
   let type = 'heal';
-  if (rand < 0.05) type = 'senobic';       // 5%
-  else if (rand < 0.35) type = 'barrel';    // 爆弾樽 30%
-  else if (rand < 0.65) type = 'heal';      // 回復 30%
-  else type = 'atk';                       // 攻撃UP 35%
+  if (rand < 0.05) type = 'senobic';
+  else if (rand < 0.35) type = 'barrel';
+  else if (rand < 0.65) type = 'heal';
+  else type = 'atk';
+
+  const stageWidth = room.stageWidth || 1200;
 
   room.items.push({
     id: Date.now() + Math.random(),
     type: type,
-    x: 150 + Math.random() * 900,
+    x: 150 + Math.random() * (stageWidth - 300),
     y: -40,
     vy: 2.5,
     width: type === 'barrel' ? 36 : 45,
@@ -659,7 +661,6 @@ function spawnRandomItem(room) {
 }
 
 setInterval(() => {
-  const STAGE_WIDTH = 1200;
   const GROUND_Y = 520;
   const GRAVITY = 0.8;
 
@@ -667,35 +668,33 @@ setInterval(() => {
     const room = rooms[code];
     if (room.gameState !== 'PLAYING') continue;
 
-    const playerIds = Object.keys(room.players);
-    if (playerIds.length < 2) continue;
+    const playersArr = Object.values(room.players);
+    if (playersArr.length < 2) continue;
 
-    const p1 = room.players[playerIds[0]];
-    const p2 = room.players[playerIds[1]];
-    const playersArr = [p1, p2];
+    const STAGE_WIDTH = room.stageWidth || 1200;
 
-    if (Math.random() < 0.0015) spawnRandomItem(room);
+    if (Math.random() < 0.002) spawnRandomItem(room);
 
-    if (room.isCpuMode && p2 && p2.isCpu && p1) {
-      updateCpuAI(p2, p1);
+    if (room.isCpuMode) {
+      const p1 = playersArr.find(p => !p.isCpu);
+      const cpu = playersArr.find(p => p.isCpu);
+      if (cpu && p1) updateCpuAI(cpu, p1, room);
     }
 
-    // 飛び道具・投擲物処理
+    // 飛び道具・爆弾樽の物理計算＆当たり判定
     for (let i = room.projectiles.length - 1; i >= 0; i--) {
       const proj = room.projectiles[i];
 
-      // 投擲樽の放物線移動
       if (proj.type === 'thrown_barrel') {
         proj.x += proj.vx;
         proj.vy += 0.5;
         proj.y += proj.vy;
 
-        // 地面着地で爆発
         let hitGround = proj.y + proj.height >= GROUND_Y;
         let hitTarget = false;
 
-        const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
-        if (target) {
+        const targets = playersArr.filter(p => p && p.id !== proj.ownerId && !p.isKilled);
+        for (let target of targets) {
           const tChar = CHARACTERS[target.characterKey];
           const scale = target.senobicTimer > 0 ? 2 : 1;
           if (
@@ -705,20 +704,20 @@ setInterval(() => {
             proj.y + proj.height > target.y
           ) {
             hitTarget = true;
+            break;
           }
         }
 
         if (hitGround || hitTarget) {
           const owner = playersArr.find(p => p && p.id === proj.ownerId);
           const ownerChar = owner ? CHARACTERS[owner.characterKey] : CHARACTERS['futsuo'];
-          const explosionRadius = (ownerChar.width * (owner && owner.senobicTimer > 0 ? 2 : 1)) * 1.5; // 直径＝幅の3倍
+          const explosionRadius = (ownerChar.width * (owner && owner.senobicTimer > 0 ? 2 : 1)) * 1.5;
 
           const expX = proj.x + proj.width / 2;
           const expY = proj.y + proj.height / 2;
 
           io.to(code).emit('barrelExploded', { x: expX, y: expY, radius: explosionRadius });
 
-          // 範囲ダメージ処理
           playersArr.forEach(p => {
             if (!p || p.isKilled || p.invincibleFrames > 0) return;
             const pChar = CHARACTERS[p.characterKey];
@@ -753,17 +752,17 @@ setInterval(() => {
           continue;
         }
       } else {
-        // 通常の弾処理
         proj.x += proj.vx;
         if (proj.x < -100 || proj.x > STAGE_WIDTH + 100) {
           room.projectiles.splice(i, 1);
           continue;
         }
 
-        const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
+        const targets = playersArr.filter(p => p && p.id !== proj.ownerId && !p.isKilled);
         const attacker = playersArr.find(p => p && p.id === proj.ownerId);
 
-        if (target && target.invincibleFrames === 0) {
+        for (let target of targets) {
+          if (target.invincibleFrames > 0) continue;
           const targetChar = CHARACTERS[target.characterKey];
           const defScale = target.senobicTimer > 0 ? 2 : 1;
           const db = { x: target.x, y: target.y, width: targetChar.width * defScale, height: targetChar.height * defScale };
@@ -776,7 +775,7 @@ setInterval(() => {
           ) {
             if (target.barrierTimer > 0) {
               if (!proj.pierce) room.projectiles.splice(i, 1);
-              continue;
+              break;
             }
 
             target.hp -= proj.damage;
@@ -808,12 +807,16 @@ setInterval(() => {
             }
 
             target.invincibleFrames = 24;
-            if (!proj.pierce) room.projectiles.splice(i, 1);
+            if (!proj.pierce) {
+              room.projectiles.splice(i, 1);
+              break;
+            }
           }
         }
       }
     }
 
+    // アイテム拾い判定
     for (let i = room.items.length - 1; i >= 0; i--) {
       const item = room.items[i];
       if (!item.isGrounded) {
@@ -856,6 +859,7 @@ setInterval(() => {
 
     const currentPlatforms = STAGES[room.selectedStage].platforms;
 
+    // プレイヤー移動＆ステータス更新
     playersArr.forEach(p => {
       if (!p) return;
 
@@ -867,9 +871,7 @@ setInterval(() => {
       
       if (p.barrierTimer > 0) {
         p.barrierTimer--;
-        if (p.barrierTimer === 0) {
-          p.stunFrames = 18;
-        }
+        if (p.barrierTimer === 0) p.stunFrames = 18;
       }
       if (p.barrierCooldown > 0) p.barrierCooldown--;
 
@@ -880,11 +882,14 @@ setInterval(() => {
 
         if (p.killTimer > 90) {
           if (p.lives > 0) {
-            respawnPlayer(p);
+            respawnPlayer(p, STAGE_WIDTH);
           } else {
-            const winner = playersArr.find(pl => pl && pl.id !== p.id);
-            room.gameState = 'FINISHED';
-            io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
+            const alivePlayers = playersArr.filter(pl => pl.lives > 0);
+            if (alivePlayers.length <= 1) {
+              const winner = alivePlayers[0] || p;
+              room.gameState = 'FINISHED';
+              io.to(code).emit('gameOver', { winnerName: winner.name, winnerNum: winner.playerNum, isCpuMode: room.isCpuMode });
+            }
           }
         }
         return;
@@ -900,13 +905,8 @@ setInterval(() => {
         p.vx = 0;
       }
 
-      if (p.invincibleFrames > 0) {
-        p.invincibleFrames--;
-      }
-
-      if (p.barrierTimer > 0) {
-        p.vx = 0;
-      }
+      if (p.invincibleFrames > 0) p.invincibleFrames--;
+      if (p.barrierTimer > 0) p.vx = 0;
 
       const prevY = p.y;
       p.vy += GRAVITY;
@@ -925,9 +925,12 @@ setInterval(() => {
 
       if (p.vy >= 0 && !p.downPressed) {
         currentPlatforms.forEach(plat => {
+          // 4人マップ用に足場座標を補正
+          const platX = STAGE_WIDTH === 1600 ? plat.x * 1.33 : plat.x;
+          const platW = STAGE_WIDTH === 1600 ? plat.width * 1.2 : plat.width;
           if (
-            p.x + curW > plat.x &&
-            p.x < plat.x + plat.width &&
+            p.x + curW > platX &&
+            p.x < platX + platW &&
             prevY + curH <= plat.y &&
             p.y + curH >= plat.y
           ) {
@@ -959,16 +962,17 @@ setInterval(() => {
       }
     });
 
+    // 攻撃ボックスの相互当たり判定
     playersArr.forEach((attacker) => {
-      if (!attacker || attacker.isKilled) return;
-      const defender = playersArr.find(p => p && p.id !== attacker.id);
-      if (!defender || defender.isKilled) return;
+      if (!attacker || attacker.isKilled || !attacker.attackBox) return;
 
-      const defenderChar = CHARACTERS[defender.characterKey];
-      const attackerChar = CHARACTERS[attacker.characterKey];
-      const defScale = defender.senobicTimer > 0 ? 2 : 1;
+      playersArr.forEach(defender => {
+        if (!defender || defender.id === attacker.id || defender.isKilled || defender.invincibleFrames > 0) return;
 
-      if (attacker.attackBox && defender.invincibleFrames === 0) {
+        const defenderChar = CHARACTERS[defender.characterKey];
+        const attackerChar = CHARACTERS[attacker.characterKey];
+        const defScale = defender.senobicTimer > 0 ? 2 : 1;
+
         const ab = attacker.attackBox;
         const db = { x: defender.x, y: defender.y, width: defenderChar.width * defScale, height: defenderChar.height * defScale };
 
@@ -978,10 +982,7 @@ setInterval(() => {
           ab.y < db.y + db.height &&
           ab.y + ab.height > db.y
         ) {
-          if (defender.barrierTimer > 0) {
-            attacker.attackBox = null;
-            return;
-          }
+          if (defender.barrierTimer > 0) return;
 
           defender.hp -= ab.damage;
           if (attacker.specialGauge < 100) {
@@ -1011,9 +1012,8 @@ setInterval(() => {
           }
 
           defender.invincibleFrames = 24;
-          attacker.attackBox = null;
         }
-      }
+      });
     });
 
     io.to(code).emit('updateState', { players: room.players, items: room.items, projectiles: room.projectiles });
