@@ -24,11 +24,11 @@ app.get('/', (req, res) => {
 });
 
 const CHARACTERS = {
-  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'バリア(1秒/CT:3秒)',  cd: 12 },
-  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: 'バリア(1秒/CT:3秒)', cd: 120 },
-  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: 'バリア(1秒/CT:3秒)', cd: 12 },
-  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: 'バリア(1秒/CT:3秒)', cd: 36 },
-  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: 'バリア(1秒/CT:3秒)', cd: 36 }
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(10秒)',  cd: 12 },
+  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 120 },
+  chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム', cd: 12 },
+  ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投', cd: 36 },
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '巨大貫通魔法弾', cd: 36 }
 };
 
 const STAGES = {
@@ -147,8 +147,14 @@ io.on('connection', (socket) => {
       buffAtkTimer: 0,
       buffSpeedTimer: 0,
       senobicTimer: 0,
+      specialGauge: 100,
+      specialActiveTimer: 0,
+      specialReady: true,
+      debugonSpecialArmed: false,
+      ninjaSpecialShurikenCount: 0,
       barrierTimer: 0,
-      barrierCooldown: 0
+      barrierCooldown: 0,
+      downPressed: false
     };
 
     room.players[socket.id].ready = true;
@@ -227,16 +233,79 @@ io.on('connection', (socket) => {
     }
   });
 
-  // バリア発動 (1秒間持続, クールダウン3秒 = 180フレーム)
+  // Jキー：必殺技発動
+  socket.on('triggerSpecial', () => {
+    const room = getRoomBySocket(socket);
+    if (!room || room.gameState !== 'PLAYING') return;
+    const p = room.players[socket.id];
+    if (!p || p.isKilled) return;
+    const char = CHARACTERS[p.characterKey];
+
+    if (char.type === 'ninja') {
+      if (p.ninjaSpecialShurikenCount > 0) {
+        p.ninjaSpecialShurikenCount--;
+        const isRight = p.facing === 'right';
+        const shurikenSize = Math.round(char.width * 1.5);
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant_yellow',
+          x: isRight ? p.x + char.width : p.x - shurikenSize, y: p.y + char.height * 0.25,
+          vx: isRight ? 18 : -18, width: shurikenSize, height: shurikenSize, damage: Math.round(char.atk * 1.5)
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja_throw' });
+        if (p.ninjaSpecialShurikenCount <= 0) {
+          p.specialReady = false;
+          p.specialGauge = 0;
+        }
+      } else if (p.specialReady) {
+        p.ninjaSpecialShurikenCount = 3;
+        p.ninjaSpecialShurikenCount--;
+        const isRight = p.facing === 'right';
+        const shurikenSize = Math.round(char.width * 1.5);
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'ninja_giant_yellow',
+          x: isRight ? p.x + char.width : p.x - shurikenSize, y: p.y + char.height * 0.25,
+          vx: isRight ? 18 : -18, width: shurikenSize, height: shurikenSize, damage: Math.round(char.atk * 1.5)
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'ninja_ready' });
+      }
+      return;
+    }
+
+    if (!p.specialReady) return;
+    p.specialReady = false;
+    p.specialGauge = 0;
+
+    if (char.type === 'futsuo') {
+      p.specialActiveTimer = 600; // 10秒間
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
+    } else if (char.type === 'debugon') {
+      p.debugonSpecialArmed = true;
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'debugon_ready' });
+    } else if (char.type === 'chibikoro') {
+      p.attackBox = { x: p.x - 140, y: p.y - 90, width: char.width + 280, height: char.height + 180, damage: 55, type: 'special_bomb' };
+      setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 300);
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro_mega' });
+    } else if (char.type === 'wizard') {
+      const isRight = p.facing === 'right';
+      room.projectiles.push({
+        id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_mega_giant',
+        x: isRight ? p.x + char.width : p.x - 90, y: p.y + char.height * 0.15,
+        vx: isRight ? 14 : -14, width: 85, height: 85, damage: Math.round(char.atk * 3.0), pierce: true
+      });
+      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard_mega' });
+    }
+  });
+
+  // スペースキー：バリア発動 (1秒間持続, クールダウン3秒)
   socket.on('triggerBarrier', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
     if (!p || p.isKilled || p.barrierCooldown > 0) return;
 
-    p.barrierTimer = 60;   // 1秒間 (60フレーム)
+    p.barrierTimer = 60;     // 1秒間 (60フレーム)
     p.barrierCooldown = 180; // クールダウン3秒 (180フレーム)
-    io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'barrier' });
+    io.to(room.code).emit('barrierTriggered', { playerId: p.id });
   });
 
   socket.on('playerInput', (input) => {
@@ -259,7 +328,7 @@ io.on('connection', (socket) => {
       p.vx = 0;
     }
 
-    p.downPressed = input.down; // Sキーの状態を保持
+    p.downPressed = input.down;
 
     if (input.jump && !input.jumpPrev) {
       if (p.isGrounded) {
@@ -280,6 +349,7 @@ io.on('connection', (socket) => {
       const isPunch = input.attackType === 'punch';
       let atkMult = p.buffAtkTimer > 0 ? 1.5 : 1.0;
       if (p.senobicTimer > 0) atkMult = 1.8;
+      if (p.specialActiveTimer > 0 && char.type === 'futsuo') atkMult *= 1.5;
 
       let dmg = Math.round((isPunch ? char.atk : Math.round(char.atk * 1.25)) * atkMult);
 
@@ -296,12 +366,14 @@ io.on('connection', (socket) => {
           x: startX,
           y: startY,
           vx: isRight ? projSpeed : -projSpeed,
-          width: char.type === 'ninja' ? Math.round(char.width * 1.5) : 26,
-          height: char.type === 'ninja' ? Math.round(char.width * 1.5) : 22,
+          width: 26,
+          height: 22,
           damage: dmg
         });
       } else {
         let reach = isPunch ? 55 : 85;
+        if (p.specialActiveTimer > 0 && char.type === 'futsuo') reach *= 2;
+
         const isGiant = p.senobicTimer > 0;
         let attackHeight = (isPunch ? char.height * 0.4 : char.height * 0.3) * (isGiant ? 2.2 : 1);
         let attackYOffset = isGiant ? (char.height * 2 - attackHeight - 10) : (isPunch ? char.height * 0.2 : char.height * 0.4);
@@ -389,6 +461,11 @@ function startMatch(room) {
     pl.buffSpeedTimer = 0;
     pl.senobicTimer = 0;
     pl.attackCooldown = 0;
+    pl.specialGauge = 0;
+    pl.specialActiveTimer = 0;
+    pl.specialReady = false;
+    pl.debugonSpecialArmed = false;
+    pl.ninjaSpecialShurikenCount = 0;
     pl.barrierTimer = 0;
     pl.barrierCooldown = 0;
     pl.downPressed = false;
@@ -426,6 +503,11 @@ function createPlayerData(socketId, playerNum, name) {
     buffAtkTimer: 0,
     buffSpeedTimer: 0,
     senobicTimer: 0,
+    specialGauge: 0,
+    specialActiveTimer: 0,
+    specialReady: false,
+    debugonSpecialArmed: false,
+    ninjaSpecialShurikenCount: 0,
     barrierTimer: 0,
     barrierCooldown: 0,
     downPressed: false
@@ -464,6 +546,13 @@ function updateCpuAI(cpu, target) {
     cpu.isGrounded = false;
   }
 
+  if (cpu.specialReady) {
+    cpu.specialReady = false;
+    cpu.specialGauge = 0;
+    if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 600;
+    else if (cpuChar.type === 'debugon') cpu.debugonSpecialArmed = true;
+  }
+
   if (cpu.barrierCooldown <= 0 && Math.random() < 0.01) {
     cpu.barrierTimer = 60;
     cpu.barrierCooldown = 180;
@@ -494,8 +583,8 @@ function updateCpuAI(cpu, target) {
         x: isRight ? cpu.x + cpuChar.width : cpu.x - 30,
         y: cpu.y + cpuChar.height * 0.35,
         vx: isRight ? projSpeed : -projSpeed,
-        width: cpuChar.type === 'ninja' ? Math.round(cpuChar.width * 1.5) : 26,
-        height: cpuChar.type === 'ninja' ? Math.round(cpuChar.width * 1.5) : 22,
+        width: 26,
+        height: 22,
         damage: dmg
       });
     } else {
@@ -569,12 +658,17 @@ setInterval(() => {
       const proj = room.projectiles[i];
       proj.x += proj.vx;
 
+      if (proj.groundAligned) {
+        proj.y = GROUND_Y - (proj.height || 95);
+      }
+
       if (proj.x < -100 || proj.x > STAGE_WIDTH + 100) {
         room.projectiles.splice(i, 1);
         continue;
       }
 
       const target = playersArr.find(p => p && p.id !== proj.ownerId && !p.isKilled);
+      const attacker = playersArr.find(p => p && p.id === proj.ownerId);
 
       if (target && target.invincibleFrames === 0) {
         const targetChar = CHARACTERS[target.characterKey];
@@ -587,14 +681,18 @@ setInterval(() => {
           proj.y < db.y + db.height &&
           proj.y + (proj.height || 95) > db.y
         ) {
-          // バリア展開中は無効化
           if (target.barrierTimer > 0) {
             if (!proj.pierce) room.projectiles.splice(i, 1);
             continue;
           }
 
           target.hp -= proj.damage;
-          const isArmored = target.senobicTimer > 0;
+          if (attacker && !attacker.isKilled && attacker.specialGauge < 100) {
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
+            if (attacker.specialGauge >= 100) attacker.specialReady = true;
+          }
+
+          const isArmored = (targetChar.type === 'debugon' && target.attacking) || target.senobicTimer > 0;
 
           if (target.hp <= 0) {
             target.hp = 0;
@@ -665,6 +763,7 @@ setInterval(() => {
       if (p.buffAtkTimer > 0) p.buffAtkTimer--;
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
       if (p.senobicTimer > 0) p.senobicTimer--;
+      if (p.specialActiveTimer > 0) p.specialActiveTimer--;
       if (p.barrierTimer > 0) p.barrierTimer--;
       if (p.barrierCooldown > 0) p.barrierCooldown--;
 
@@ -711,7 +810,6 @@ setInterval(() => {
         p.jumpCount = 0;
       }
 
-      // Sキーを押しているときはプラットフォームをすり抜ける（降りる）
       if (p.vy >= 0 && !p.downPressed) {
         currentPlatforms.forEach(plat => {
           const curW = char.width * (p.senobicTimer > 0 ? 2 : 1);
@@ -727,6 +825,23 @@ setInterval(() => {
             p.jumpCount = 0;
           }
         });
+      }
+
+      if (!wasGrounded && p.isGrounded && p.debugonSpecialArmed && char.type === 'debugon') {
+        p.debugonSpecialArmed = false;
+        const waveHeight = char.height;
+        const waveWidth = 40;
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+          x: p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)), y: GROUND_Y - waveHeight,
+          vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+        });
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
+          x: p.x - waveWidth, y: GROUND_Y - waveHeight,
+          vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
+        });
+        io.to(code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
       }
 
       if (p.x < 0) p.x = 0;
@@ -753,14 +868,18 @@ setInterval(() => {
           ab.y < db.y + db.height &&
           ab.y + ab.height > db.y
         ) {
-          // バリア展開中は無効化
           if (defender.barrierTimer > 0) {
             attacker.attackBox = null;
             return;
           }
 
           defender.hp -= ab.damage;
-          const isArmored = defender.senobicTimer > 0;
+          if (attacker.specialGauge < 100) {
+            attacker.specialGauge = Math.min(100, attacker.specialGauge + 10);
+            if (attacker.specialGauge >= 100) attacker.specialReady = true;
+          }
+
+          const isArmored = (defenderChar.type === 'debugon' && defender.attacking) || defender.senobicTimer > 0;
 
           if (defender.hp <= 0) {
             defender.hp = 0;
