@@ -285,7 +285,6 @@
     }
     #settings-btn-icon:hover { background: #3a3a4e; }
 
-    /* 戦闘中ハンバーガーメニューボタン */
     #ingame-menu-btn {
       position: absolute;
       top: 15px;
@@ -311,7 +310,6 @@
 
   <div id="game-container">
     <button id="settings-btn-icon" onclick="openSettingsModal()">⚙️ 設定</button>
-    <!-- 戦闘中用ハンバーガーメニューボタン -->
     <button id="ingame-menu-btn" class="hidden interactive" onclick="openIngameMenu()">≡</button>
 
     <canvas id="gameCanvas" width="1200" height="600"></canvas>
@@ -487,6 +485,7 @@
     const codeZoomModal = document.getElementById('code-zoom-modal');
     const ingameMenuModal = document.getElementById('ingame-menu-modal');
     const ingameMenuBtn = document.getElementById('ingame-menu-btn');
+    const settingsBtnIcon = document.getElementById('settings-btn-icon');
     const zoomedCodeText = document.getElementById('zoomed-code-text');
     const countdownOverlay = document.getElementById('countdown-overlay');
     const charListContainer = document.getElementById('char-list');
@@ -905,6 +904,9 @@
     function createOnlineRoom() {
       errorMsg.textContent = '';
       const name = playerNameInput.value.trim() || 'Player 1';
+      if (!socket.connected) {
+        socket.connect();
+      }
       socket.emit('createRoom', { playerName: name });
     }
 
@@ -916,6 +918,9 @@
       }
       errorMsg.textContent = '';
       const name = playerNameInput.value.trim() || 'Player';
+      if (!socket.connected) {
+        socket.connect();
+      }
       socket.emit('joinRoom', { code: code, playerName: name });
     }
 
@@ -941,6 +946,9 @@
     function confirmStartCpuGame() {
       errorMsg.textContent = '';
       const name = playerNameInput.value.trim() || 'Player 1';
+      if (!socket.connected) {
+        socket.connect();
+      }
       socket.emit('startCpuMode', {
         playerName: name,
         characterKey: cpuSelectedCharKey,
@@ -1006,19 +1014,24 @@
 
       if (currentGameState === 'TITLE') {
         screenTitle.classList.remove('hidden');
+        settingsBtnIcon.classList.remove('hidden');
         ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'CPU_SETUP') {
         screenCpuSetup.classList.remove('hidden');
+        settingsBtnIcon.classList.remove('hidden');
         ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'LOBBY') {
         screenLobby.classList.remove('hidden');
         updateLobbyUI();
         startLobbyAnimation();
+        settingsBtnIcon.classList.remove('hidden');
         ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'PLAYING') {
+        settingsBtnIcon.classList.add('hidden'); // 戦闘中になったら設定ボタンを消す
         ingameMenuBtn.classList.remove('hidden');
       } else if (currentGameState === 'FINISHED') {
         screenGameover.classList.remove('hidden');
+        settingsBtnIcon.classList.remove('hidden');
         ingameMenuBtn.classList.add('hidden');
       }
     }
@@ -1547,7 +1560,6 @@
         drawPlayerHUDBox(me, 20, 20, false);
       }
 
-      // ハンバーガーメニューと被らないように右側の体力バーの位置をさらに左（-65px）にずらしました
       const positions = [
         { x: 1200 - 20 - 260 - 65, y: 20, isRight: true },
         { x: 20, y: 110, isRight: false },
