@@ -25,10 +25,10 @@ app.get('/', (req, res) => {
 
 const CHARACTERS = {
   futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(10秒)',  cd: 12 },
-  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー', cd: 120 },
+  debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(着地衝撃波)', cd: 120 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム', cd: 12 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投', cd: 36 },
-  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '巨大貫通魔法弾', cd: 36 }
+  wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾3連投(確率硬直)', cd: 36 }
 };
 
 const STAGES = {
@@ -134,6 +134,7 @@ io.on('connection', (socket) => {
       maxHp: CHARACTERS[randomCpuChar].hp,
       lives: 3,
       isGrounded: false,
+      wasGrounded: false,
       attacking: false,
       attackCooldown: 0,
       attackType: null,
@@ -152,6 +153,7 @@ io.on('connection', (socket) => {
       specialReady: false,
       debugonSpecialArmed: false,
       ninjaSpecialShurikenCount: 0,
+      wizardSpecialMagicCount: 0,
       barrierTimer: 0,
       barrierCooldown: 0,
       downPressed: false
@@ -270,6 +272,34 @@ io.on('connection', (socket) => {
       return;
     }
 
+    if (char.type === 'wizard') {
+      if (p.wizardSpecialMagicCount > 0) {
+        p.wizardSpecialMagicCount--;
+        const isRight = p.facing === 'right';
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_mega_giant',
+          x: isRight ? p.x + char.width : p.x - 90, y: p.y + char.height * 0.15,
+          vx: isRight ? 14 : -14, width: 85, height: 85, damage: Math.round(char.atk * 2.0), pierce: true
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard_mega' });
+        if (p.wizardSpecialMagicCount <= 0) {
+          p.specialReady = false;
+          p.specialGauge = 0;
+        }
+      } else if (p.specialReady) {
+        p.wizardSpecialMagicCount = 3;
+        p.wizardSpecialMagicCount--;
+        const isRight = p.facing === 'right';
+        room.projectiles.push({
+          id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_mega_giant',
+          x: isRight ? p.x + char.width : p.x - 90, y: p.y + char.height * 0.15,
+          vx: isRight ? 14 : -14, width: 85, height: 85, damage: Math.round(char.atk * 2.0), pierce: true
+        });
+        io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard_mega' });
+      }
+      return;
+    }
+
     if (!p.specialReady) return;
     p.specialReady = false;
     p.specialGauge = 0;
@@ -284,14 +314,6 @@ io.on('connection', (socket) => {
       p.attackBox = { x: p.x - 140, y: p.y - 90, width: char.width + 280, height: char.height + 180, damage: 55, type: 'special_bomb' };
       setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 300);
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'chibikoro_mega' });
-    } else if (char.type === 'wizard') {
-      const isRight = p.facing === 'right';
-      room.projectiles.push({
-        id: Date.now() + Math.random(), ownerId: p.id, type: 'wizard_mega_giant',
-        x: isRight ? p.x + char.width : p.x - 90, y: p.y + char.height * 0.15,
-        vx: isRight ? 14 : -14, width: 85, height: 85, damage: Math.round(char.atk * 3.0), pierce: true
-      });
-      io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'wizard_mega' });
     }
   });
 
@@ -464,6 +486,7 @@ function startMatch(room) {
     pl.specialReady = false;
     pl.debugonSpecialArmed = false;
     pl.ninjaSpecialShurikenCount = 0;
+    pl.wizardSpecialMagicCount = 0;
     pl.barrierTimer = 0;
     pl.barrierCooldown = 0;
     pl.downPressed = false;
@@ -488,6 +511,7 @@ function createPlayerData(socketId, playerNum, name) {
     maxHp: 100,
     lives: 3,
     isGrounded: false,
+    wasGrounded: false,
     attacking: false,
     attackCooldown: 0,
     attackType: null,
@@ -506,6 +530,7 @@ function createPlayerData(socketId, playerNum, name) {
     specialReady: false,
     debugonSpecialArmed: false,
     ninjaSpecialShurikenCount: 0,
+    wizardSpecialMagicCount: 0,
     barrierTimer: 0,
     barrierCooldown: 0,
     downPressed: false
@@ -549,6 +574,7 @@ function updateCpuAI(cpu, target) {
     cpu.specialGauge = 0;
     if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 600;
     else if (cpuChar.type === 'debugon') cpu.debugonSpecialArmed = true;
+    else if (cpuChar.type === 'wizard') cpu.wizardSpecialMagicCount = 3;
   }
 
   if (cpu.barrierCooldown <= 0 && Math.random() < 0.01) {
@@ -691,6 +717,7 @@ setInterval(() => {
           }
 
           const isArmored = (targetChar.type === 'debugon' && target.attacking) || target.senobicTimer > 0;
+          const attackerChar = attacker ? CHARACTERS[attacker.characterKey] : null;
 
           if (target.hp <= 0) {
             target.hp = 0;
@@ -701,7 +728,12 @@ setInterval(() => {
             target.vy = -20;
             io.to(code).emit('koEffect', { victimId: target.id, x: target.x, y: target.y });
           } else if (!isArmored) {
-            target.stunFrames = 10;
+            // ウィザードの攻撃を受けた時は3分の1の確率で0.5秒(30フレーム)硬直
+            if (attackerChar && attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
+              target.stunFrames = 30;
+            } else {
+              target.stunFrames = 10;
+            }
             target.vy = -5;
             target.vx = proj.vx > 0 ? 12 : -12;
           }
@@ -798,6 +830,7 @@ setInterval(() => {
       p.x += p.vx;
       p.y += p.vy;
 
+      p.wasGrounded = p.isGrounded;
       p.isGrounded = false;
       const curH = char.height * (p.senobicTimer > 0 ? 2 : 1);
 
@@ -825,6 +858,21 @@ setInterval(() => {
         });
       }
 
+      // デブゴンがジャンプして着地した瞬間に必殺技発動
+      if (!p.wasGrounded && p.isGrounded && p.debugonSpecialArmed) {
+        p.debugonSpecialArmed = false;
+        p.attackBox = {
+          x: p.x - 140,
+          y: p.y - 20,
+          width: curW + 280,
+          height: curH + 40,
+          damage: Math.round(char.atk * 2.5),
+          type: 'special_shockwave'
+        };
+        setTimeout(() => { if (p.attackBox) p.attackBox = null; }, 300);
+        io.to(code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
+      }
+
       if (p.x < 0) p.x = 0;
       if (p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) > STAGE_WIDTH) {
         p.x = STAGE_WIDTH - (char.width * (p.senobicTimer > 0 ? 2 : 1));
@@ -837,6 +885,7 @@ setInterval(() => {
       if (!defender || defender.isKilled) return;
 
       const defenderChar = CHARACTERS[defender.characterKey];
+      const attackerChar = CHARACTERS[attacker.characterKey];
       const defScale = defender.senobicTimer > 0 ? 2 : 1;
 
       if (attacker.attackBox && defender.invincibleFrames === 0) {
@@ -871,7 +920,12 @@ setInterval(() => {
             defender.vy = -20;
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
           } else if (!isArmored) {
-            defender.stunFrames = 10;
+            // ウィザードの攻撃を受けた時は3分の1の確率で0.5秒(30フレーム)硬直
+            if (attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
+              defender.stunFrames = 30;
+            } else {
+              defender.stunFrames = 10;
+            }
             defender.vy = -5;
             defender.vx = attacker.facing === 'right' ? 12 : -12;
           }
