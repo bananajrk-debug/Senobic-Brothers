@@ -239,7 +239,7 @@ io.on('connection', (socket) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
-    if (!p || p.isKilled) return;
+    if (!p || p.isKilled || p.barrierTimer > 0) return;
     const char = CHARACTERS[p.characterKey];
 
     if (char.type === 'ninja') {
@@ -321,7 +321,7 @@ io.on('connection', (socket) => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
-    if (!p || p.isKilled || p.barrierCooldown > 0) return;
+    if (!p || p.isKilled || p.barrierCooldown > 0 || p.barrierTimer > 0) return;
 
     p.barrierTimer = 60;
     p.barrierCooldown = 180;
@@ -333,7 +333,7 @@ io.on('connection', (socket) => {
     if (!room || room.gameState !== 'PLAYING') return;
 
     const p = room.players[socket.id];
-    if (!p || p.stunFrames > 0 || p.isKilled) return;
+    if (!p || p.stunFrames > 0 || p.isKilled || p.barrierTimer > 0) return;
 
     const char = CHARACTERS[p.characterKey];
     let speedMult = p.buffSpeedTimer > 0 ? 1.4 : 1.0;
@@ -550,7 +550,7 @@ function respawnPlayer(p) {
 }
 
 function updateCpuAI(cpu, target) {
-  if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled) return;
+  if (!cpu || !target || cpu.stunFrames > 0 || cpu.isKilled || cpu.barrierTimer > 0) return;
 
   const cpuChar = CHARACTERS[cpu.characterKey];
   const distance = (target.x + CHARACTERS[target.characterKey].width / 2) - (cpu.x + cpuChar.width / 2);
@@ -728,7 +728,6 @@ setInterval(() => {
             target.vy = -20;
             io.to(code).emit('koEffect', { victimId: target.id, x: target.x, y: target.y });
           } else if (!isArmored) {
-            // ウィザードの攻撃を受けた時は3分の1の確率で0.5秒(30フレーム)硬直
             if (attackerChar && attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
               target.stunFrames = 30;
             } else {
@@ -794,7 +793,14 @@ setInterval(() => {
       if (p.buffSpeedTimer > 0) p.buffSpeedTimer--;
       if (p.senobicTimer > 0) p.senobicTimer--;
       if (p.specialActiveTimer > 0) p.specialActiveTimer--;
-      if (p.barrierTimer > 0) p.barrierTimer--;
+      
+      // バリアタイマーの更新と終了時の0.3秒(18フレーム)硬直
+      if (p.barrierTimer > 0) {
+        p.barrierTimer--;
+        if (p.barrierTimer === 0) {
+          p.stunFrames = 18;
+        }
+      }
       if (p.barrierCooldown > 0) p.barrierCooldown--;
 
       if (p.isKilled) {
@@ -815,6 +821,9 @@ setInterval(() => {
       }
 
       const char = CHARACTERS[p.characterKey];
+      const scale = p.senobicTimer > 0 ? 2 : 1;
+      const curW = char.width * scale;
+      const curH = char.height * scale;
 
       if (p.stunFrames > 0) {
         p.stunFrames--;
@@ -825,6 +834,11 @@ setInterval(() => {
         p.invincibleFrames--;
       }
 
+      // バリア中は移動を固定
+      if (p.barrierTimer > 0) {
+        p.vx = 0;
+      }
+
       const prevY = p.y;
       p.vy += GRAVITY;
       p.x += p.vx;
@@ -832,7 +846,6 @@ setInterval(() => {
 
       p.wasGrounded = p.isGrounded;
       p.isGrounded = false;
-      const curH = char.height * (p.senobicTimer > 0 ? 2 : 1);
 
       if (p.y + curH >= GROUND_Y) {
         p.y = GROUND_Y - curH;
@@ -843,7 +856,6 @@ setInterval(() => {
 
       if (p.vy >= 0 && !p.downPressed) {
         currentPlatforms.forEach(plat => {
-          const curW = char.width * (p.senobicTimer > 0 ? 2 : 1);
           if (
             p.x + curW > plat.x &&
             p.x < plat.x + plat.width &&
@@ -858,7 +870,7 @@ setInterval(() => {
         });
       }
 
-      // デブゴンがジャンプして着地した瞬間に必殺技発動
+      // デブゴン着地衝撃波
       if (!p.wasGrounded && p.isGrounded && p.debugonSpecialArmed) {
         p.debugonSpecialArmed = false;
         p.attackBox = {
@@ -874,8 +886,8 @@ setInterval(() => {
       }
 
       if (p.x < 0) p.x = 0;
-      if (p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)) > STAGE_WIDTH) {
-        p.x = STAGE_WIDTH - (char.width * (p.senobicTimer > 0 ? 2 : 1));
+      if (p.x + curW > STAGE_WIDTH) {
+        p.x = STAGE_WIDTH - curW;
       }
     });
 
@@ -920,7 +932,6 @@ setInterval(() => {
             defender.vy = -20;
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
           } else if (!isArmored) {
-            // ウィザードの攻撃を受けた時は3分の1の確率で0.5秒(30フレーム)硬直
             if (attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
               defender.stunFrames = 30;
             } else {
