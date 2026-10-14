@@ -676,13 +676,11 @@
         if (e.key === 's' || e.key === 'S') keys.down = true;
         if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
         
-        // Jキーで必殺技
         if (e.key === 'j' || e.key === 'J') { 
           e.preventDefault();
           socket.emit('triggerSpecial'); 
         }
 
-        // スペースキーでバリア
         if (e.code === 'Space') {
           e.preventDefault();
           socket.emit('triggerBarrier');
@@ -1121,7 +1119,6 @@
           ctx.shadowBlur = 0;
         }
 
-        // バリア展開中のシールドエフェクト
         if (p.barrierTimer > 0) {
           ctx.strokeStyle = '#38bdf8';
           ctx.lineWidth = 5;
