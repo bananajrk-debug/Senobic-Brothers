@@ -453,6 +453,7 @@
 
     let myPlayerNum = null;
     let currentCode = null;
+    let currentStageWidth = 1200;
 
     let characters = {
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(5秒)' },
@@ -704,6 +705,7 @@
     socket.on('gameStart', (data) => {
       currentGameState = 'PLAYING';
       isCpuModeGame = !!data.isCpuMode;
+      currentStageWidth = data.stageWidth || 1200;
       countdownOverlay.classList.add('hidden');
       playersData = data.players;
       itemsData = [];
@@ -1024,51 +1026,64 @@
         ctx.fillStyle = '#0d0d12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // ブロスタ風レイアウト：自分が真ん中大表示、横に他のプレイヤー
+        const allPlayers = Object.values(playersData);
+        const myData = allPlayers.find(p => p.playerNum === myPlayerNum) || allPlayers[0];
+        const others = allPlayers.filter(p => p.playerNum !== (myData ? myData.playerNum : -1));
+
         const positions = [
-          { x: 300, y: 480 },
-          { x: 500, y: 480 },
-          { x: 700, y: 480 },
-          { x: 900, y: 480 }
+          { x: 600, y: 460, scale: 1.4, isMe: true, player: myData },           // 自分（真ん中・特大）
+          { x: 260, y: 470, scale: 0.9, isMe: false, player: others[0] || null }, // 左1
+          { x: 940, y: 470, scale: 0.9, isMe: false, player: others[1] || null }, // 右1
+          { x: 100, y: 480, scale: 0.75, isMe: false, player: others[2] || null } // 一番左
         ];
 
-        const allPlayers = Object.values(playersData);
-
-        for (let i = 0; i < 4; i++) {
-          const pos = positions[i];
-          ctx.fillStyle = '#181822';
+        positions.forEach(pos => {
+          ctx.fillStyle = pos.isMe ? '#252538' : '#181822';
           ctx.beginPath();
-          ctx.ellipse(pos.x, pos.y, 80, 18, 0, 0, Math.PI * 2);
+          ctx.ellipse(pos.x, pos.y, 90 * pos.scale, 20 * pos.scale, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          const pl = allPlayers.find(p => p.playerNum === (i + 1));
+          if (pos.isMe) {
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+
+          const pl = pos.player;
           if (pl && characters[pl.characterKey]) {
             const char = characters[pl.characterKey];
             ctx.save();
             ctx.translate(pos.x, pos.y - 10);
-            ctx.scale(0.85, 0.85);
-            const lobbyP = { x: -char.width / 2, y: -char.height, facing: i < 2 ? 'right' : 'left', characterKey: pl.characterKey, stunFrames: 0, senobicTimer: 0 };
+            ctx.scale(pos.scale, pos.scale);
+            const lobbyP = { x: -char.width / 2, y: -char.height, facing: pos.x <= 600 ? 'right' : 'left', characterKey: pl.characterKey, stunFrames: 0, senobicTimer: 0 };
             drawRealisticHumanoid(ctx, lobbyP, char);
             ctx.restore();
 
-            ctx.fillStyle = pl.playerNum === myPlayerNum ? '#f1c40f' : '#fff';
-            ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${pl.name} (${pl.playerNum}P)`, pos.x, pos.y + 22);
-            ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
-            ctx.font = '11px sans-serif';
-            ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 38);
+            const charTopY = pos.y - 10 - (char.height * pos.scale);
 
+            // プレイヤー名＆準備ステータス表示
+            ctx.fillStyle = pos.isMe ? '#f1c40f' : '#fff';
+            ctx.font = 'bold 15px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${pl.name} ${pos.isMe ? '(YOU)' : ''}`, pos.x, pos.y + 24);
+            
+            ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 42);
+
+            // 絵文字（スタンプ）が顔の前ではなく、頭の上にしっかり浮くよう表示
             if (activeStamps[pl.id] && activeStamps[pl.id].timer > 0) {
-              drawStampEffect(ctx, pos.x, pos.y - 65, activeStamps[pl.id].stamp);
+              drawStampEffect(ctx, pos.x, charTopY - 25, activeStamps[pl.id].stamp);
               activeStamps[pl.id].timer--;
             }
           } else {
             ctx.fillStyle = '#444';
-            ctx.font = 'bold 12px sans-serif';
+            ctx.font = 'bold 13px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`【 空き枠 ${i + 1}P 】`, pos.x, pos.y + 20);
+            ctx.fillText('【 参加待ち 】', pos.x, pos.y + 25);
           }
-        }
+        });
 
         lobbyAnimId = requestAnimationFrame(loop);
       }
@@ -1079,6 +1094,13 @@
       ctx.fillStyle = '#08080a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      ctx.save();
+
+      // 4人対戦時の広角カメラズーム調整
+      if (currentStageWidth > 1200) {
+        ctx.scale(1200 / currentStageWidth, 1200 / currentStageWidth);
+      }
+
       drawStageBackground(selectedStage);
 
       // アイテム描画
@@ -1087,40 +1109,22 @@
         ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
 
         if (item.type === 'barrel') {
-          // 爆弾樽
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(-18, -20, 36, 40);
-          ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(-18, -14, 36, 4);
-          ctx.fillRect(-18, 10, 36, 4);
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = '#78350f'; ctx.fillRect(-18, -20, 36, 40);
+          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-18, -14, 36, 4); ctx.fillRect(-18, 10, 36, 4);
+          ctx.fillStyle = '#ef4444'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText('💣', 0, 5);
         } else if (item.type === 'senobic') {
-          ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(-14, -18, 28, 36);
-          ctx.fillStyle = '#f1c40f';
-          ctx.fillRect(-10, -10, 20, 20);
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = '#e74c3c'; ctx.fillRect(-14, -18, 28, 36);
+          ctx.fillStyle = '#f1c40f'; ctx.fillRect(-10, -10, 20, 20);
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText('SEN', 0, 4);
         } else {
           ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : '#f1c40f';
-          ctx.beginPath();
-          ctx.arc(0, 0, 22, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-
-          ctx.fillStyle = '#fff';
-          ctx.font = 'bold 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          const label = item.type === 'heal' ? '🍖' : '⭐';
-          ctx.fillText(label, 0, 0);
+          ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(item.type === 'heal' ? '🍖' : '⭐', 0, 0);
         }
         ctx.restore();
       });
@@ -1131,42 +1135,23 @@
         if (proj.type === 'thrown_barrel') {
           ctx.translate(proj.x + 18, proj.y + 20);
           ctx.rotate(Date.now() * 0.03);
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(-18, -20, 36, 40);
-          ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(-18, -14, 36, 4);
-          ctx.fillRect(-18, 10, 36, 4);
-          ctx.fillStyle = '#ef4444';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = '#78350f'; ctx.fillRect(-18, -20, 36, 40);
+          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-18, -14, 36, 4); ctx.fillRect(-18, 10, 36, 4);
+          ctx.fillStyle = '#ef4444'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText('💣', 0, 5);
         } else if (proj.type === 'ninja') {
-          ctx.translate(proj.x + 13, proj.y + 11);
-          ctx.rotate(Date.now() * 0.02);
-          ctx.fillStyle = '#bdc3c7';
-          ctx.fillRect(-12, -3, 24, 6);
-          ctx.fillRect(-3, -12, 6, 24);
+          ctx.translate(proj.x + 13, proj.y + 11); ctx.rotate(Date.now() * 0.02);
+          ctx.fillStyle = '#bdc3c7'; ctx.fillRect(-12, -3, 24, 6); ctx.fillRect(-3, -12, 6, 24);
         } else if (proj.type === 'ninja_giant_yellow') {
-          const hw = (proj.width || 60) / 2;
-          const hh = (proj.height || 60) / 2;
-          ctx.translate(proj.x + hw, proj.y + hh);
-          ctx.rotate(Date.now() * 0.05);
-          ctx.fillStyle = '#f1c40f';
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.rect(-hw, -hh * 0.25, proj.width || 60, hh * 0.5);
-          ctx.rect(-hw * 0.25, -hh, hw * 0.5, proj.height || 60);
-          ctx.fill(); ctx.stroke();
+          const hw = (proj.width || 60) / 2; const hh = (proj.height || 60) / 2;
+          ctx.translate(proj.x + hw, proj.y + hh); ctx.rotate(Date.now() * 0.05);
+          ctx.fillStyle = '#f1c40f'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.rect(-hw, -hh * 0.25, proj.width || 60, hh * 0.5); ctx.rect(-hw * 0.25, -hh, hw * 0.5, proj.height || 60); ctx.fill(); ctx.stroke();
         } else if (proj.type === 'wizard') {
-          ctx.fillStyle = '#9b59b6';
-          ctx.beginPath(); ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#9b59b6'; ctx.beginPath(); ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2); ctx.fill();
         } else if (proj.type === 'wizard_mega_giant') {
-          const size = proj.width || 85;
-          ctx.translate(proj.x + size / 2, proj.y + size / 2);
-          ctx.rotate(Date.now() * 0.08);
-          ctx.fillStyle = '#c084fc';
-          ctx.beginPath(); ctx.arc(0, 0, size * 0.45, 0, Math.PI * 2); ctx.fill();
+          const size = proj.width || 85; ctx.translate(proj.x + size / 2, proj.y + size / 2); ctx.rotate(Date.now() * 0.08);
+          ctx.fillStyle = '#c084fc'; ctx.beginPath(); ctx.arc(0, 0, size * 0.45, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
       });
@@ -1188,74 +1173,66 @@
         ctx.fill();
 
         if (p.barrierTimer > 0) {
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 5;
-          ctx.beginPath();
-          ctx.ellipse(p.x + curW / 2, p.y + curH / 2, curW * 0.75, curH * 0.6, 0, 0, Math.PI * 2);
-          ctx.stroke();
+          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.ellipse(p.x + curW / 2, p.y + curH / 2, curW * 0.75, curH * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
         }
 
         drawRealisticHumanoid(ctx, p, char);
 
-        // 樽を持っているときの頭上描画
         if (p.hasBarrel) {
           ctx.save();
           ctx.translate(p.x + curW / 2, p.y - 20);
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(-16, -18, 32, 36);
-          ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(-16, -12, 32, 3);
-          ctx.fillRect(-16, 8, 32, 3);
-          ctx.fillStyle = '#ef4444';
-          ctx.font = '14px sans-serif';
-          ctx.textAlign = 'center';
+          ctx.fillStyle = '#78350f'; ctx.fillRect(-16, -18, 32, 36);
+          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-16, -12, 32, 3); ctx.fillRect(-16, 8, 32, 3);
+          ctx.fillStyle = '#ef4444'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText('💣', 0, 4);
           ctx.restore();
         }
 
-        if (p.attackBox) {
-          drawCustomAttackEffect(ctx, p, char);
-        }
+        if (p.attackBox) drawCustomAttackEffect(ctx, p, char);
 
-        ctx.fillStyle = p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c');
-        ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+        // 戦闘中のプレイヤー名を大きく太くフチ取り表示（一目で誰かわかるように）
+        const isMe = p.playerNum === myPlayerNum;
+        ctx.font = '900 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(p.name, p.x + curW / 2, p.y - 12);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(`${p.name} (${p.playerNum}P)`, p.x + curW / 2, p.y - 20);
+        ctx.fillStyle = isMe ? '#f1c40f' : (p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c'));
+        ctx.fillText(`${p.name} (${p.playerNum}P)`, p.x + curW / 2, p.y - 20);
+
+        // 足元（下）のミニHPバー表示
+        const miniBarW = Math.max(curW, 50);
+        ctx.fillStyle = '#111';
+        ctx.fillRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW, 6);
+        ctx.fillStyle = p.hp < p.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
+        ctx.fillRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW * (p.hp / p.maxHp), 6);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW, 6);
 
         let statusStr = '';
-        if (p.hasBarrel) statusStr += '💣[K/Oキーで投げる!] ';
+        if (p.hasBarrel) statusStr += '💣[K/Oで投げる!] ';
         if (p.barrierTimer > 0) statusStr += '🛡️ BARRIER! ';
-        else if (p.barrierCooldown > 0) statusStr += `⏳バリア: ${(p.barrierCooldown / 60).toFixed(1)}秒 `;
+        else if (p.barrierCooldown > 0) statusStr += `⏳バリア: ${(p.barrierCooldown / 60).toFixed(1)}s `;
 
         if (p.debugonSpecialArmed) statusStr += '⚡[着地衝撃波!] ';
-        if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣: ${p.ninjaSpecialShurikenCount} `;
-        if (p.wizardSpecialMagicCount > 0) statusStr += `✨魔法: ${p.wizardSpecialMagicCount} `;
+        if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣:${p.ninjaSpecialShurikenCount} `;
+        if (p.wizardSpecialMagicCount > 0) statusStr += `✨魔法:${p.wizardSpecialMagicCount} `;
         if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
-          statusStr += `🔥覚醒: ${(p.specialActiveTimer / 60).toFixed(1)}秒 `;
+          statusStr += `🔥覚醒:${(p.specialActiveTimer / 60).toFixed(1)}s `;
         }
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
 
         if (statusStr) {
-          ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+          ctx.font = 'bold 12px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
           ctx.fillStyle = '#f1c40f';
-          ctx.fillText(statusStr, p.x + curW / 2, p.y - 32);
-        }
-
-        if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
-          const barW = curW;
-          const ratio = p.specialActiveTimer / 300;
-          ctx.fillStyle = '#333';
-          ctx.fillRect(p.x, p.y - 44, barW, 6);
-          ctx.fillStyle = '#e74c3c';
-          ctx.fillRect(p.x, p.y - 44, barW * ratio, 6);
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(p.x, p.y - 44, barW, 6);
+          ctx.fillText(statusStr, p.x + curW / 2, p.y - 42);
         }
 
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + curW / 2, p.y - 55, activeStamps[p.id].stamp);
+          drawStampEffect(ctx, p.x + curW / 2, p.y - 65, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
         }
 
@@ -1267,78 +1244,67 @@
         const fx = visualEffects[i];
         ctx.save();
         if (fx.type === 'BARREL_EXP') {
-          // 爆弾樽の円形爆発エフェクト
           ctx.fillStyle = `rgba(239, 68, 68, ${fx.timer / 25})`;
-          ctx.beginPath();
-          ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#f59e0b';
-          ctx.lineWidth = 4;
-          ctx.stroke();
+          ctx.beginPath(); ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4; ctx.stroke();
         } else if (fx.type === 'KO_FLASH') {
           ctx.fillStyle = `rgba(231, 76, 60, ${Math.min(0.6, fx.timer / 100)})`;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillRect(0, 0, currentStageWidth, 600);
         } else if (fx.type === 'KO_TEXT') {
-          ctx.fillStyle = '#f1c40f';
-          ctx.font = '900 90px Impact, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.shadowColor = '#e74c3c';
-          ctx.shadowBlur = 25;
-          ctx.fillText('K. O. ! !', 600, 280);
+          ctx.fillStyle = '#f1c40f'; ctx.font = '900 90px Impact, sans-serif'; ctx.textAlign = 'center';
+          ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 25; ctx.fillText('K. O. ! !', currentStageWidth / 2, 280);
         } else if (fx.type === 'SPECIAL_POP') {
-          ctx.fillStyle = '#f1c40f';
-          ctx.font = '900 32px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.textAlign = 'center';
-          ctx.shadowColor = '#e74c3c';
-          ctx.shadowBlur = 12;
-          ctx.fillText(fx.text, 600, 180);
+          ctx.fillStyle = '#f1c40f'; ctx.font = '900 32px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+          ctx.textAlign = 'center'; ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 12; ctx.fillText(fx.text, currentStageWidth / 2, 180);
         }
         ctx.restore();
         fx.timer--;
         if (fx.timer <= 0) visualEffects.splice(i, 1);
       }
 
+      ctx.restore();
+
       drawHUD();
     }
 
     function drawStageBackground(stageId) {
+      const stageW = currentStageWidth || 1200;
       if (stageId === 1) {
-        ctx.fillStyle = '#162b36'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#162b36'; ctx.fillRect(0, 0, stageW, 600);
         ctx.fillStyle = '#1e293b';
         ctx.beginPath(); ctx.moveTo(0, 520); ctx.lineTo(200, 200); ctx.lineTo(450, 520); ctx.fill();
         ctx.beginPath(); ctx.moveTo(300, 520); ctx.lineTo(600, 150); ctx.lineTo(900, 520); ctx.fill();
-        ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, canvas.width, 8);
+        ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, stageW, 80);
+        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, stageW, 8);
       } else if (stageId === 2) {
-        ctx.fillStyle = '#0b0c10'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0b0c10'; ctx.fillRect(0, 0, stageW, 600);
         ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(1000, 110, 60, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, canvas.width, 2);
+        ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, stageW, 80);
+        ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, stageW, 2);
       } else if (stageId === 3) {
-        ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, canvas.width, 6);
+        ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, stageW, 600);
+        ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, stageW, 80);
+        ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, stageW, 6);
       } else if (stageId === 4) {
-        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, canvas.width, 6);
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, stageW, 600);
+        ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, stageW, 80);
+        ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, stageW, 6);
       } else if (stageId === 5) {
-        ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, canvas.width, 80);
-        ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, canvas.width, 4);
+        ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, stageW, 600);
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, stageW, 80);
+        ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, stageW, 4);
       }
 
       const currentStageObj = stages[stageId];
       if (currentStageObj && currentStageObj.platforms) {
         currentStageObj.platforms.forEach(pt => {
           ctx.save();
-          const pw = pt.width || pt.w;
+          const px = stageW === 1600 ? pt.x * 1.33 : pt.x;
+          const pw = stageW === 1600 ? pt.width * 1.2 : pt.width;
           const ph = pt.height || pt.h;
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(pt.x, pt.y, pw, ph);
+          ctx.fillStyle = '#1e293b'; ctx.fillRect(px, pt.y, pw, ph);
           ctx.strokeStyle = pt.type === 'gold' ? '#eab308' : (pt.type === 'neon' ? '#00f2fe' : '#38bdf8');
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(pt.x, pt.y, pw, ph);
+          ctx.lineWidth = 2.5; ctx.strokeRect(px, pt.y, pw, ph);
           ctx.restore();
         });
       }
@@ -1346,7 +1312,7 @@
 
     function drawStampEffect(targetCtx, x, y, emoji) {
       targetCtx.save();
-      targetCtx.font = '34px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+      targetCtx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
       targetCtx.textAlign = 'center';
       targetCtx.fillText(emoji, x, y);
       targetCtx.restore();
@@ -1502,69 +1468,63 @@
       targetCtx.restore();
     }
 
+    // 画面上部HUD表示（自分のHPバーを常に左上［1Pの位置］に優先表示）
     function drawHUD() {
-      const p1 = Object.values(playersData).find(p => p.playerNum === 1);
-      const p2 = Object.values(playersData).find(p => p.playerNum === 2);
+      const allPlayers = Object.values(playersData);
+      const me = allPlayers.find(p => p.playerNum === myPlayerNum) || allPlayers[0];
+      const others = allPlayers.filter(p => p.id !== (me ? me.id : null));
 
-      if (p1 && characters[p1.characterKey]) {
-        const char1 = characters[p1.characterKey];
-        ctx.fillStyle = '#1a1a22'; ctx.fillRect(20, 20, 400, 24);
-        const hp1Width = Math.max(0, (p1.hp / p1.maxHp) * 400);
-        ctx.fillStyle = p1.hp < p1.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(20, 20, hp1Width, 24);
-
-        ctx.fillStyle = '#333'; ctx.fillRect(20, 48, 400, 12);
-        ctx.fillStyle = '#f1c40f'; ctx.fillRect(20, 48, Math.max(0, ((p1.specialGauge || 0) / 100) * 400), 12);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(20, 48, 400, 12);
-
-        if (p1.specialReady) {
-          ctx.fillStyle = '#f1c40f';
-          ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.fillText('⚡ SPECIAL READY! [J] ⚡', 240, 60);
-        }
-
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`${p1.name} (${char1.name})`, 20, 15);
-
-        let livesStr = '残機: ';
-        for (let l = 0; l < (p1.lives || 0); l++) livesStr += '❤️ ';
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 14px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.fillText(livesStr, 20, 82);
+      // 1. 自分のHPバーを常に左上に表示
+      if (me && characters[me.characterKey]) {
+        drawPlayerHUDBox(me, 20, 20, false);
       }
 
-      if (p2 && characters[p2.characterKey]) {
-        const char2 = characters[p2.characterKey];
-        ctx.fillStyle = '#1a1a22'; ctx.fillRect(1200 - 20 - 400, 20, 400, 24);
-        const hp2Width = Math.max(0, (p2.hp / p2.maxHp) * 400);
-        ctx.fillStyle = p2.hp < p2.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(1200 - 20 - hp2Width, 20, hp2Width, 24);
+      // 2. 他のプレイヤーのHPバーを順番に右側へ並べて表示
+      const positions = [
+        { x: 1200 - 20 - 260, y: 20, isRight: true },
+        { x: 20, y: 110, isRight: false },
+        { x: 1200 - 20 - 260, y: 110, isRight: true }
+      ];
 
-        ctx.fillStyle = '#333'; ctx.fillRect(1200 - 420, 48, 400, 12);
-        ctx.fillStyle = '#f1c40f'; ctx.fillRect(1200 - 20 - Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 48, Math.max(0, ((p2.specialGauge || 0) / 100) * 400), 12);
-        ctx.strokeRect(1200 - 420, 48, 400, 12);
-
-        if (p2.specialReady) {
-          ctx.fillStyle = '#f1c40f';
-          ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.textAlign = 'right';
-          ctx.fillText('⚡ SPECIAL READY! ⚡', 1200 - 430, 60);
+      others.forEach((p, idx) => {
+        if (positions[idx]) {
+          drawPlayerHUDBox(p, positions[idx].x, positions[idx].y, positions[idx].isRight);
         }
+      });
+    }
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 13px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(`${p2.name} (${char2.name})`, 1200 - 20, 15);
+    function drawPlayerHUDBox(p, x, y, isRight) {
+      const char = characters[p.characterKey];
+      if (!char) return;
 
-        let livesStr = '残機: ';
-        for (let l = 0; l < (p2.lives || 0); l++) livesStr += '❤️ ';
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = 'bold 14px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(livesStr, 1200 - 20, 82);
-      }
+      const width = 260;
+      const isMe = p.playerNum === myPlayerNum;
+
+      ctx.save();
+      ctx.fillStyle = '#1a1a22';
+      ctx.fillRect(x, y, width, 18);
+
+      const hpWidth = Math.max(0, (p.hp / p.maxHp) * width);
+      ctx.fillStyle = p.hp < p.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
+      ctx.fillRect(isRight ? x + width - hpWidth : x, y, hpWidth, 18);
+
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x, y + 20, width, 8);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(isRight ? x + width - Math.max(0, ((p.specialGauge || 0) / 100) * width) : x, y + 20, Math.max(0, ((p.specialGauge || 0) / 100) * width), 8);
+
+      ctx.fillStyle = isMe ? '#f1c40f' : '#fff';
+      ctx.font = 'bold 12px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+      ctx.textAlign = isRight ? 'right' : 'left';
+      ctx.fillText(`${p.name} (${p.playerNum}P) ${isMe ? '★YOU' : ''}`, isRight ? x + width : x, y - 4);
+
+      let livesStr = '';
+      for (let l = 0; l < (p.lives || 0); l++) livesStr += '❤️ ';
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(livesStr, isRight ? x + width : x, y + 42);
+
+      ctx.restore();
     }
   </script>
 </body>
