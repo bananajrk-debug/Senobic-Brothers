@@ -169,7 +169,7 @@
       z-index: 15;
     }
 
-    #select-modal, #settings-modal, #code-zoom-modal {
+    #select-modal, #settings-modal, #code-zoom-modal, #ingame-menu-modal {
       position: absolute;
       top: 0;
       left: 0;
@@ -272,7 +272,7 @@
     #settings-btn-icon {
       position: absolute;
       top: 12px;
-      right: 175px; /* ROOM CODEと完全に分離・配置調整済み */
+      right: 175px;
       z-index: 25;
       background: #2a2a38;
       border: 1px solid #555;
@@ -284,12 +284,36 @@
       font-weight: bold;
     }
     #settings-btn-icon:hover { background: #3a3a4e; }
+
+    /* 戦闘中ハンバーガーメニューボタン */
+    #ingame-menu-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      z-index: 25;
+      background: #2a2a38;
+      border: 1px solid #555;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #ingame-menu-btn:hover { background: #3a3a4e; }
   </style>
 </head>
 <body>
 
   <div id="game-container">
     <button id="settings-btn-icon" onclick="openSettingsModal()">⚙️ 設定</button>
+    <!-- 戦闘中用ハンバーガーメニューボタン -->
+    <button id="ingame-menu-btn" class="hidden interactive" onclick="openIngameMenu()">≡</button>
+
     <canvas id="gameCanvas" width="1200" height="600"></canvas>
 
     <div id="countdown-overlay" class="hidden">3</div>
@@ -365,7 +389,6 @@
           </div>
 
           <div style="display: flex; flex-direction: column; align-items: flex-end;">
-            <!-- 部屋コード部分を押すと真ん中に拡大表示される -->
             <div id="room-code-badge" class="badge interactive" onclick="openCodeZoomModal()">ROOM CODE: ----</div>
             <div id="stamp-bar">
               <button class="stamp-btn" onclick="sendStamp('👍')">👍</button>
@@ -402,14 +425,24 @@
       </div>
     </div>
 
-    <!-- 5. キャラクター選択モーダル -->
+    <!-- 5. 戦闘中メニューモーダル -->
+    <div id="ingame-menu-modal" class="hidden">
+      <div class="settings-card" style="width: 300px; gap: 12px; align-items: center;">
+        <h2 style="font-size: 18px; color: #3498db; margin-bottom: 4px;">メニュー</h2>
+        <button class="btn" onclick="closeIngameMenu(); openSettingsModal();" style="width: 100%; margin-top: 0;">⚙️ 設定</button>
+        <button class="btn btn-cancel" onclick="closeIngameMenu(); leaveFromInGame();" style="width: 100%; margin-top: 0;">🚪 対戦から退出 (タイトルへ)</button>
+        <button class="btn" onclick="closeIngameMenu()" style="background: #555; width: 100%; margin-top: 5px;">閉じる</button>
+      </div>
+    </div>
+
+    <!-- 6. キャラクター選択モーダル -->
     <div id="select-modal" class="hidden">
       <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">キャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
 
-    <!-- 6. 音量設定モーダル -->
+    <!-- 7. 音量設定モーダル -->
     <div id="settings-modal" class="hidden">
       <div class="settings-card">
         <h2 style="font-size: 20px; text-align: center; color: #3498db; margin-bottom: 6px;">⚙️ 音量設定</h2>
@@ -425,7 +458,7 @@
       </div>
     </div>
 
-    <!-- 7. 勝敗画面 -->
+    <!-- 8. 勝敗画面 -->
     <div id="screen-gameover" class="overlay hidden">
       <h2 id="winner-text" style="font-size: 34px; color: #f1c40f; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241,196,15,0.6);">PLAYER 1 WIN!</h2>
       <div style="display: flex; gap: 12px;">
@@ -452,6 +485,8 @@
     const selectModal = document.getElementById('select-modal');
     const settingsModal = document.getElementById('settings-modal');
     const codeZoomModal = document.getElementById('code-zoom-modal');
+    const ingameMenuModal = document.getElementById('ingame-menu-modal');
+    const ingameMenuBtn = document.getElementById('ingame-menu-btn');
     const zoomedCodeText = document.getElementById('zoomed-code-text');
     const countdownOverlay = document.getElementById('countdown-overlay');
     const charListContainer = document.getElementById('char-list');
@@ -517,6 +552,16 @@
 
     function openSettingsModal() { settingsModal.classList.remove('hidden'); }
     function closeSettingsModal() { settingsModal.classList.add('hidden'); }
+
+    function openIngameMenu() { ingameMenuModal.classList.remove('hidden'); }
+    function closeIngameMenu() { ingameMenuModal.classList.add('hidden'); }
+
+    function leaveFromInGame() {
+      stopBGM();
+      socket.disconnect();
+      socket.connect();
+      goToTitle();
+    }
 
     function openCodeZoomModal() {
       if (currentCode) {
@@ -957,17 +1002,24 @@
       screenGameover.classList.add('hidden');
       selectModal.classList.add('hidden');
       codeZoomModal.classList.add('hidden');
+      ingameMenuModal.classList.add('hidden');
 
       if (currentGameState === 'TITLE') {
         screenTitle.classList.remove('hidden');
+        ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'CPU_SETUP') {
         screenCpuSetup.classList.remove('hidden');
+        ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'LOBBY') {
         screenLobby.classList.remove('hidden');
         updateLobbyUI();
         startLobbyAnimation();
+        ingameMenuBtn.classList.add('hidden');
+      } else if (currentGameState === 'PLAYING') {
+        ingameMenuBtn.classList.remove('hidden');
       } else if (currentGameState === 'FINISHED') {
         screenGameover.classList.remove('hidden');
+        ingameMenuBtn.classList.add('hidden');
       }
     }
 
@@ -1495,10 +1547,11 @@
         drawPlayerHUDBox(me, 20, 20, false);
       }
 
+      // ハンバーガーメニューと被らないように右側の体力バーの位置をさらに左（-65px）にずらしました
       const positions = [
-        { x: 1200 - 20 - 260, y: 20, isRight: true },
+        { x: 1200 - 20 - 260 - 65, y: 20, isRight: true },
         { x: 20, y: 110, isRight: false },
-        { x: 1200 - 20 - 260, y: 110, isRight: true }
+        { x: 1200 - 20 - 260 - 65, y: 110, isRight: true }
       ];
 
       others.forEach((p, idx) => {
