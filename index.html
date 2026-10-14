@@ -269,7 +269,7 @@
     #settings-btn-icon {
       position: absolute;
       top: 12px;
-      right: 12px;
+      right: 140px; /* 👈 ROOM CODEとかぶらないように左側にずらしました */
       z-index: 25;
       background: #2a2a38;
       border: 1px solid #555;
@@ -1070,7 +1070,6 @@
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 42);
 
-            // ロビー画面での絵文字位置をキャラクターのさらに頭上に分離
             if (activeStamps[pl.id] && activeStamps[pl.id].timer > 0) {
               drawStampEffect(ctx, pos.x, charTopY - 35, activeStamps[pl.id].stamp);
               activeStamps[pl.id].timer--;
@@ -1223,7 +1222,6 @@
           ctx.fillText(statusStr, p.x + curW / 2, p.y - 42);
         }
 
-        // 戦闘中の絵文字位置をテキスト（名前やステータス）とかぶらないようさらに上に配置
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
           drawStampEffect(ctx, p.x + curW / 2, p.y - 65, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
