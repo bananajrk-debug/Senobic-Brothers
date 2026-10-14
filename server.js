@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 });
 
 const CHARACTERS = {
-  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(10秒)',  cd: 12 },
+  futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(5秒)',   cd: 12 },
   debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(着地衝撃波)', cd: 120 },
   chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム', cd: 12 },
   ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投', cd: 36 },
@@ -305,7 +305,7 @@ io.on('connection', (socket) => {
     p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
-      p.specialActiveTimer = 600;
+      p.specialActiveTimer = 300; // 5秒間に短縮 (300フレーム)
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'debugon') {
       p.debugonSpecialArmed = true;
@@ -572,7 +572,7 @@ function updateCpuAI(cpu, target) {
   if (cpu.specialReady) {
     cpu.specialReady = false;
     cpu.specialGauge = 0;
-    if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 600;
+    if (cpuChar.type === 'futsuo') cpu.specialActiveTimer = 300;
     else if (cpuChar.type === 'debugon') cpu.debugonSpecialArmed = true;
     else if (cpuChar.type === 'wizard') cpu.wizardSpecialMagicCount = 3;
   }
@@ -632,16 +632,17 @@ function updateCpuAI(cpu, target) {
   }
 }
 
+// セノビックが出る確率を5%に変更、残機が減ったときに呼び出すための関数
 function spawnRandomItem(room) {
   if (room.items.length >= 1) return;
   if (room.spawnedItemCount >= 4) return;
 
   const rand = Math.random();
   let type = 'heal';
-  if (rand < 0.20) type = 'senobic';
-  else if (rand < 0.50) type = 'heal';
-  else if (rand < 0.75) type = 'atk';
-  else type = 'speed';
+  if (rand < 0.05) type = 'senobic';       // 5%
+  else if (rand < 0.35) type = 'heal';     // 30%
+  else if (rand < 0.65) type = 'atk';      // 30%
+  else type = 'speed';                     // 35%
 
   room.items.push({
     id: Date.now() + Math.random(),
@@ -726,6 +727,7 @@ setInterval(() => {
             target.killTimer = 0;
             target.vx = proj.vx > 0 ? 24 : -24;
             target.vy = -20;
+            spawnRandomItem(room); // どちらかの残機が減ったときにアイテムを出す
             io.to(code).emit('koEffect', { victimId: target.id, x: target.x, y: target.y });
           } else if (!isArmored) {
             if (attackerChar && attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
@@ -794,7 +796,6 @@ setInterval(() => {
       if (p.senobicTimer > 0) p.senobicTimer--;
       if (p.specialActiveTimer > 0) p.specialActiveTimer--;
       
-      // バリアタイマーの更新と終了時の0.3秒(18フレーム)硬直
       if (p.barrierTimer > 0) {
         p.barrierTimer--;
         if (p.barrierTimer === 0) {
@@ -834,7 +835,6 @@ setInterval(() => {
         p.invincibleFrames--;
       }
 
-      // バリア中は移動を固定
       if (p.barrierTimer > 0) {
         p.vx = 0;
       }
@@ -870,7 +870,6 @@ setInterval(() => {
         });
       }
 
-      // デブゴン着地衝撃波
       if (!p.wasGrounded && p.isGrounded && p.debugonSpecialArmed) {
         p.debugonSpecialArmed = false;
         p.attackBox = {
@@ -930,6 +929,7 @@ setInterval(() => {
             defender.killTimer = 0;
             defender.vx = attacker.facing === 'right' ? 24 : -24;
             defender.vy = -20;
+            spawnRandomItem(room); // どちらかの残機が減ったときにアイテムを出す
             io.to(code).emit('koEffect', { victimId: defender.id, x: defender.x, y: defender.y });
           } else if (!isArmored) {
             if (attackerChar.type === 'wizard' && Math.random() < 1 / 3) {
