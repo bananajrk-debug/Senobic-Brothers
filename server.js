@@ -147,9 +147,9 @@ io.on('connection', (socket) => {
       buffAtkTimer: 0,
       buffSpeedTimer: 0,
       senobicTimer: 0,
-      specialGauge: 100,
+      specialGauge: 0,
       specialActiveTimer: 0,
-      specialReady: true,
+      specialReady: false,
       debugonSpecialArmed: false,
       ninjaSpecialShurikenCount: 0,
       barrierTimer: 0,
@@ -233,7 +233,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Jキー：必殺技発動
   socket.on('triggerSpecial', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
@@ -276,7 +275,7 @@ io.on('connection', (socket) => {
     p.specialGauge = 0;
 
     if (char.type === 'futsuo') {
-      p.specialActiveTimer = 600; // 10秒間
+      p.specialActiveTimer = 600;
       io.to(room.code).emit('specialTriggered', { playerId: p.id, type: 'futsuo' });
     } else if (char.type === 'debugon') {
       p.debugonSpecialArmed = true;
@@ -296,15 +295,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  // スペースキー：バリア発動 (1秒間持続, クールダウン3秒)
   socket.on('triggerBarrier', () => {
     const room = getRoomBySocket(socket);
     if (!room || room.gameState !== 'PLAYING') return;
     const p = room.players[socket.id];
     if (!p || p.isKilled || p.barrierCooldown > 0) return;
 
-    p.barrierTimer = 60;     // 1秒間 (60フレーム)
-    p.barrierCooldown = 180; // クールダウン3秒 (180フレーム)
+    p.barrierTimer = 60;
+    p.barrierCooldown = 180;
     io.to(room.code).emit('barrierTriggered', { playerId: p.id });
   });
 
@@ -825,23 +823,6 @@ setInterval(() => {
             p.jumpCount = 0;
           }
         });
-      }
-
-      if (!wasGrounded && p.isGrounded && p.debugonSpecialArmed && char.type === 'debugon') {
-        p.debugonSpecialArmed = false;
-        const waveHeight = char.height;
-        const waveWidth = 40;
-        room.projectiles.push({
-          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-          x: p.x + (char.width * (p.senobicTimer > 0 ? 2 : 1)), y: GROUND_Y - waveHeight,
-          vx: 14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
-        });
-        room.projectiles.push({
-          id: Date.now() + Math.random(), ownerId: p.id, type: 'debugon_wave',
-          x: p.x - waveWidth, y: GROUND_Y - waveHeight,
-          vx: -14, width: waveWidth, height: waveHeight, damage: Math.round(char.atk * 2.2), groundAligned: true
-        });
-        io.to(code).emit('specialTriggered', { playerId: p.id, type: 'debugon_fire' });
       }
 
       if (p.x < 0) p.x = 0;
