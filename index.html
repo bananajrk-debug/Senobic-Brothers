@@ -1026,16 +1026,15 @@
         ctx.fillStyle = '#0d0d12';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // ブロスタ風レイアウト：自分が真ん中大表示、横に他のプレイヤー
         const allPlayers = Object.values(playersData);
         const myData = allPlayers.find(p => p.playerNum === myPlayerNum) || allPlayers[0];
         const others = allPlayers.filter(p => p.playerNum !== (myData ? myData.playerNum : -1));
 
         const positions = [
-          { x: 600, y: 460, scale: 1.4, isMe: true, player: myData },           // 自分（真ん中・特大）
-          { x: 260, y: 470, scale: 0.9, isMe: false, player: others[0] || null }, // 左1
-          { x: 940, y: 470, scale: 0.9, isMe: false, player: others[1] || null }, // 右1
-          { x: 100, y: 480, scale: 0.75, isMe: false, player: others[2] || null } // 一番左
+          { x: 600, y: 460, scale: 1.4, isMe: true, player: myData },
+          { x: 260, y: 470, scale: 0.9, isMe: false, player: others[0] || null },
+          { x: 940, y: 470, scale: 0.9, isMe: false, player: others[1] || null },
+          { x: 100, y: 480, scale: 0.75, isMe: false, player: others[2] || null }
         ];
 
         positions.forEach(pos => {
@@ -1062,7 +1061,6 @@
 
             const charTopY = pos.y - 10 - (char.height * pos.scale);
 
-            // プレイヤー名＆準備ステータス表示
             ctx.fillStyle = pos.isMe ? '#f1c40f' : '#fff';
             ctx.font = 'bold 15px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
             ctx.textAlign = 'center';
@@ -1072,9 +1070,9 @@
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 42);
 
-            // 絵文字（スタンプ）が顔の前ではなく、頭の上にしっかり浮くよう表示
+            // ロビー画面での絵文字位置をキャラクターのさらに頭上に分離
             if (activeStamps[pl.id] && activeStamps[pl.id].timer > 0) {
-              drawStampEffect(ctx, pos.x, charTopY - 25, activeStamps[pl.id].stamp);
+              drawStampEffect(ctx, pos.x, charTopY - 35, activeStamps[pl.id].stamp);
               activeStamps[pl.id].timer--;
             }
           } else {
@@ -1096,14 +1094,12 @@
 
       ctx.save();
 
-      // 4人対戦時の広角カメラズーム調整
       if (currentStageWidth > 1200) {
         ctx.scale(1200 / currentStageWidth, 1200 / currentStageWidth);
       }
 
       drawStageBackground(selectedStage);
 
-      // アイテム描画
       itemsData.forEach(item => {
         ctx.save();
         ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
@@ -1129,7 +1125,6 @@
         ctx.restore();
       });
 
-      // 飛び道具・投擲樽描画
       projectilesData.forEach(proj => {
         ctx.save();
         if (proj.type === 'thrown_barrel') {
@@ -1156,7 +1151,6 @@
         ctx.restore();
       });
 
-      // プレイヤー描画
       Object.values(playersData).forEach(p => {
         const char = characters[p.characterKey];
         if (!char) return;
@@ -1191,7 +1185,6 @@
 
         if (p.attackBox) drawCustomAttackEffect(ctx, p, char);
 
-        // 戦闘中のプレイヤー名を大きく太くフチ取り表示（一目で誰かわかるように）
         const isMe = p.playerNum === myPlayerNum;
         ctx.font = '900 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
         ctx.textAlign = 'center';
@@ -1201,7 +1194,6 @@
         ctx.fillStyle = isMe ? '#f1c40f' : (p.isCpu ? '#9b59b6' : (p.playerNum === 1 ? '#3498db' : '#e74c3c'));
         ctx.fillText(`${p.name} (${p.playerNum}P)`, p.x + curW / 2, p.y - 20);
 
-        // 足元（下）のミニHPバー表示
         const miniBarW = Math.max(curW, 50);
         ctx.fillStyle = '#111';
         ctx.fillRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW, 6);
@@ -1231,6 +1223,7 @@
           ctx.fillText(statusStr, p.x + curW / 2, p.y - 42);
         }
 
+        // 戦闘中の絵文字位置をテキスト（名前やステータス）とかぶらないようさらに上に配置
         if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
           drawStampEffect(ctx, p.x + curW / 2, p.y - 65, activeStamps[p.id].stamp);
           activeStamps[p.id].timer--;
@@ -1239,7 +1232,6 @@
         ctx.restore();
       });
 
-      // エフェクト描画
       for (let i = visualEffects.length - 1; i >= 0; i--) {
         const fx = visualEffects[i];
         ctx.save();
@@ -1468,18 +1460,15 @@
       targetCtx.restore();
     }
 
-    // 画面上部HUD表示（自分のHPバーを常に左上［1Pの位置］に優先表示）
     function drawHUD() {
       const allPlayers = Object.values(playersData);
       const me = allPlayers.find(p => p.playerNum === myPlayerNum) || allPlayers[0];
       const others = allPlayers.filter(p => p.id !== (me ? me.id : null));
 
-      // 1. 自分のHPバーを常に左上に表示
       if (me && characters[me.characterKey]) {
         drawPlayerHUDBox(me, 20, 20, false);
       }
 
-      // 2. 他のプレイヤーのHPバーを順番に右側へ並べて表示
       const positions = [
         { x: 1200 - 20 - 260, y: 20, isRight: true },
         { x: 20, y: 110, isRight: false },
