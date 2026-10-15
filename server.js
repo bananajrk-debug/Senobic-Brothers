@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
       playerNum: 1,
       name: data.playerName || 'Player 1',
       characterKey: 'futsuo',
-      role: 'battle', // 'battle' または 'spectator'
+      role: 'battle',
       ready: false,
       hp: 100,
       maxHp: 100,
@@ -102,13 +102,12 @@ io.on('connection', (socket) => {
     io.to(data.code).emit('gameState', room);
   });
 
-  // モード（バトル/観戦）の切り替え
   socket.on('setRole', (data) => {
     if (!currentRoomCode || !rooms[currentRoomCode]) return;
     const room = rooms[currentRoomCode];
     const player = room.players[socket.id];
     if (player) {
-      player.role = data.role; // 'battle' または 'spectator'
+      player.role = data.role;
       io.to(currentRoomCode).emit('gameState', room);
     }
   });
@@ -146,6 +145,7 @@ io.on('connection', (socket) => {
       p.ready = !p.ready;
       io.to(currentRoomCode).emit('gameState', room);
 
+      // 【修正】接続中の全プレイヤーが存在し、かつ全員の ready が true の場合にゲーム開始
       const playersList = Object.values(room.players);
       if (playersList.length > 0 && playersList.every(pl => pl.ready)) {
         startGame(currentRoomCode);
