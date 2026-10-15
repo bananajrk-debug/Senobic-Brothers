@@ -5,327 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>セノビックブラザーズ (Senobic Brothers)</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
-      background-color: #121215;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      overflow: hidden;
+      background-color: #121215; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden;
     }
     #game-container {
-      position: relative;
-      width: 1200px;
-      height: 600px;
-      border: 2px solid #4a4a5e;
-      border-radius: 10px;
-      background-color: #08080a;
-      overflow: hidden;
-      box-shadow: 0 16px 45px rgba(0,0,0,0.8);
+      position: relative; width: 1200px; height: 600px;
+      border: 2px solid #4a4a5e; border-radius: 10px; background-color: #08080a;
+      overflow: hidden; box-shadow: 0 16px 45px rgba(0,0,0,0.8);
     }
-    canvas {
-      display: block;
-      width: 1200px;
-      height: 600px;
-    }
+    canvas { display: block; width: 1200px; height: 600px; }
     .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background: radial-gradient(circle at center, #161622 0%, #08080a 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10;
     }
-    .hidden {
-      display: none !important;
-    }
+    .hidden { display: none !important; }
     .btn {
-      background: linear-gradient(135deg, #3498db, #2980b9);
-      color: #fff;
-      border: none;
-      padding: 10px 24px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 6px;
-      margin-top: 8px;
-      box-shadow: 0 4px 12px rgba(52,152,219,0.3);
-      transition: all 0.2s;
+      background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; border: none;
+      padding: 10px 24px; font-size: 15px; font-weight: bold; cursor: pointer; border-radius: 6px;
+      margin-top: 8px; box-shadow: 0 4px 12px rgba(52,152,219,0.3); transition: all 0.2s;
     }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(52,152,219,0.5); }
     .btn-ready { background: linear-gradient(135deg, #2ecc71, #27ae60); box-shadow: 0 4px 12px rgba(46,204,113,0.3); }
-    .btn-ready:hover { box-shadow: 0 6px 16px rgba(46,204,113,0.5); }
     .btn-cancel { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
-    .btn-cancel:hover { box-shadow: 0 6px 16px rgba(231,76,60,0.5); }
     .btn-cpu { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 12px rgba(155,89,182,0.3); }
-    .btn-cpu:hover { box-shadow: 0 6px 16px rgba(155,89,182,0.5); }
-    .btn-leave { background: linear-gradient(135deg, #7f8c8d, #34495e); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .btn-leave:hover { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
-    .btn-stage {
-      background: #2a2a38;
-      font-size: 11px;
-      padding: 5px 10px;
-      margin-top: 0;
-      border: 1px solid #555;
-    }
+    .btn-leave { background: linear-gradient(135deg, #7f8c8d, #34495e); }
+    .btn-stage { background: #2a2a38; font-size: 11px; padding: 5px 10px; margin-top: 0; border: 1px solid #555; }
     .btn-stage.active { background: #f39c12; border-color: #f1c40f; box-shadow: 0 0 10px rgba(241,196,15,0.4); }
-
-    .btn-mode { background: linear-gradient(135deg, #f39c12, #d35400); box-shadow: 0 4px 12px rgba(243,156,18,0.3); }
-    .btn-mode:hover { box-shadow: 0 6px 16px rgba(243,156,18,0.5); }
-    
+    .btn-mode { background: linear-gradient(135deg, #f39c12, #d35400); }
     .btn-team-a { background: linear-gradient(135deg, #e74c3c, #c0392b); }
     .btn-team-b { background: linear-gradient(135deg, #3498db, #2980b9); }
 
     input[type="text"], input[type="number"] {
-      width: 180px;
-      padding: 6px 10px;
-      font-size: 15px;
-      text-align: center;
-      border-radius: 6px;
-      border: 2px solid #3498db;
-      background: #16161a;
-      color: #fff;
-      outline: none;
+      width: 180px; padding: 6px 10px; font-size: 15px; text-align: center;
+      border-radius: 6px; border: 2px solid #3498db; background: #16161a; color: #fff; outline: none;
     }
 
     #lobby-ui {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
-      pointer-events: none;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; justify-content: space-between; padding: 20px; pointer-events: none;
     }
     .interactive { pointer-events: auto; }
-    .lobby-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      width: 100%;
-    }
+    .lobby-top { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
     .lobby-title { font-size: 22px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
     .badge {
-      background: #1e1e28;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #3498db;
-      border: 1px solid #3498db;
-      box-shadow: 0 2px 8px rgba(52,152,219,0.2);
-      cursor: pointer;
-      transition: transform 0.2s;
+      background: #1e1e28; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold;
+      color: #3498db; border: 1px solid #3498db; cursor: pointer; transition: transform 0.2s;
     }
     .badge:hover { transform: scale(1.05); }
-    .lobby-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
+    .lobby-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
 
-    #stamp-bar {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-      pointer-events: auto;
-    }
+    #stamp-bar { display: flex; gap: 6px; margin-top: 8px; pointer-events: auto; }
     .stamp-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #2c3e50;
-      border: 2px solid #3498db;
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.1s;
+      width: 38px; height: 38px; border-radius: 50%; background: #2c3e50; border: 2px solid #3498db;
+      font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .stamp-btn:hover { transform: scale(1.15); }
 
     #countdown-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 100px;
-      font-weight: 900;
-      color: #f1c40f;
-      text-shadow: 0 0 30px rgba(241, 196, 15, 0.9), 0 0 10px #000;
-      pointer-events: none;
-      z-index: 15;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 100px; font-weight: 900; color: #f1c40f; text-shadow: 0 0 30px rgba(241, 196, 15, 0.9);
+      pointer-events: none; z-index: 15;
+    }
+    #spectator-watermark {
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 20px; font-weight: bold; color: rgba(241, 196, 15, 0.8); background: rgba(0, 0, 0, 0.5);
+      padding: 4px 16px; border-radius: 20px; border: 1px solid rgba(241, 196, 15, 0.5); pointer-events: none; z-index: 20;
     }
 
     #select-modal, #settings-modal, #code-zoom-modal, #ingame-menu-modal, #mode-select-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 10, 14, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 30;
-      padding: 15px;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10, 10, 14, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30; padding: 15px;
     }
-
     .settings-card {
-      background: #1a1a24;
-      border: 2px solid #3498db;
-      border-radius: 12px;
-      padding: 24px 36px;
-      width: 360px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      background: #1a1a24; border: 2px solid #3498db; border-radius: 12px; padding: 24px 36px;
+      width: 360px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
-    .settings-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 15px;
-      font-weight: bold;
-    }
-    .settings-row input[type="range"] {
-      width: 160px;
-      cursor: pointer;
-    }
-
-    .char-list-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-      max-width: 920px;
-      margin: 15px 0;
-    }
+    .settings-row { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: bold; }
+    .char-list-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 920px; margin: 15px 0; }
     .char-card {
-      width: 165px;
-      height: 220px;
-      border: 2px solid #3a3a4e;
-      border-radius: 8px;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(135deg, #181824, #12121b);
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      width: 165px; height: 220px; border: 2px solid #3a3a4e; border-radius: 8px; padding: 10px;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, #181824, #12121b); cursor: pointer; transition: 0.2s;
     }
-    .char-card:hover, .char-card.active {
-      border-color: #3498db;
-      transform: translateY(-4px);
-      box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-    }
-    .char-preview-box {
-      width: 100%;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #08080c;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid #282836;
-      position: relative;
-    }
-    .char-stats {
-      font-size: 11px;
-      width: 100%;
-      color: #bbb;
-      line-height: 1.3;
-    }
-    .ability-box {
-      font-size: 10px;
-      color: #f1c40f;
-      font-weight: bold;
-      background: rgba(241, 196, 15, 0.15);
-      padding: 3px 6px;
-      border-radius: 3px;
-      margin-top: 3px;
-    }
+    .char-card:hover, .char-card.active { border-color: #3498db; transform: translateY(-4px); }
+    .char-preview-box { width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; background: #08080c; border-radius: 6px; border: 1px solid #282836; position: relative; }
+    .char-stats { font-size: 11px; width: 100%; color: #bbb; line-height: 1.3; }
+    .ability-box { font-size: 10px; color: #f1c40f; font-weight: bold; background: rgba(241, 196, 15, 0.15); padding: 3px 6px; border-radius: 3px; margin-top: 3px; }
 
-    #controls-guide {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #aaa;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    #settings-btn-icon {
-      position: absolute;
-      top: 12px;
-      right: 175px;
-      z-index: 25;
-      background: #2a2a38;
-      border: 1px solid #555;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: bold;
-    }
-    #settings-btn-icon:hover { background: #3a3a4e; }
-
-    #ingame-menu-btn {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      z-index: 25;
-      background: #2a2a38;
-      border: 1px solid #555;
-      color: #fff;
-      width: 36px;
-      height: 36px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 18px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #ingame-menu-btn:hover { background: #3a3a4e; }
-
-    #spectator-watermark {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 20px;
-      font-weight: bold;
-      color: rgba(241, 196, 15, 0.8);
-      background: rgba(0, 0, 0, 0.5);
-      padding: 4px 16px;
-      border-radius: 20px;
-      border: 1px solid rgba(241, 196, 15, 0.5);
-      pointer-events: none;
-      z-index: 20;
-    }
+    #settings-btn-icon { position: absolute; top: 12px; right: 175px; z-index: 25; background: #2a2a38; border: 1px solid #555; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+    #ingame-menu-btn { position: absolute; top: 15px; right: 20px; z-index: 25; background: #2a2a38; border: 1px solid #555; color: #fff; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    #controls-guide { margin-top: 10px; font-size: 13px; color: #aaa; text-align: center; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -341,7 +115,7 @@
 
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
-      <h1 style="font-size: 40px; margin-bottom: 6px; text-shadow: 0 4px 12px rgba(0,0,0,0.8); background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">セノビックブラザーズ</h1>
+      <h1 style="font-size: 40px; margin-bottom: 6px; background: linear-gradient(to right, #3498db, #2ecc71); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">セノビックブラザーズ</h1>
       <p style="color: #999; font-size: 14px; margin-bottom: 22px; letter-spacing: 2px;">REAL 2D FIGHTING BATTLE</p>
       
       <div style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
@@ -366,14 +140,12 @@
 
     <!-- 2. CPU対戦設定画面 -->
     <div id="screen-cpu-setup" class="overlay hidden">
-      <h2 style="font-size: 24px; margin-bottom: 12px; text-shadow: 0 2px 6px rgba(0,0,0,0.6);">CPU対戦 設定</h2>
-      
+      <h2 style="font-size: 24px; margin-bottom: 12px;">CPU対戦 設定</h2>
       <div style="margin-bottom: 14px; text-align: center;">
         <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 4px;">キャラクター:</label>
         <div id="cpu-char-label" style="font-size: 16px; font-weight: bold; color: #3498db; margin-bottom: 6px;">フツオ (ファイター)</div>
         <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; background: #3a3a4e;">変更する</button>
       </div>
-
       <div style="margin-bottom: 18px; text-align: center;">
         <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 6px;">ステージ:</label>
         <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 420px;">
@@ -384,7 +156,6 @@
           <button class="btn btn-stage" id="btn-cpu-stage-5" onclick="selectCpuStage(5)">宇宙</button>
         </div>
       </div>
-
       <div style="display: flex; gap: 12px;">
         <button class="btn btn-cpu" onclick="confirmStartCpuGame()">対戦スタート！</button>
         <button class="btn" onclick="goToTitle()" style="background: #555;">戻る</button>
@@ -427,9 +198,7 @@
               <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
             </div>
             <button class="btn" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 6px 12px; background: #3a3a4e;">キャラ変更</button>
-            <!-- 3人以上で表示されるモード選択ボタン -->
             <button id="mode-select-btn" class="btn btn-mode hidden" onclick="openModeSelectModal()" style="margin-top:0; font-size: 13px; padding: 6px 12px;">モード選択</button>
-            <!-- チーム切り替えボタン -->
             <button id="team-toggle-btn" class="btn btn-team-a hidden" onclick="toggleTeam()" style="margin-top:0; font-size: 13px; padding: 6px 12px;">チーム: A</button>
           </div>
 
@@ -440,7 +209,7 @@
       </div>
     </div>
 
-    <!-- 4. モード選択モーダル (3人以上の時用) -->
+    <!-- 4. モード選択モーダル -->
     <div id="mode-select-modal" class="hidden">
       <div class="settings-card" style="width: 320px; gap: 14px; align-items: center;">
         <h2 style="font-size: 18px; color: #f39c12; margin-bottom: 4px;">モード選択</h2>
@@ -450,7 +219,7 @@
       </div>
     </div>
 
-    <!-- 5. ルームコード拡大表示モーダル -->
+    <!-- 5. ルームコード拡大表示 -->
     <div id="code-zoom-modal" class="hidden">
       <div class="settings-card" style="align-items: center; text-align: center;">
         <h2 style="font-size: 18px; color: #3498db; margin-bottom: 4px;">ROOM CODE</h2>
@@ -460,7 +229,7 @@
       </div>
     </div>
 
-    <!-- 6. 戦闘中メニューモーダル -->
+    <!-- 6. 戦闘中メニュー -->
     <div id="ingame-menu-modal" class="hidden">
       <div class="settings-card" style="width: 300px; gap: 12px; align-items: center;">
         <h2 style="font-size: 18px; color: #3498db; margin-bottom: 4px;">メニュー</h2>
@@ -470,14 +239,14 @@
       </div>
     </div>
 
-    <!-- 7. キャラクター選択モーダル -->
+    <!-- 7. キャラクター選択 -->
     <div id="select-modal" class="hidden">
-      <h2 style="font-size: 22px; margin-bottom: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">キャラクターを選択</h2>
+      <h2 style="font-size: 22px; margin-bottom: 12px;">キャラクターを選択</h2>
       <div class="char-list-grid" id="char-list"></div>
       <button class="btn" onclick="closeCharSelect()" style="padding: 10px 28px; margin-top: 15px;">決定</button>
     </div>
 
-    <!-- 8. 音量設定モーダル -->
+    <!-- 8. 音量設定 -->
     <div id="settings-modal" class="hidden">
       <div class="settings-card">
         <h2 style="font-size: 20px; text-align: center; color: #3498db; margin-bottom: 6px;">⚙️ 音量設定</h2>
@@ -495,7 +264,7 @@
 
     <!-- 9. 勝敗画面 -->
     <div id="screen-gameover" class="overlay hidden">
-      <h2 id="winner-text" style="font-size: 34px; color: #f1c40f; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241,196,15,0.6);">PLAYER 1 WIN!</h2>
+      <h2 id="winner-text" style="font-size: 34px; color: #f1c40f; margin-bottom: 15px;">PLAYER 1 WIN!</h2>
       <div style="display: flex; gap: 12px;">
         <button class="btn btn-ready" onclick="requestRematch()">もう一度 (Enter)</button>
         <button class="btn" onclick="returnFromGameover()" style="background: #555;">タイトルへ</button>
@@ -539,14 +308,9 @@
     const lobbyNameInput = document.getElementById('lobby-name-input');
     const errorMsg = document.getElementById('error-msg');
 
-    let bgmVol = 0.5;
-    let seVol = 0.7;
-
-    let myPlayerNum = null;
-    let currentCode = null;
-    let currentStageWidth = 1200;
-    let myRole = 'battle'; // 'battle' または 'spectator'
-    let myTeam = 'A';      // 'A' または 'B'
+    let bgmVol = 0.5, seVol = 0.7;
+    let myPlayerNum = null, currentCode = null, currentStageWidth = 1200;
+    let myRole = 'battle', myTeam = 'A';
 
     let characters = {
       futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(5秒)' },
@@ -565,28 +329,14 @@
     };
 
     let characterKeys = Object.keys(characters);
-    let selectedStage = 1;
-    let cpuSelectedStage = 1;
-    let cpuSelectedCharKey = 'futsuo';
-    let selectedIndex = 0;
-    let currentGameState = 'TITLE';
-    let playersData = {};
-    let itemsData = [];
-    let projectilesData = [];
-    let activeStamps = {};
-    let isReady = false;
-    let isCpuModeGame = false;
-    let visualEffects = [];
-
-    let lastAttackTime = 0;
-    let audioCtx = null;
-    let bgmTimer = null;
+    let selectedStage = 1, cpuSelectedStage = 1, cpuSelectedCharKey = 'futsuo', selectedIndex = 0;
+    let currentGameState = 'TITLE', playersData = {}, itemsData = [], projectilesData = [], activeStamps = {};
+    let isReady = false, isCpuModeGame = false, visualEffects = [], lastAttackTime = 0, audioCtx = null, bgmTimer = null;
 
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
-
     function updateAudioVolumes() {
       bgmVol = document.getElementById('bgm-volume-slider').value / 100;
       seVol = document.getElementById('se-volume-slider').value / 100;
@@ -594,10 +344,8 @@
 
     function openSettingsModal() { settingsModal.classList.remove('hidden'); }
     function closeSettingsModal() { settingsModal.classList.add('hidden'); }
-
     function openIngameMenu() { ingameMenuModal.classList.remove('hidden'); }
     function closeIngameMenu() { ingameMenuModal.classList.add('hidden'); }
-
     function openModeSelectModal() { modeSelectModal.classList.remove('hidden'); }
     function closeModeSelectModal() { modeSelectModal.classList.add('hidden'); }
 
@@ -607,25 +355,16 @@
       closeModeSelectModal();
       updateLobbyUI();
     }
-
     function toggleTeam() {
       myTeam = myTeam === 'A' ? 'B' : 'A';
       socket.emit('setRole', { role: myRole, team: myTeam });
       updateLobbyUI();
     }
-
     function leaveFromInGame() {
-      stopBGM();
-      socket.disconnect();
-      socket.connect();
-      goToTitle();
+      stopBGM(); socket.disconnect(); socket.connect(); goToTitle();
     }
-
     function openCodeZoomModal() {
-      if (currentCode) {
-        zoomedCodeText.textContent = currentCode;
-        codeZoomModal.classList.remove('hidden');
-      }
+      if (currentCode) { zoomedCodeText.textContent = currentCode; codeZoomModal.classList.remove('hidden'); }
     }
     function closeCodeZoomModal() { codeZoomModal.classList.add('hidden'); }
 
@@ -633,54 +372,24 @@
       if (seVol <= 0) return;
       try {
         initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
         const now = audioCtx.currentTime;
-
         if (type === 'punch') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(180, now);
-          osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-          gain.gain.setValueAtTime(0.3 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(180, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+          gain.gain.setValueAtTime(0.3 * seVol, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
           osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'special' || type === 'explosion') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
-          gain.gain.setValueAtTime(0.4 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+          gain.gain.setValueAtTime(0.4 * seVol, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
           osc.start(now); osc.stop(now + 0.4);
         } else if (type === 'barrier') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(400, now);
-          osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-          gain.gain.setValueAtTime(0.3 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+          gain.gain.setValueAtTime(0.3 * seVol, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
           osc.start(now); osc.stop(now + 0.3);
-        } else if (type === 'item') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, now);
-          osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-          gain.gain.setValueAtTime(0.2 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-          osc.start(now); osc.stop(now + 0.2);
-        } else if (type === 'senobic') {
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.setValueAtTime(554.37, now + 0.1);
-          osc.frequency.setValueAtTime(659.25, now + 0.2);
-          gain.gain.setValueAtTime(0.25 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-          osc.start(now); osc.stop(now + 0.4);
         } else if (type === 'ko') {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(120, now);
-          osc.frequency.linearRampToValueAtTime(30, now + 0.4);
-          gain.gain.setValueAtTime(0.4 * seVol, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4);
+          gain.gain.setValueAtTime(0.4 * seVol, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
           osc.start(now); osc.stop(now + 0.4);
         }
       } catch (e) {}
@@ -689,55 +398,28 @@
     function startBGM() {
       if (bgmTimer) return;
       const bassSeq = [110, 110, 130.81, 110, 146.83, 130.81, 123.47, 110];
-      const melodySeq = [220, 261.63, 293.66, 329.63, 392.00, 329.63, 293.66, 261.63];
       let step = 0;
-
       bgmTimer = setInterval(() => {
         if (currentGameState !== 'PLAYING' || bgmVol <= 0) return;
         try {
           initAudio();
           const now = audioCtx.currentTime;
-
-          const bassOsc = audioCtx.createOscillator();
-          const bassGain = audioCtx.createGain();
-          bassOsc.type = 'sawtooth';
-          bassOsc.frequency.setValueAtTime(bassSeq[step % bassSeq.length], now);
-          bassOsc.connect(bassGain);
-          bassGain.connect(audioCtx.destination);
-          bassGain.gain.setValueAtTime(0.06 * bgmVol, now);
-          bassGain.gain.linearRampToValueAtTime(0.001, now + 0.12);
-          bassOsc.start(now);
-          bassOsc.stop(now + 0.12);
-
-          if (step % 2 === 0) {
-            const melOsc = audioCtx.createOscillator();
-            const melGain = audioCtx.createGain();
-            melOsc.type = 'square';
-            melOsc.frequency.setValueAtTime(melodySeq[(step / 2) % melodySeq.length], now);
-            melOsc.connect(melGain);
-            melGain.connect(audioCtx.destination);
-            melGain.gain.setValueAtTime(0.04 * bgmVol, now);
-            melGain.gain.linearRampToValueAtTime(0.001, now + 0.18);
-            melOsc.start(now);
-            melOsc.stop(now + 0.18);
-          }
-
+          const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(bassSeq[step % bassSeq.length], now);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          gain.gain.setValueAtTime(0.06 * bgmVol, now); gain.gain.linearRampToValueAtTime(0.001, now + 0.12);
+          osc.start(now); osc.stop(now + 0.12);
           step++;
         } catch(e) {}
       }, 160);
     }
-
-    function stopBGM() {
-      if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
-    }
+    function stopBGM() { if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; } }
 
     const keys = { left: false, right: false, down: false, jump: false, jumpPrev: false, attack: false, attackType: null };
-
     renderCharCards();
 
     socket.on('roomCreated', (data) => {
-      currentCode = data.code;
-      myPlayerNum = data.playerNum;
+      currentCode = data.code; myPlayerNum = data.playerNum;
       if (data.characters) characters = data.characters;
       if (data.stages) stages = data.stages;
       characterKeys = Object.keys(characters);
@@ -747,8 +429,7 @@
     });
 
     socket.on('roomJoined', (data) => {
-      currentCode = data.code;
-      myPlayerNum = data.playerNum;
+      currentCode = data.code; myPlayerNum = data.playerNum;
       if (data.characters) characters = data.characters;
       if (data.stages) stages = data.stages;
       characterKeys = Object.keys(characters);
@@ -758,79 +439,25 @@
     });
 
     socket.on('joinError', (msg) => { errorMsg.textContent = msg; });
-
-    socket.on('stageUpdated', (data) => {
-      selectedStage = data.selectedStage;
-      updateStageButtonsUI();
-    });
-
-    socket.on('countdownUpdate', (data) => {
-      countdownOverlay.classList.remove('hidden');
-      countdownOverlay.textContent = data.count;
-    });
-
+    socket.on('stageUpdated', (data) => { selectedStage = data.selectedStage; updateStageButtonsUI(); });
+    socket.on('countdownUpdate', (data) => { countdownOverlay.classList.remove('hidden'); countdownOverlay.textContent = data.count; });
     socket.on('countdownCancel', () => { countdownOverlay.classList.add('hidden'); });
-
-    socket.on('stampTriggered', (data) => {
-      activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 };
-    });
-
-    socket.on('specialTriggered', (data) => {
-      playSE('special');
-      let text = '🔥必殺技発動！';
-      if (data.type === 'debugon_ready') text = '⚡着地待機中！（ジャンプして着地！）';
-      else if (data.type === 'debugon_fire') text = '💥着地・超衝撃波発射！！';
-      else if (data.type === 'ninja_ready') text = '🌟手裏剣3連投スタンバイ！';
-      else if (data.type === 'ninja_throw') text = '🌀手裏剣発射！';
-      else if (data.type === 'chibikoro_mega') text = '💥巨大大爆発ボム！！';
-      else if (data.type === 'wizard_mega') text = '✨魔法弾発射！！';
-      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: text, timer: 70 });
-    });
-
+    socket.on('stampTriggered', (data) => { activeStamps[data.socketId] = { stamp: data.stamp, timer: 120 }; });
+    socket.on('specialTriggered', (data) => { playSE('special'); visualEffects.push({ type: 'SPECIAL_POP', text: '🔥必殺技発動！', timer: 70 }); });
     socket.on('barrelThrown', () => { playSE('punch'); });
-
-    socket.on('barrelExploded', (data) => {
-      playSE('explosion');
-      visualEffects.push({ type: 'BARREL_EXP', x: data.x, y: data.y, radius: data.radius, timer: 25 });
-    });
-
-    socket.on('barrierTriggered', (data) => {
-      playSE('barrier');
-      visualEffects.push({ type: 'SPECIAL_POP', playerId: data.playerId, text: '🛡️ バリア展開！', timer: 60 });
-    });
-
-    socket.on('koEffect', (data) => {
-      playSE('ko');
-      visualEffects.push({ type: 'KO_FLASH', x: data.x, y: data.y, timer: 180 });
-      visualEffects.push({ type: 'KO_TEXT', x: data.x, y: data.y, timer: 180 });
-    });
-
-    socket.on('itemCollected', (data) => {
-      if (data.type === 'senobic') playSE('senobic');
-      else playSE('item');
-      visualEffects.push({ type: 'ITEM_GET', playerId: data.playerId, itemType: data.type, timer: 40 });
-    });
+    socket.on('barrelExploded', (data) => { playSE('explosion'); visualEffects.push({ type: 'BARREL_EXP', x: data.x, y: data.y, radius: data.radius, timer: 25 }); });
+    socket.on('barrierTriggered', () => { playSE('barrier'); });
+    socket.on('koEffect', (data) => { playSE('ko'); visualEffects.push({ type: 'KO_FLASH', timer: 180 }, { type: 'KO_TEXT', timer: 180 }); });
 
     socket.on('gameState', (data) => {
-      if (currentGameState !== 'TITLE' && currentGameState !== 'CPU_SETUP') {
-        currentGameState = data.state;
-      }
+      if (currentGameState !== 'TITLE' && currentGameState !== 'CPU_SETUP') currentGameState = data.state;
       playersData = data.players;
-      if (data.selectedStage) {
-        selectedStage = data.selectedStage;
-        updateStageButtonsUI();
-      }
-      if (data.code) {
-        currentCode = data.code;
-        roomCodeBadge.textContent = `ROOM CODE: ${data.code}`;
-      }
+      if (data.selectedStage) { selectedStage = data.selectedStage; updateStageButtonsUI(); }
+      if (data.code) { currentCode = data.code; roomCodeBadge.textContent = `ROOM CODE: ${data.code}`; }
       updateUI();
     });
 
-    socket.on('characterUpdated', (data) => {
-      playersData = data.players;
-      updateLobbyUI();
-    });
+    socket.on('characterUpdated', (data) => { playersData = data.players; updateLobbyUI(); });
 
     socket.on('gameStart', (data) => {
       currentGameState = 'PLAYING';
@@ -838,9 +465,7 @@
       currentStageWidth = data.stageWidth || 1200;
       countdownOverlay.classList.add('hidden');
       playersData = data.players;
-      itemsData = [];
-      projectilesData = [];
-      visualEffects = [];
+      itemsData = []; projectilesData = []; visualEffects = [];
       if (data.selectedStage) selectedStage = data.selectedStage;
       startBGM();
       updateUI();
@@ -856,23 +481,16 @@
     });
 
     socket.on('gameOver', (data) => {
-      currentGameState = 'FINISHED';
-      isCpuModeGame = !!data.isCpuMode;
-      stopBGM();
+      currentGameState = 'FINISHED'; stopBGM();
       winnerText.textContent = `${data.winnerName} VICTORY! (GAME OVER)`;
       updateUI();
     });
 
-    socket.on('playerLeft', () => {
-      stopBGM();
-      alert('対戦相手が切断されました。タイトルに戻ります。');
-      goToTitle();
-    });
+    socket.on('playerLeft', () => { stopBGM(); alert('対戦相手が切断されました。タイトルに戻ります。'); goToTitle(); });
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       initAudio();
-
       if (e.key === '1') sendStamp('👍');
       if (e.key === '2') sendStamp('👎');
       if (e.key === '3') sendStamp('❤️');
@@ -883,29 +501,17 @@
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
         if (e.key === 's' || e.key === 'S') keys.down = true;
-        if (e.key === 'w' || e.key === 'W') { keys.jump = true; }
-        
-        if (e.key === 'j' || e.key === 'J') { 
-          e.preventDefault();
-          socket.emit('triggerSpecial'); 
-        }
-
-        if (e.code === 'Space') {
-          e.preventDefault();
-          socket.emit('triggerBarrier');
-        }
-
+        if (e.key === 'w' || e.key === 'W') keys.jump = true;
+        if (e.key === 'j' || e.key === 'J') { e.preventDefault(); socket.emit('triggerSpecial'); }
+        if (e.code === 'Space') { e.preventDefault(); socket.emit('triggerBarrier'); }
         if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
           if (now - lastAttackTime >= 150) {
-            lastAttackTime = now;
-            keys.attack = true;
+            lastAttackTime = now; keys.attack = true;
             keys.attackType = (e.key === 'k' || e.key === 'K') ? 'punch' : 'kick';
             playSE('punch');
           }
         }
-
-        sendInputs();
-        keys.jumpPrev = keys.jump;
+        sendInputs(); keys.jumpPrev = keys.jump;
       } else if (currentGameState === 'FINISHED' && e.key === 'Enter') {
         requestRematch();
       }
@@ -917,186 +523,79 @@
         if (e.key === 'd' || e.key === 'D') keys.right = false;
         if (e.key === 's' || e.key === 'S') keys.down = false;
         if (e.key === 'w' || e.key === 'W') { keys.jump = false; keys.jumpPrev = false; }
-        if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') {
-          keys.attack = false;
-          keys.attackType = null;
-        }
+        if (e.key === 'k' || e.key === 'K' || e.key === 'o' || e.key === 'O') { keys.attack = false; keys.attackType = null; }
         sendInputs();
       }
     });
 
     function sendInputs() { socket.emit('playerInput', keys); }
-
-    function sendStamp(emoji) {
-      if (currentGameState === 'LOBBY' || currentGameState === 'PLAYING') {
-        socket.emit('sendStamp', { stamp: emoji });
-      }
-    }
-
-    function selectStage(stageId) {
-      if (myPlayerNum === 1) {
-        socket.emit('selectStage', { stageId: stageId });
-      }
-    }
-
+    function sendStamp(emoji) { if (currentGameState === 'LOBBY' || currentGameState === 'PLAYING') socket.emit('sendStamp', { stamp: emoji }); }
+    function selectStage(stageId) { if (myPlayerNum === 1) socket.emit('selectStage', { stageId: stageId }); }
     function selectCpuStage(stageId) {
       cpuSelectedStage = stageId;
       for (let i = 1; i <= 5; i++) {
         const btn = document.getElementById(`btn-cpu-stage-${i}`);
-        if (btn) {
-          if (i === stageId) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
+        if (btn) btn.classList.toggle('active', i === stageId);
       }
     }
-
     function updateStageButtonsUI() {
       for (let i = 1; i <= 5; i++) {
         const btn = document.getElementById(`btn-stage-${i}`);
-        if (btn) {
-          if (i === selectedStage) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
+        if (btn) btn.classList.toggle('active', i === selectedStage);
       }
     }
-
     function createOnlineRoom() {
       errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player 1';
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.emit('createRoom', { playerName: name });
+      if (!socket.connected) socket.connect();
+      socket.emit('createRoom', { playerName: playerNameInput.value.trim() || 'Player 1' });
     }
-
     function joinOnlineRoom() {
       const code = roomCodeInput.value.trim();
-      if (code.length !== 4) {
-        errorMsg.textContent = '4桁の数字を入力してください。';
-        return;
-      }
+      if (code.length !== 4) { errorMsg.textContent = '4桁の数字を入力してください。'; return; }
       errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player';
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.emit('joinRoom', { code: code, playerName: name });
+      if (!socket.connected) socket.connect();
+      socket.emit('joinRoom', { code: code, playerName: playerNameInput.value.trim() || 'Player' });
     }
-
-    function leaveLobby() {
-      socket.disconnect();
-      socket.connect();
-      goToTitle();
-    }
-
-    function openCpuSetup() {
-      currentGameState = 'CPU_SETUP';
-      isCpuModeGame = true;
-      updateCpuCharLabel();
-      updateUI();
-    }
-
-    function updateCpuCharLabel() {
-      if (characters[cpuSelectedCharKey]) {
-        cpuCharLabel.textContent = characters[cpuSelectedCharKey].name;
-      }
-    }
-
+    function leaveLobby() { socket.disconnect(); socket.connect(); goToTitle(); }
+    function openCpuSetup() { currentGameState = 'CPU_SETUP'; isCpuModeGame = true; updateCpuCharLabel(); updateUI(); }
+    function updateCpuCharLabel() { if (characters[cpuSelectedCharKey]) cpuCharLabel.textContent = characters[cpuSelectedCharKey].name; }
     function confirmStartCpuGame() {
-      errorMsg.textContent = '';
-      const name = playerNameInput.value.trim() || 'Player 1';
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.emit('startCpuMode', {
-        playerName: name,
-        characterKey: cpuSelectedCharKey,
-        stageId: cpuSelectedStage
-      });
+      if (!socket.connected) socket.connect();
+      socket.emit('startCpuMode', { playerName: playerNameInput.value.trim() || 'Player 1', characterKey: cpuSelectedCharKey, stageId: cpuSelectedStage });
     }
-
-    function changeLobbyName() {
-      const newName = lobbyNameInput.value.trim();
-      socket.emit('updateName', { name: newName });
-    }
-
-    function goToTitle() {
-      stopBGM();
-      currentGameState = 'TITLE';
-      updateUI();
-    }
-
-    function goToLobby() {
-      currentGameState = 'LOBBY';
-      updateUI();
-    }
-
-    function returnFromGameover() {
-      if (isCpuModeGame) openCpuSetup();
-      else goToLobby();
-    }
-
-    function toggleReady() {
-      isReady = !isReady;
-      socket.emit('toggleReady');
-      updateLobbyUI();
-    }
-
-    function openCharSelect() {
-      selectModal.classList.remove('hidden');
-      setTimeout(() => {
-        characterKeys.forEach(key => drawCardMiniPreview(key));
-      }, 50);
-    }
-    
+    function changeLobbyName() { socket.emit('updateName', { name: lobbyNameInput.value.trim() }); }
+    function goToTitle() { stopBGM(); currentGameState = 'TITLE'; updateUI(); }
+    function goToLobby() { currentGameState = 'LOBBY'; updateUI(); }
+    function returnFromGameover() { if (isCpuModeGame) openCpuSetup(); else goToLobby(); }
+    function toggleReady() { isReady = !isReady; socket.emit('toggleReady'); updateLobbyUI(); }
+    function openCharSelect() { selectModal.classList.remove('hidden'); setTimeout(() => characterKeys.forEach(key => drawCardMiniPreview(key)), 50); }
     function closeCharSelect() {
       selectModal.classList.add('hidden');
-      const key = characterKeys[selectedIndex];
-      cpuSelectedCharKey = key;
+      cpuSelectedCharKey = characterKeys[selectedIndex];
       updateCpuCharLabel();
-      socket.emit('selectCharacter', { characterKey: key });
+      socket.emit('selectCharacter', { characterKey: cpuSelectedCharKey });
     }
-
-    function requestRematch() {
-      isReady = false;
-      socket.emit('requestRematch');
-    }
+    function requestRematch() { isReady = false; socket.emit('requestRematch'); }
 
     function updateUI() {
-      screenTitle.classList.add('hidden');
-      screenCpuSetup.classList.add('hidden');
-      screenLobby.classList.add('hidden');
-      screenGameover.classList.add('hidden');
-      selectModal.classList.add('hidden');
-      codeZoomModal.classList.add('hidden');
-      ingameMenuModal.classList.add('hidden');
-      modeSelectModal.classList.add('hidden');
+      screenTitle.classList.add('hidden'); screenCpuSetup.classList.add('hidden');
+      screenLobby.classList.add('hidden'); screenGameover.classList.add('hidden');
+      selectModal.classList.add('hidden'); codeZoomModal.classList.add('hidden');
+      ingameMenuModal.classList.add('hidden'); modeSelectModal.classList.add('hidden');
       spectatorWatermark.classList.add('hidden');
 
       if (currentGameState === 'TITLE') {
-        screenTitle.classList.remove('hidden');
-        settingsBtnIcon.classList.remove('hidden');
-        ingameMenuBtn.classList.add('hidden');
+        screenTitle.classList.remove('hidden'); settingsBtnIcon.classList.remove('hidden'); ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'CPU_SETUP') {
-        screenCpuSetup.classList.remove('hidden');
-        settingsBtnIcon.classList.remove('hidden');
-        ingameMenuBtn.classList.add('hidden');
+        screenCpuSetup.classList.remove('hidden'); settingsBtnIcon.classList.remove('hidden'); ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'LOBBY') {
-        screenLobby.classList.remove('hidden');
-        updateLobbyUI();
-        startLobbyAnimation();
-        settingsBtnIcon.classList.remove('hidden');
-        ingameMenuBtn.classList.add('hidden');
+        screenLobby.classList.remove('hidden'); updateLobbyUI(); startLobbyAnimation();
+        settingsBtnIcon.classList.remove('hidden'); ingameMenuBtn.classList.add('hidden');
       } else if (currentGameState === 'PLAYING') {
-        settingsBtnIcon.classList.add('hidden');
-        ingameMenuBtn.classList.remove('hidden');
-        if (myRole === 'spectator') {
-          spectatorWatermark.classList.remove('hidden');
-        }
+        settingsBtnIcon.classList.add('hidden'); ingameMenuBtn.classList.remove('hidden');
+        if (myRole === 'spectator') spectatorWatermark.classList.remove('hidden');
       } else if (currentGameState === 'FINISHED') {
-        screenGameover.classList.remove('hidden');
-        settingsBtnIcon.classList.remove('hidden');
-        ingameMenuBtn.classList.add('hidden');
+        screenGameover.classList.remove('hidden'); settingsBtnIcon.classList.remove('hidden'); ingameMenuBtn.classList.add('hidden');
       }
     }
 
@@ -1104,15 +603,9 @@
       const allPlayers = Object.values(playersData);
       const playerCount = allPlayers.length;
 
-      // 3人以上の時に「モード選択」ボタンを表示
-      if (playerCount >= 3) {
-        modeSelectBtn.classList.remove('hidden');
-      } else {
-        modeSelectBtn.classList.add('hidden');
-        myRole = 'battle'; // 2人以下の場合は自動的に参戦
-      }
+      if (playerCount >= 3) modeSelectBtn.classList.remove('hidden');
+      else { modeSelectBtn.classList.add('hidden'); myRole = 'battle'; }
 
-      // バトル参加時のみチーム切り替えボタンを表示
       if (myRole === 'battle' && playerCount >= 3) {
         teamToggleBtn.classList.remove('hidden');
         teamToggleBtn.textContent = `チーム: ${myTeam}`;
@@ -1124,36 +617,18 @@
       const myData = allPlayers.find(p => p.playerNum === myPlayerNum);
       if (myData) {
         lobbyNameInput.value = myData.name;
-        if (myData.ready) {
-          readyBtn.textContent = '準備完了解除';
-          readyBtn.className = 'btn btn-cancel interactive';
-        } else {
-          readyBtn.textContent = myRole === 'spectator' ? '観戦準備完了' : '対戦準備完了';
-          readyBtn.className = 'btn btn-ready interactive';
-        }
+        readyBtn.textContent = myData.ready ? '準備完了解除' : (myRole === 'spectator' ? '観戦準備完了' : '対戦準備完了');
+        readyBtn.className = myData.ready ? 'btn btn-cancel interactive' : 'btn btn-ready interactive';
       }
     }
 
     function renderCharCards() {
       charListContainer.innerHTML = '';
       characterKeys.forEach((key, index) => {
-        const char = characters[key];
-        const card = document.createElement('div');
+        const char = characters[key], card = document.createElement('div');
         card.className = `char-card ${index === selectedIndex ? 'active' : ''}`;
-        card.onclick = () => {
-          selectedIndex = index;
-          document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
-          card.classList.add('active');
-        };
-
-        card.innerHTML = `
-          <div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div>
-          <div class="char-preview-box" id="box-${key}"></div>
-          <div class="char-stats">
-            HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}
-            <div class="ability-box">${char.ability}</div>
-          </div>
-        `;
+        card.onclick = () => { selectedIndex = index; document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active')); card.classList.add('active'); };
+        card.innerHTML = `<div style="font-weight:bold; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${char.name}</div><div class="char-preview-box" id="box-${key}"></div><div class="char-stats">HP:${char.hp} ATK:${char.atk}<br>SPD:${char.speed}<div class="ability-box">${char.ability}</div></div>`;
         charListContainer.appendChild(card);
       });
     }
@@ -1162,47 +637,21 @@
       const box = document.getElementById(`box-${key}`);
       if (!box) return;
       box.innerHTML = '';
-
       const pCanvas = document.createElement('canvas');
-      pCanvas.width = 290;
-      pCanvas.height = 200;
-      pCanvas.style.width = '145px';
-      pCanvas.style.height = '100px';
-
-      const pCtx = pCanvas.getContext('2d');
-      const char = characters[key];
-
-      pCtx.save();
-      pCtx.fillStyle = '#08080c';
-      pCtx.fillRect(0, 0, 290, 200);
-
-      pCtx.translate(145, 100);
-      pCtx.scale(1.3, 1.3);
-
-      const dummyPlayer = {
-        x: -char.width / 2,
-        y: -char.height / 2,
-        facing: 'right',
-        characterKey: key,
-        stunFrames: 0,
-        senobicTimer: 0,
-        attacking: false
-      };
-      drawRealisticHumanoid(pCtx, dummyPlayer, char);
-      pCtx.restore();
+      pCanvas.width = 290; pCanvas.height = 200; pCanvas.style.width = '145px'; pCanvas.style.height = '100px';
+      const pCtx = pCanvas.getContext('2d'), char = characters[key];
+      pCtx.fillStyle = '#08080c'; pCtx.fillRect(0, 0, 290, 200);
+      pCtx.translate(145, 100); pCtx.scale(1.3, 1.3);
+      drawRealisticHumanoid(pCtx, { x: -char.width / 2, y: -char.height / 2, facing: 'right', characterKey: key, stunFrames: 0, senobicTimer: 0, attacking: false }, char);
       box.appendChild(pCanvas);
     }
 
     let lobbyAnimId = null;
     function startLobbyAnimation() {
       if (lobbyAnimId) cancelAnimationFrame(lobbyAnimId);
-
       function loop() {
         if (currentGameState !== 'LOBBY') return;
-
-        ctx.fillStyle = '#0d0d12';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        ctx.fillStyle = '#0d0d12'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         const allPlayers = Object.values(playersData);
         const myData = allPlayers.find(p => p.playerNum === myPlayerNum) || allPlayers[0];
         const others = allPlayers.filter(p => p.playerNum !== (myData ? myData.playerNum : -1));
@@ -1216,494 +665,96 @@
 
         positions.forEach(pos => {
           ctx.fillStyle = pos.isMe ? '#252538' : '#181822';
-          ctx.beginPath();
-          ctx.ellipse(pos.x, pos.y, 90 * pos.scale, 20 * pos.scale, 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          if (pos.isMe) {
-            ctx.strokeStyle = '#f1c40f';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-          }
+          ctx.beginPath(); ctx.ellipse(pos.x, pos.y, 90 * pos.scale, 20 * pos.scale, 0, 0, Math.PI * 2); ctx.fill();
+          if (pos.isMe) { ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 3; ctx.stroke(); }
 
           const pl = pos.player;
           if (pl && characters[pl.characterKey]) {
             const char = characters[pl.characterKey];
-            ctx.save();
-            ctx.translate(pos.x, pos.y - 10);
-            ctx.scale(pos.scale, pos.scale);
-            const lobbyP = { x: -char.width / 2, y: -char.height, facing: pos.x <= 600 ? 'right' : 'left', characterKey: pl.characterKey, stunFrames: 0, senobicTimer: 0 };
-            drawRealisticHumanoid(ctx, lobbyP, char);
+            ctx.save(); ctx.translate(pos.x, pos.y - 10); ctx.scale(pos.scale, pos.scale);
+            drawRealisticHumanoid(ctx, { x: -char.width / 2, y: -char.height, facing: pos.x <= 600 ? 'right' : 'left', characterKey: pl.characterKey, stunFrames: 0, senobicTimer: 0 }, char);
             ctx.restore();
 
-            const charTopY = pos.y - 10 - (char.height * pos.scale);
-
-            // 確実なアイコン（👁️ / ⚔️）の表示
             const roleIcon = pl.role === 'spectator' ? '👁️' : '⚔️';
             const teamText = (pl.role === 'battle' && pl.team) ? `[Team ${pl.team}] ` : '';
             
             ctx.fillStyle = pos.isMe ? '#f1c40f' : '#fff';
-            ctx.font = 'bold 15px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-            ctx.textAlign = 'center';
+            ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
             ctx.fillText(`${teamText}${pl.name}${roleIcon} ${pos.isMe ? '(YOU)' : ''}`, pos.x, pos.y + 24);
             
             ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
             ctx.font = 'bold 12px sans-serif';
             ctx.fillText(pl.ready ? '【 READY 】' : '【 WAIT 】', pos.x, pos.y + 42);
-
-            if (activeStamps[pl.id] && activeStamps[pl.id].timer > 0) {
-              drawStampEffect(ctx, pos.x, charTopY - 35, activeStamps[pl.id].stamp);
-              activeStamps[pl.id].timer--;
-            }
           } else {
-            ctx.fillStyle = '#444';
-            ctx.font = 'bold 13px sans-serif';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#444'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
             ctx.fillText('【 参加待ち 】', pos.x, pos.y + 25);
           }
         });
-
         lobbyAnimId = requestAnimationFrame(loop);
       }
       loop();
     }
 
     function renderGame() {
-      ctx.fillStyle = '#08080a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      ctx.fillStyle = '#08080a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.save();
-
-      if (currentStageWidth > 1200) {
-        ctx.scale(1200 / currentStageWidth, 1200 / currentStageWidth);
-      }
+      if (currentStageWidth > 1200) ctx.scale(1200 / currentStageWidth, 1200 / currentStageWidth);
 
       drawStageBackground(selectedStage);
 
       itemsData.forEach(item => {
-        ctx.save();
-        ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
-
-        if (item.type === 'barrel') {
-          ctx.fillStyle = '#78350f'; ctx.fillRect(-18, -20, 36, 40);
-          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-18, -14, 36, 4); ctx.fillRect(-18, 10, 36, 4);
-          ctx.fillStyle = '#ef4444'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText('💣', 0, 5);
-        } else if (item.type === 'senobic') {
-          ctx.fillStyle = '#e74c3c'; ctx.fillRect(-14, -18, 28, 36);
-          ctx.fillStyle = '#f1c40f'; ctx.fillRect(-10, -10, 20, 20);
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText('SEN', 0, 4);
-        } else {
-          ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : '#f1c40f';
-          ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-          ctx.fillStyle = '#fff'; ctx.font = 'bold 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(item.type === 'heal' ? '🍖' : '⭐', 0, 0);
-        }
-        ctx.restore();
-      });
-
-      projectilesData.forEach(proj => {
-        ctx.save();
-        if (proj.type === 'thrown_barrel') {
-          ctx.translate(proj.x + 18, proj.y + 20);
-          ctx.rotate(Date.now() * 0.03);
-          ctx.fillStyle = '#78350f'; ctx.fillRect(-18, -20, 36, 40);
-          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-18, -14, 36, 4); ctx.fillRect(-18, 10, 36, 4);
-          ctx.fillStyle = '#ef4444'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText('💣', 0, 5);
-        } else if (proj.type === 'ninja') {
-          ctx.translate(proj.x + 13, proj.y + 11); ctx.rotate(Date.now() * 0.02);
-          ctx.fillStyle = '#bdc3c7'; ctx.fillRect(-12, -3, 24, 6); ctx.fillRect(-3, -12, 6, 24);
-        } else if (proj.type === 'ninja_giant_yellow') {
-          const hw = (proj.width || 60) / 2; const hh = (proj.height || 60) / 2;
-          ctx.translate(proj.x + hw, proj.y + hh); ctx.rotate(Date.now() * 0.05);
-          ctx.fillStyle = '#f1c40f'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.rect(-hw, -hh * 0.25, proj.width || 60, hh * 0.5); ctx.rect(-hw * 0.25, -hh, hw * 0.5, proj.height || 60); ctx.fill(); ctx.stroke();
-        } else if (proj.type === 'wizard') {
-          ctx.fillStyle = '#9b59b6'; ctx.beginPath(); ctx.arc(proj.x + 13, proj.y + 11, 14, 0, Math.PI * 2); ctx.fill();
-        } else if (proj.type === 'wizard_mega_giant') {
-          const size = proj.width || 85; ctx.translate(proj.x + size / 2, proj.y + size / 2); ctx.rotate(Date.now() * 0.08);
-          ctx.fillStyle = '#c084fc'; ctx.beginPath(); ctx.arc(0, 0, size * 0.45, 0, Math.PI * 2); ctx.fill();
-        }
+        ctx.save(); ctx.translate(item.x + item.width / 2, item.y + item.height / 2);
+        ctx.fillStyle = item.type === 'heal' ? '#2ecc71' : '#f1c40f';
+        ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       });
 
       Object.values(playersData).forEach(p => {
-        // 観戦プレイヤーは戦闘フィールド上に表示しない
         if (p.role === 'spectator') return;
-
         const char = characters[p.characterKey];
         if (!char) return;
-        if (p.invincibleFrames % 4 > 2) return;
-
-        const scale = p.senobicTimer > 0 ? 2 : 1;
-        const curW = char.width * scale;
-        const curH = char.height * scale;
-
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.beginPath();
-        ctx.ellipse(p.x + curW / 2, p.y + curH, curW * 0.55, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (p.barrierTimer > 0) {
-          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 5;
-          ctx.beginPath(); ctx.ellipse(p.x + curW / 2, p.y + curH / 2, curW * 0.75, curH * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
-        }
-
         drawRealisticHumanoid(ctx, p, char);
 
-        if (p.hasBarrel) {
-          ctx.save();
-          ctx.translate(p.x + curW / 2, p.y - 20);
-          ctx.fillStyle = '#78350f'; ctx.fillRect(-16, -18, 32, 36);
-          ctx.fillStyle = '#f59e0b'; ctx.fillRect(-16, -12, 32, 3); ctx.fillRect(-16, 8, 32, 3);
-          ctx.fillStyle = '#ef4444'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText('💣', 0, 4);
-          ctx.restore();
-        }
-
-        if (p.attackBox) drawCustomAttackEffect(ctx, p, char);
-
         const isMe = p.playerNum === myPlayerNum;
-        ctx.font = '900 18px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        
-        let teamBadge = p.team ? `[Team ${p.team}] ` : '';
-        let pColor = isMe ? '#f1c40f' : (p.team === 'A' ? '#e74c3c' : (p.team === 'B' ? '#3498db' : '#2ecc71'));
-        
-        ctx.strokeText(`${teamBadge}${p.name}⚔️`, p.x + curW / 2, p.y - 20);
-        ctx.fillStyle = pColor;
-        ctx.fillText(`${teamBadge}${p.name}⚔️`, p.x + curW / 2, p.y - 20);
-
-        const miniBarW = Math.max(curW, 50);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW, 6);
-        ctx.fillStyle = p.hp < p.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-        ctx.fillRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW * (p.hp / p.maxHp), 6);
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(p.x + curW / 2 - miniBarW / 2, p.y + curH + 6, miniBarW, 6);
-
-        let statusStr = '';
-        if (p.hasBarrel) statusStr += '💣[K/Oで投げる!] ';
-        if (p.barrierTimer > 0) statusStr += '🛡️ BARRIER! ';
-        else if (p.barrierCooldown > 0) statusStr += `⏳バリア: ${(p.barrierCooldown / 60).toFixed(1)}s `;
-
-        if (p.debugonSpecialArmed) statusStr += '⚡[着地衝撃波!] ';
-        if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣:${p.ninjaSpecialShurikenCount} `;
-        if (p.wizardSpecialMagicCount > 0) statusStr += `✨魔法:${p.wizardSpecialMagicCount} `;
-        if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
-          statusStr += `🔥覚醒:${(p.specialActiveTimer / 60).toFixed(1)}s `;
-        }
-        if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
-        if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
-
-        if (statusStr) {
-          ctx.font = 'bold 12px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.fillStyle = '#f1c40f';
-          ctx.fillText(statusStr, p.x + curW / 2, p.y - 42);
-        }
-
-        if (activeStamps[p.id] && activeStamps[p.id].timer > 0) {
-          drawStampEffect(ctx, p.x + curW / 2, p.y - 65, activeStamps[p.id].stamp);
-          activeStamps[p.id].timer--;
-        }
-
-        ctx.restore();
+        ctx.font = '900 16px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = isMe ? '#f1c40f' : (p.team === 'A' ? '#e74c3c' : '#3498db');
+        ctx.fillText(`${p.team ? `[${p.team}] ` : ''}${p.name}⚔️`, p.x + char.width / 2, p.y - 20);
       });
 
-      for (let i = visualEffects.length - 1; i >= 0; i--) {
-        const fx = visualEffects[i];
-        ctx.save();
-        if (fx.type === 'BARREL_EXP') {
-          ctx.fillStyle = `rgba(239, 68, 68, ${fx.timer / 25})`;
-          ctx.beginPath(); ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 4; ctx.stroke();
-        } else if (fx.type === 'KO_FLASH') {
-          ctx.fillStyle = `rgba(231, 76, 60, ${Math.min(0.6, fx.timer / 100)})`;
-          ctx.fillRect(0, 0, currentStageWidth, 600);
-        } else if (fx.type === 'KO_TEXT') {
-          ctx.fillStyle = '#f1c40f'; ctx.font = '900 90px Impact, sans-serif'; ctx.textAlign = 'center';
-          ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 25; ctx.fillText('K. O. ! !', currentStageWidth / 2, 280);
-        } else if (fx.type === 'SPECIAL_POP') {
-          ctx.fillStyle = '#f1c40f'; ctx.font = '900 32px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-          ctx.textAlign = 'center'; ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 12; ctx.fillText(fx.text, currentStageWidth / 2, 180);
-        }
-        ctx.restore();
-        fx.timer--;
-        if (fx.timer <= 0) visualEffects.splice(i, 1);
-      }
-
       ctx.restore();
-
       drawHUD();
     }
 
     function drawStageBackground(stageId) {
-      const stageW = currentStageWidth || 1200;
-      if (stageId === 1) {
-        ctx.fillStyle = '#162b36'; ctx.fillRect(0, 0, stageW, 600);
-        ctx.fillStyle = '#1e293b';
-        ctx.beginPath(); ctx.moveTo(0, 520); ctx.lineTo(200, 200); ctx.lineTo(450, 520); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(300, 520); ctx.lineTo(600, 150); ctx.lineTo(900, 520); ctx.fill();
-        ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, stageW, 80);
-        ctx.fillStyle = '#22c55e'; ctx.fillRect(0, 520, stageW, 8);
-      } else if (stageId === 2) {
-        ctx.fillStyle = '#0b0c10'; ctx.fillRect(0, 0, stageW, 600);
-        ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(1000, 110, 60, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#030712'; ctx.fillRect(0, 520, stageW, 80);
-        ctx.fillStyle = '#ef4444'; ctx.fillRect(0, 518, stageW, 2);
-      } else if (stageId === 3) {
-        ctx.fillStyle = '#450a0a'; ctx.fillRect(0, 0, stageW, 600);
-        ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 520, stageW, 80);
-        ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 520, stageW, 6);
-      } else if (stageId === 4) {
-        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, stageW, 600);
-        ctx.fillStyle = '#334155'; ctx.fillRect(0, 520, stageW, 80);
-        ctx.fillStyle = '#eab308'; ctx.fillRect(0, 520, stageW, 6);
-      } else if (stageId === 5) {
-        ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, stageW, 600);
-        ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 520, stageW, 80);
-        ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 520, stageW, 4);
-      }
-
-      const currentStageObj = stages[stageId];
-      if (currentStageObj && currentStageObj.platforms) {
-        currentStageObj.platforms.forEach(pt => {
-          ctx.save();
-          const px = stageW === 1600 ? pt.x * 1.33 : pt.x;
-          const pw = stageW === 1600 ? pt.width * 1.2 : pt.width;
-          const ph = pt.height || pt.h;
-          ctx.fillStyle = '#1e293b'; ctx.fillRect(px, pt.y, pw, ph);
-          ctx.strokeStyle = pt.type === 'gold' ? '#eab308' : (pt.type === 'neon' ? '#00f2fe' : '#38bdf8');
-          ctx.lineWidth = 2.5; ctx.strokeRect(px, pt.y, pw, ph);
-          ctx.restore();
+      ctx.fillStyle = '#162b36'; ctx.fillRect(0, 0, currentStageWidth, 600);
+      ctx.fillStyle = '#14532d'; ctx.fillRect(0, 520, currentStageWidth, 80);
+      if (stages[stageId] && stages[stageId].platforms) {
+        stages[stageId].platforms.forEach(pt => {
+          ctx.fillStyle = '#1e293b'; ctx.fillRect(pt.x, pt.y, pt.width, pt.height);
+          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5; ctx.strokeRect(pt.x, pt.y, pt.width, pt.height);
         });
       }
-    }
-
-    function drawStampEffect(targetCtx, x, y, emoji) {
-      targetCtx.save();
-      targetCtx.font = '36px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-      targetCtx.textAlign = 'center';
-      targetCtx.fillText(emoji, x, y);
-      targetCtx.restore();
     }
 
     function drawRealisticHumanoid(targetCtx, p, char) {
       targetCtx.save();
       const scale = p.senobicTimer > 0 ? 2 : 1;
-      const w = char.width * scale;
-      const h = char.height * scale;
-      const cx = p.x + w / 2;
-      const isRight = p.facing === 'right';
-      const dir = isRight ? 1 : -1;
-
-      if (p.stunFrames > 0) targetCtx.filter = 'brightness(1.5) sepia(1)';
-
-      if (p.isKilled) {
-        targetCtx.translate(cx, p.y + h / 2);
-        targetCtx.rotate(p.killTimer * 0.15);
-        targetCtx.translate(-cx, -(p.y + h / 2));
-      }
-
-      const topY = p.y;
-      const isPunching = p.attacking && p.attackType === 'punch';
-      const isKicking = p.attacking && p.attackType === 'kick';
-
-      switch (char.type) {
-        case 'futsuo':
-          drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.38, '#2980b9', '#1a5276');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.45, h * 0.32, '#1c2833', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.22, w * 0.35, h * 0.22, '#f5cba7', '#2c3e50', dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#f5cba7', dir, isPunching);
-          break;
-        case 'debugon':
-          drawRealisticBody(targetCtx, cx, topY + h * 0.42, w * 0.8, h * 0.44, '#d35400', '#7e5109', true);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.65, h * 0.28, '#2c3e50', dir, isKicking);
-          drawRealisticFace(targetCtx, cx, topY + h * 0.18, w * 0.4, h * 0.2, '#f5cba7', '#5d4037', dir, false, true);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.8, '#f5cba7', dir, isPunching);
-          break;
-        case 'chibikoro':
-          drawRealisticBody(targetCtx, cx, topY + h * 0.4, w * 0.72, h * 0.42, '#c0392b', '#641e16');
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.7, w * 0.55, h * 0.3, '#111', dir, isKicking);
-          drawDiverHelmet(targetCtx, cx, topY + h * 0.2, w * 0.42, h * 0.22, '#e74c3c', dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.72, '#e74c3c', dir, isPunching);
-          break;
-        case 'ninja':
-          drawRealisticBody(targetCtx, cx, topY + h * 0.45, w * 0.55, h * 0.4, '#1b1b1b', '#000');
-          drawNinjaScarf(targetCtx, cx, topY + h * 0.28, dir);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.68, w * 0.42, h * 0.32, '#111', dir, isKicking);
-          drawNinjaHead(targetCtx, cx, topY + h * 0.22, w * 0.32, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.55, '#333', dir, isPunching);
-          break;
-        case 'wizard':
-          drawWizardRobeBody(targetCtx, cx, topY + h * 0.5, w * 0.62, h * 0.48);
-          drawRealisticLegs(targetCtx, cx, topY + h * 0.72, w * 0.45, h * 0.28, '#111', dir, isKicking);
-          drawWizardHoodHead(targetCtx, cx, topY + h * 0.22, w * 0.36, h * 0.22, dir);
-          drawRealisticArms(targetCtx, cx, topY + h * 0.48, w * 0.62, '#f5cba7', dir, isPunching);
-          break;
-      }
-
-      targetCtx.restore();
-    }
-
-    function drawRealisticBody(ctx, x, y, w, h, mainColor, subColor, isHeavy = false) {
-      ctx.save();
-      ctx.fillStyle = mainColor;
-      ctx.beginPath(); ctx.roundRect(x - w / 2, y, w, h, [8, 8, 4, 4]); ctx.fill();
-      ctx.strokeStyle = '#0a0a0f'; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawRealisticArms(ctx, x, y, bodyW, armColor, dir, isPunching) {
-      ctx.save();
-      ctx.fillStyle = armColor; ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
-      if (isPunching) {
-        const reach = bodyW * 1.1;
-        ctx.beginPath(); ctx.roundRect(x + dir * (bodyW * 0.2), y - 8, dir * reach, 14, 4); ctx.fill(); ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.roundRect(x - bodyW * 0.55, y - 6, bodyW * 0.3, 12, 3);
-        ctx.roundRect(x + bodyW * 0.25, y - 6, bodyW * 0.3, 12, 3);
-        ctx.fill(); ctx.stroke();
-      }
-      ctx.restore();
-    }
-
-    function drawRealisticLegs(ctx, x, y, w, h, color, dir, isKicking) {
-      ctx.save();
-      ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-      if (isKicking) {
-        ctx.fillRect(x - w * 0.4, y, w * 0.35, h);
-        const kickReach = w * 0.95;
-        ctx.save();
-        ctx.translate(x, y + h * 0.3);
-        ctx.fillRect(dir * (w * 0.1), -8, dir * kickReach, 16);
-        ctx.restore();
-      } else {
-        ctx.fillRect(x - w * 0.45, y, w * 0.38, h);
-        ctx.fillRect(x + w * 0.08, y, w * 0.38, h);
-      }
-      ctx.restore();
-    }
-
-    function drawRealisticFace(ctx, x, y, rx, ry, skinColor, hairColor, dir, isFemale = false, hasBeard = false) {
-      ctx.save();
-      ctx.fillStyle = skinColor;
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = hairColor;
-      ctx.beginPath(); ctx.arc(x, y - 3, rx * 1.08, Math.PI * 0.85, Math.PI * 2.15); ctx.fill();
-      ctx.restore();
-    }
-
-    function drawNinjaScarf(ctx, x, y, dir) {
-      ctx.save();
-      ctx.fillStyle = '#e74c3c';
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - dir * 25, y + 10); ctx.lineTo(x, y - 5); ctx.fill();
-      ctx.restore();
-    }
-
-    function drawNinjaHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#111';
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawDiverHelmet(ctx, x, y, rx, ry, color, dir) {
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawWizardRobeBody(ctx, x, y, w, h) {
-      ctx.save();
-      ctx.fillStyle = '#1e1b4b'; ctx.fillRect(x - w / 2, y, w, h);
-      ctx.restore();
-    }
-
-    function drawWizardHoodHead(ctx, x, y, rx, ry, dir) {
-      ctx.save();
-      ctx.fillStyle = '#312e81';
-      ctx.beginPath(); ctx.arc(x, y, rx, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-    }
-
-    function drawCustomAttackEffect(targetCtx, p, char) {
-      targetCtx.save();
-      const ab = p.attackBox;
-      targetCtx.fillStyle = ab.type === 'special_bomb' || ab.type === 'special_shockwave' ? 'rgba(231, 76, 60, 0.95)' : (ab.type === 'punch' ? 'rgba(241, 196, 15, 0.65)' : 'rgba(231, 76, 60, 0.65)');
-      targetCtx.fillRect(ab.x, ab.y, ab.width, ab.height);
+      const w = char.width * scale, h = char.height * scale, cx = p.x + w / 2;
+      targetCtx.fillStyle = '#2980b9'; targetCtx.fillRect(cx - w * 0.25, p.y + h * 0.4, w * 0.5, h * 0.4);
+      targetCtx.fillStyle = '#f5cba7'; targetCtx.beginPath(); targetCtx.arc(cx, p.y + h * 0.2, w * 0.25, 0, Math.PI * 2); targetCtx.fill();
       targetCtx.restore();
     }
 
     function drawHUD() {
-      // 観戦プレイヤーを除外して参戦者のみHUDに表示
       const activePlayers = Object.values(playersData).filter(p => p.role !== 'spectator');
       if (activePlayers.length === 0) return;
-
       const me = activePlayers.find(p => p.playerNum === myPlayerNum) || activePlayers[0];
-      const others = activePlayers.filter(p => p.id !== (me ? me.id : null));
-
       if (me && characters[me.characterKey]) {
-        drawPlayerHUDBox(me, 20, 20, false);
+        ctx.fillStyle = '#1a1a22'; ctx.fillRect(20, 20, 260, 18);
+        ctx.fillStyle = '#2ecc71'; ctx.fillRect(20, 20, 260 * (me.hp / me.maxHp), 18);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${me.name}⚔️ ★YOU`, 20, 14);
       }
-
-      const positions = [
-        { x: 1200 - 20 - 260 - 65, y: 20, isRight: true },
-        { x: 20, y: 110, isRight: false },
-        { x: 1200 - 20 - 260 - 65, y: 110, isRight: true }
-      ];
-
-      others.forEach((p, idx) => {
-        if (positions[idx]) {
-          drawPlayerHUDBox(p, positions[idx].x, positions[idx].y, positions[idx].isRight);
-        }
-      });
-    }
-
-    function drawPlayerHUDBox(p, x, y, isRight) {
-      const char = characters[p.characterKey];
-      if (!char) return;
-
-      const width = 260;
-      const isMe = p.playerNum === myPlayerNum;
-
-      ctx.save();
-      ctx.fillStyle = '#1a1a22';
-      ctx.fillRect(x, y, width, 18);
-
-      const hpWidth = Math.max(0, (p.hp / p.maxHp) * width);
-      ctx.fillStyle = p.hp < p.maxHp * 0.3 ? '#e74c3c' : '#2ecc71';
-      ctx.fillRect(isRight ? x + width - hpWidth : x, y, hpWidth, 18);
-
-      ctx.fillStyle = '#333';
-      ctx.fillRect(x, y + 20, width, 8);
-      ctx.fillStyle = '#f1c40f';
-      ctx.fillRect(isRight ? x + width - Math.max(0, ((p.specialGauge || 0) / 100) * width) : x, y + 20, Math.max(0, ((p.specialGauge || 0) / 100) * width), 8);
-
-      const teamTag = p.team ? `[Team ${p.team}] ` : '';
-      ctx.fillStyle = isMe ? '#f1c40f' : '#fff';
-      ctx.font = 'bold 12px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-      ctx.textAlign = isRight ? 'right' : 'left';
-      ctx.fillText(`${teamTag}${p.name}⚔️ (${p.playerNum}P) ${isMe ? '★YOU' : ''}`, isRight ? x + width : x, y - 4);
-
-      let livesStr = '';
-      for (let l = 0; l < (p.lives || 0); l++) livesStr += '❤️ ';
-      ctx.fillStyle = '#e74c3c';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.fillText(livesStr, isRight ? x + width : x, y + 42);
-
-      ctx.restore();
     }
   </script>
 </body>
