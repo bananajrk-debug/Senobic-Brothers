@@ -1238,7 +1238,7 @@
 
             const charTopY = pos.y - 10 - (char.height * pos.scale);
 
-            // モードに応じた名前末尾アイコン (👁️ / ⚔️)
+            // 確実なアイコン（👁️ / ⚔️）の表示
             const roleIcon = pl.role === 'spectator' ? '👁️' : '⚔️';
             const teamText = (pl.role === 'battle' && pl.team) ? `[Team ${pl.team}] ` : '';
             
@@ -1332,7 +1332,7 @@
       });
 
       Object.values(playersData).forEach(p => {
-        // 観戦プレイヤーは戦闘フィールド上に自分のキャラクターを表示しない
+        // 観戦プレイヤーは戦闘フィールド上に表示しない
         if (p.role === 'spectator') return;
 
         const char = characters[p.characterKey];
