@@ -22,10 +22,7 @@ io.on('connection', (socket) => {
       code: code,
       state: 'LOBBY',
       selectedStage: 1,
-      players: {},
-      items: [],
-      projectiles: [],
-      isCpuMode: false
+      players: {}
     };
 
     rooms[code].players[socket.id] = {
@@ -107,14 +104,13 @@ io.on('connection', (socket) => {
     io.to(data.code).emit('gameState', room);
   });
 
-  // モード（バトル/観戦）とチーム（A/B）の更新処理
   socket.on('setRole', (data) => {
     if (!currentRoomCode || !rooms[currentRoomCode]) return;
     const room = rooms[currentRoomCode];
     const player = room.players[socket.id];
     if (player) {
-      player.role = data.role; // 'battle' または 'spectator'
-      player.team = data.team; // 'A' または 'B'
+      player.role = data.role;
+      player.team = data.team;
       io.to(currentRoomCode).emit('gameState', room);
     }
   });
@@ -152,7 +148,6 @@ io.on('connection', (socket) => {
       p.ready = !p.ready;
       io.to(currentRoomCode).emit('gameState', room);
 
-      // 全員準備完了でゲーム開始
       const playersList = Object.values(room.players);
       if (playersList.length > 0 && playersList.every(pl => pl.ready)) {
         startGame(currentRoomCode);
@@ -177,17 +172,18 @@ function startGame(code) {
   if (!room) return;
   room.state = 'PLAYING';
 
-  // 観戦者以外のプレイヤーのみ戦闘用パラメータを初期化
-  Object.values(room.players).forEach((p, idx) => {
+  let battleIdx = 0;
+  Object.values(room.players).forEach((p) => {
     if (p.role === 'spectator') return;
     p.hp = 100;
     p.maxHp = 100;
     p.lives = 3;
-    p.x = 200 + idx * 250;
+    p.x = 250 + battleIdx * 250;
     p.y = 200;
     p.vx = 0;
     p.vy = 0;
     p.isKilled = false;
+    battleIdx++;
   });
 
   io.to(code).emit('gameStart', { players: room.players, selectedStage: room.selectedStage });
