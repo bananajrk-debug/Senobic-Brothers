@@ -310,6 +310,22 @@
       justify-content: center;
     }
     #ingame-menu-btn:hover { background: #3a3a4e; }
+
+    #spectator-watermark {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: bold;
+      color: rgba(241, 196, 15, 0.8);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(241, 196, 15, 0.5);
+      pointer-events: none;
+      z-index: 20;
+    }
   </style>
 </head>
 <body>
@@ -321,6 +337,7 @@
     <canvas id="gameCanvas" width="1200" height="600"></canvas>
 
     <div id="countdown-overlay" class="hidden">3</div>
+    <div id="spectator-watermark" class="hidden">👁️ 観戦中</div>
 
     <!-- 1. タイトル画面 -->
     <div id="screen-title" class="overlay">
@@ -509,6 +526,7 @@
     const settingsBtnIcon = document.getElementById('settings-btn-icon');
     const modeSelectBtn = document.getElementById('mode-select-btn');
     const teamToggleBtn = document.getElementById('team-toggle-btn');
+    const spectatorWatermark = document.getElementById('spectator-watermark');
     const zoomedCodeText = document.getElementById('zoomed-code-text');
     const countdownOverlay = document.getElementById('countdown-overlay');
     const charListContainer = document.getElementById('char-list');
@@ -860,7 +878,7 @@
       if (e.key === '3') sendStamp('❤️');
       if (e.key === '4') sendStamp('💢');
 
-      if (currentGameState === 'PLAYING') {
+      if (currentGameState === 'PLAYING' && myRole !== 'spectator') {
         const now = Date.now();
         if (e.key === 'a' || e.key === 'A') keys.left = true;
         if (e.key === 'd' || e.key === 'D') keys.right = true;
@@ -894,7 +912,7 @@
     });
 
     window.addEventListener('keyup', (e) => {
-      if (currentGameState === 'PLAYING') {
+      if (currentGameState === 'PLAYING' && myRole !== 'spectator') {
         if (e.key === 'a' || e.key === 'A') keys.left = false;
         if (e.key === 'd' || e.key === 'D') keys.right = false;
         if (e.key === 's' || e.key === 'S') keys.down = false;
@@ -1053,6 +1071,7 @@
       codeZoomModal.classList.add('hidden');
       ingameMenuModal.classList.add('hidden');
       modeSelectModal.classList.add('hidden');
+      spectatorWatermark.classList.add('hidden');
 
       if (currentGameState === 'TITLE') {
         screenTitle.classList.remove('hidden');
@@ -1071,6 +1090,9 @@
       } else if (currentGameState === 'PLAYING') {
         settingsBtnIcon.classList.add('hidden');
         ingameMenuBtn.classList.remove('hidden');
+        if (myRole === 'spectator') {
+          spectatorWatermark.classList.remove('hidden');
+        }
       } else if (currentGameState === 'FINISHED') {
         screenGameover.classList.remove('hidden');
         settingsBtnIcon.classList.remove('hidden');
@@ -1216,12 +1238,14 @@
 
             const charTopY = pos.y - 10 - (char.height * pos.scale);
 
-            // チームバッジの表示
-            const teamText = pl.role === 'spectator' ? '【観戦】' : (pl.team ? `[Team ${pl.team}] ` : '');
+            // モードに応じた名前末尾アイコン (👁️ / ⚔️)
+            const roleIcon = pl.role === 'spectator' ? '👁️' : '⚔️';
+            const teamText = (pl.role === 'battle' && pl.team) ? `[Team ${pl.team}] ` : '';
+            
             ctx.fillStyle = pos.isMe ? '#f1c40f' : '#fff';
             ctx.font = 'bold 15px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`${teamText}${pl.name} ${pos.isMe ? '(YOU)' : ''}`, pos.x, pos.y + 24);
+            ctx.fillText(`${teamText}${pl.name}${roleIcon} ${pos.isMe ? '(YOU)' : ''}`, pos.x, pos.y + 24);
             
             ctx.fillStyle = pl.ready ? '#2ecc71' : '#e74c3c';
             ctx.font = 'bold 12px sans-serif';
@@ -1308,7 +1332,7 @@
       });
 
       Object.values(playersData).forEach(p => {
-        // 観戦プレイヤーは戦闘フィールド上に表示しない
+        // 観戦プレイヤーは戦闘フィールド上に自分のキャラクターを表示しない
         if (p.role === 'spectator') return;
 
         const char = characters[p.characterKey];
@@ -1350,13 +1374,12 @@
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 4;
         
-        // チームカラーまたはデフォルトカラーの適用
         let teamBadge = p.team ? `[Team ${p.team}] ` : '';
         let pColor = isMe ? '#f1c40f' : (p.team === 'A' ? '#e74c3c' : (p.team === 'B' ? '#3498db' : '#2ecc71'));
         
-        ctx.strokeText(`${teamBadge}${p.name}`, p.x + curW / 2, p.y - 20);
+        ctx.strokeText(`${teamBadge}${p.name}⚔️`, p.x + curW / 2, p.y - 20);
         ctx.fillStyle = pColor;
-        ctx.fillText(`${teamBadge}${p.name}`, p.x + curW / 2, p.y - 20);
+        ctx.fillText(`${teamBadge}${p.name}⚔️`, p.x + curW / 2, p.y - 20);
 
         const miniBarW = Math.max(curW, 50);
         ctx.fillStyle = '#111';
@@ -1624,8 +1647,10 @@
     }
 
     function drawHUD() {
-      // 観戦以外のプレイヤー（参戦者）のみHUD表示対象にする
+      // 観戦プレイヤーを除外して参戦者のみHUDに表示
       const activePlayers = Object.values(playersData).filter(p => p.role !== 'spectator');
+      if (activePlayers.length === 0) return;
+
       const me = activePlayers.find(p => p.playerNum === myPlayerNum) || activePlayers[0];
       const others = activePlayers.filter(p => p.id !== (me ? me.id : null));
 
@@ -1670,7 +1695,7 @@
       ctx.fillStyle = isMe ? '#f1c40f' : '#fff';
       ctx.font = 'bold 12px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
       ctx.textAlign = isRight ? 'right' : 'left';
-      ctx.fillText(`${teamTag}${p.name} (${p.playerNum}P) ${isMe ? '★YOU' : ''}`, isRight ? x + width : x, y - 4);
+      ctx.fillText(`${teamTag}${p.name}⚔️ (${p.playerNum}P) ${isMe ? '★YOU' : ''}`, isRight ? x + width : x, y - 4);
 
       let livesStr = '';
       for (let l = 0; l < (p.lives || 0); l++) livesStr += '❤️ ';
