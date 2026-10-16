@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+＿＾？<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -418,7 +418,7 @@
       <div class="settings-card" style="align-items: center; text-align: center;">
         <h2 style="font-size: 18px; color: #3498db; margin-bottom: 4px;">ROOM CODE</h2>
         <div id="zoomed-code-text" style="font-size: 48px; font-weight: 900; color: #f1c40f; letter-spacing: 4px; margin: 10px 0;">----</div>
-        <p style="font-size: 12px; color: #aaa;">このコードを友達に伝えて入室してもらいましょう！</p>
+        <p style="font-size: 12px; color: #aaa;">このコードで入室できます</p>
         <button class="btn" onclick="closeCodeZoomModal()" style="margin-top: 15px; width: 120px;">閉じる</button>
       </div>
     </div>
@@ -467,7 +467,7 @@
   </div>
 
   <div id="controls-guide">
-    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ [S] 足場降り ｜ [K] パンチ / 爆弾投擲 ｜ [O] キック(CT1秒) / 爆弾投擲 ｜ <span style="color: #f1c40f;">[J] 必殺技</span> ｜ <span style="color: #38bdf8;">[Space] バリア(1秒/CT3秒)</span>
+    操作: [A/D] 移動 ｜ [W] ジャンプ ｜ [S] 足場降り ｜ [K] パンチ / 爆弾を投げる ｜ [O] キック(CT1秒) / 爆弾を投げる ｜ <span style="color: #f1c40f;">[J] 必殺技</span> ｜ <span style="color: #38bdf8;">[Space] バリア(1秒/CT3秒)</span>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -506,17 +506,17 @@
     let currentStageWidth = 1200;
 
     let characters = {
-      futsuo:     { name: 'フツオ (ファイター)',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(5秒)' },
-      debugon:    { name: 'デブゴン (ヘビー)',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(着地衝撃波)' },
-      chibikoro:  { name: 'チビコロ (ダイバー)',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム' },
-      ninja:      { name: 'ニンジャ (シノビ)',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投' },
-      wizard:     { name: 'ウィザード (メイジ)',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾3連投(確率硬直)' }
+      futsuo:     { name: 'フツオ',   hp: 100, atk: 12, speed: 7.0, jumpPower: 17, width: 50, height: 90,  type: 'futsuo',     ability: 'パワーアップ覚醒(5秒)' },
+      debugon:    { name: 'デブゴン',     hp: 140, atk: 16, speed: 5.0, jumpPower: 14.5, width: 75, height: 95,  type: 'debugon',    ability: '不屈のアーマー(着地衝撃波)' },
+      chibikoro:  { name: 'チビコロ',   hp: 110, atk: 13, speed: 6.0, jumpPower: 14, width: 65, height: 60,  type: 'chibikoro',  ability: '大爆発ボム' },
+      ninja:      { name: 'ニンジャ',     hp: 85,  atk: 11, speed: 7.0, jumpPower: 17, width: 40, height: 90,  type: 'ninja',      ability: '手裏剣3連投' },
+      wizard:     { name: 'ウィザード',   hp: 85,  atk: 13, speed: 7.0, jumpPower: 18, width: 45, height: 95,  type: 'wizard',     ability: '魔法弾3連投(確率硬直)' }
     };
 
     let stages = {
       1: { name: '平原', platforms: [{ x: 220, y: 410, width: 200, height: 18 }, { x: 780, y: 410, width: 200, height: 18 }, { x: 500, y: 280, width: 200, height: 18 }] },
       2: { name: '浮島', platforms: [{ x: 180, y: 400, width: 220, height: 20 }, { x: 800, y: 400, width: 220, height: 20 }, { x: 490, y: 270, width: 220, height: 20 }] },
-      3: { name: 'スリル', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
+      3: { name: '地獄', platforms: [{ x: 350, y: 390, width: 500, height: 22 }] },
       4: { name: '神殿', platforms: [{ x: 200, y: 390, width: 220, height: 20, type: 'gold' }, { x: 780, y: 390, width: 220, height: 20, type: 'gold' }, { x: 480, y: 260, width: 240, height: 22, type: 'gold' }] },
       5: { name: '宇宙', platforms: [{ x: 150, y: 420, width: 250, height: 16, type: 'neon' }, { x: 800, y: 420, width: 250, height: 16, type: 'neon' }, { x: 460, y: 290, width: 280, height: 16, type: 'neon' }] }
     };
@@ -1044,7 +1044,7 @@
           readyBtn.textContent = '準備完了解除';
           readyBtn.className = 'btn btn-cancel interactive';
         } else {
-          readyBtn.textContent = '対戦準備完了';
+          readyBtn.textContent = '準備完了';
           readyBtn.className = 'btn btn-ready interactive';
         }
       }
@@ -1304,7 +1304,7 @@
         if (p.ninjaSpecialShurikenCount > 0) statusStr += `🌀手裏剣:${p.ninjaSpecialShurikenCount} `;
         if (p.wizardSpecialMagicCount > 0) statusStr += `✨魔法:${p.wizardSpecialMagicCount} `;
         if (p.specialActiveTimer > 0 && char.type === 'futsuo') {
-          statusStr += `🔥覚醒:${(p.specialActiveTimer / 60).toFixed(1)}s `;
+          statusStr += `🔥覚醒🔥:${(p.specialActiveTimer / 60).toFixed(1)}s `;
         }
         if (p.senobicTimer > 0) statusStr += '🔥GIANT! ';
         if (p.buffAtkTimer > 0) statusStr += '⭐ATK ';
