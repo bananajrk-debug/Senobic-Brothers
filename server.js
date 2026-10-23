@@ -66,28 +66,28 @@ const CHARACTERS = {
   // ---------- 追加キャラ (SEG購入) ----------
   samurai: {
     name: 'ムサシ', role: 'サムライ', hp: 115, atk: 15, speed: 6.5, jumpPower: 16, width: 48, height: 92,
-    type: 'samurai', special: 'iai', ability: '居合・瞬閃斬り(高速突進斬)', cd: 12, reachMul: 1.45, price: 0,
+    type: 'samurai', special: 'iai', ability: '居合・瞬閃斬り(高速突進斬)', cd: 12, reachMul: 1.45, price: 2000,
     look: { skin: '#f1c9a5', hair: '#111827', hairStyle: 'topknot', top: '#b91c1c', top2: '#450a0a', pants: '#1f2937', accent: '#fbbf24', build: 0.64, extra: 'katana' }
   },
   dragon: {
     name: 'リュウガ', role: 'ドラゴンナイト', hp: 150, atk: 15, speed: 5.5, jumpPower: 15, width: 70, height: 98,
-    type: 'dragon', special: 'flame', ability: 'ドラゴンブレス(貫通火炎)', cd: 14, reachMul: 1.1, price: 0,
+    type: 'dragon', special: 'flame', ability: 'ドラゴンブレス(貫通火炎)', cd: 14, reachMul: 1.1, price: 2500,
     look: { skin: '#e7c9a9', hair: '#064e3b', hairStyle: 'dhelm', top: '#047857', top2: '#064e3b', pants: '#1f2937', accent: '#fbbf24', build: 0.86, extra: 'dragon' }
   },
   robo: {
     name: 'ガンマ', role: 'サイバーロボ', hp: 110, atk: 12, speed: 6.5, jumpPower: 16, width: 55, height: 92,
-    type: 'robo', special: 'laser', ability: 'メガレーザー(超長射程ビーム)', cd: 14, price: 0,
+    type: 'robo', special: 'laser', ability: 'メガレーザー(超長射程ビーム)', cd: 14, price: 3000,
     ranged: { type: 'laser', speed: 20, w: 36, h: 10 },
     look: { skin: '#94a3b8', hair: '#64748b', hairStyle: 'visor', top: '#64748b', top2: '#334155', pants: '#1e293b', accent: '#22d3ee', build: 0.78, extra: 'robot' }
   },
   vampy: {
     name: 'カーミラ', role: 'ヴァンパイア', hp: 100, atk: 13, speed: 7.5, jumpPower: 18, width: 42, height: 92,
-    type: 'vampy', special: 'drain', ability: 'ブラッドドレイン(吸血爆発)', cd: 12, vamp: 0.25, price: 0,
+    type: 'vampy', special: 'drain', ability: 'ブラッドドレイン(吸血爆発)', cd: 12, vamp: 0.25, price: 3500,
     look: { skin: '#e5e7eb', hair: '#f3f4f6', hairStyle: 'long', top: '#7f1d1d', top2: '#1f0a12', pants: '#111827', accent: '#dc2626', build: 0.56, extra: 'cape' }
   },
   thunder: {
     name: 'ライジン', role: 'サンダーロード', hp: 150, atk: 25, speed: 7.0, jumpPower: 19, width: 55, height: 95,
-    type: 'thunder', special: 'lightning', ability: '天雷召喚(敵の頭上に落雷)', cd: 12, price: 0,
+    type: 'thunder', special: 'lightning', ability: '天雷召喚(敵の頭上に落雷)', cd: 12, price: 5500,
     look: { skin: '#fcd9b6', hair: '#fde047', hairStyle: 'spiky', top: '#eab308', top2: '#a16207', pants: '#1e3a8a', accent: '#38bdf8', build: 0.72, extra: 'drums' }
   }
 };
@@ -157,20 +157,20 @@ const EMOTES = {
   thumbsdown: { name: 'ブー', emoji: '👎', price: 0, anim: 'pop' },
   heart:      { name: 'ハート', emoji: '❤️', price: 0, anim: 'bounce' },
   anger:      { name: '怒り', emoji: '💢', price: 0, anim: 'shake' },
-  gg:         { name: 'GG', emoji: '🤝', price: 0, anim: 'pop' },
-  lol:        { name: '大笑い', emoji: '😂', price: 0, anim: 'bounce' },
-  rage:       { name: '激怒', emoji: '😡', price: 0, anim: 'shake' },
-  fire:       { name: '炎', emoji: '🔥', price: 0, anim: 'burst' },
-  cool:       { name: 'クール', emoji: '😎', price: 0, anim: 'bounce' },
-  skull:      { name: 'ドクロ', emoji: '💀', price: 0, anim: 'shake' },
-  party:      { name: 'パーティー', emoji: '🎉', price: 0, anim: 'confetti' },
-  sparkle:    { name: 'キラキラ', emoji: '✨', price: 0, anim: 'sparkle' },
-  crown:      { name: '王冠', emoji: '👑', price: 0, anim: 'spin' },
-  rainbow:    { name: '虹', emoji: '🌈', price: 0, anim: 'rise' },
-  money:      { name: '札束の雨', emoji: '💰', price: 0, anim: 'rain' },
-  flex:       { name: 'マッチョポーズ', emoji: '💪', price: 0, anim: 'pop', motion: 'flex' },
-  dance:      { name: 'ダンス', emoji: '🕺', price: 0, anim: 'bounce', motion: 'dance' },
-  flip:       { name: 'バク宙', emoji: '🌀', price: 0, anim: 'spin', motion: 'flip' }
+  gg:         { name: 'GG', emoji: '🤝', price: 100, anim: 'pop' },
+  lol:        { name: '大笑い', emoji: '😂', price: 120, anim: 'bounce' },
+  rage:       { name: '激怒', emoji: '😡', price: 120, anim: 'shake' },
+  fire:       { name: '炎', emoji: '🔥', price: 150, anim: 'burst' },
+  cool:       { name: 'クール', emoji: '😎', price: 150, anim: 'bounce' },
+  skull:      { name: 'ドクロ', emoji: '💀', price: 200, anim: 'shake' },
+  party:      { name: 'パーティー', emoji: '🎉', price: 250, anim: 'confetti' },
+  sparkle:    { name: 'キラキラ', emoji: '✨', price: 250, anim: 'sparkle' },
+  crown:      { name: '王冠', emoji: '👑', price: 300, anim: 'spin' },
+  rainbow:    { name: '虹', emoji: '🌈', price: 350, anim: 'rise' },
+  money:      { name: '札束の雨', emoji: '💰', price: 400, anim: 'rain' },
+  flex:       { name: 'マッチョポーズ', emoji: '💪', price: 450, anim: 'pop', motion: 'flex' },
+  dance:      { name: 'ダンス', emoji: '🕺', price: 500, anim: 'bounce', motion: 'dance' },
+  flip:       { name: 'バク宙', emoji: '🌀', price: 600, anim: 'spin', motion: 'flip' }
 };
 
 const STORY = [
