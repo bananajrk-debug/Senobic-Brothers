@@ -1,7 +1,7 @@
 {
   "name": "senobic-brothers",
-  "version": "2.0.0",
-  "description": "Retro Style 2D Fighting Game with Node.js and Socket.io - Story Mode / Shop Update",
+  "version": "2.1.0",
+  "description": "Retro Style 2D Fighting Game with Node.js and Socket.io - Story Mode / Shop / Friends Update",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
