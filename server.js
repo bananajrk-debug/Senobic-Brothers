@@ -84,7 +84,7 @@ const CHARACTERS = {
   },
   thunder: {
     name: 'ライジン', role: 'サンダーロード', hp: 150, atk: 25, speed: 7.0, jumpPower: 19, width: 55, height: 95,
-    type: 'thunder', special: 'lightning', ability: '天雷召喚(敵の頭上に落雷)', cd: 12, price: 4500,
+    type: 'thunder', special: 'lightning', ability: '天雷召喚(敵の頭上に落雷)', cd: 12, price: 5500,
     look: { skin: '#fcd9b6', hair: '#fde047', hairStyle: 'spiky', top: '#eab308', top2: '#a16207', pants: '#1e3a8a', accent: '#38bdf8', build: 0.72, extra: 'drums' }
   }
 };
