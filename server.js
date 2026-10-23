@@ -13,7 +13,9 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.static(__dirname));
+// 注意: express.static(__dirname) は profiles.json (全ユーザーのトークン入り) や server.js を
+// 公開してしまうため廃止。配信するのは下の index.html だけ。
+app.use(express.json({ limit: '10kb' }));
 
 app.get('/', (req, res) => {
   const filePath = path.join(__dirname, 'index.html');
@@ -198,23 +200,50 @@ const CATALOG = { characters: CHARACTERS, enemies: ENEMIES, stages: STAGES, skin
 /* =====================================================================
    プロフィール (SEG・所持品) の保存
    ===================================================================== */
-const PROFILE_PATH = path.join(process.env.DATA_DIR || __dirname, 'profiles.json');
-let profiles = {};
-try {
-  if (fs.existsSync(PROFILE_PATH)) profiles = JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8')) || {};
-} catch (e) { console.error('profiles load error', e.message); profiles = {}; }
-
-let saveTimer = null;
-function saveProfiles() {
-  if (saveTimer) return;
-  saveTimer = setTimeout(() => {
-    saveTimer = null;
-    try { fs.writeFileSync(PROFILE_PATH, JSON.stringify(profiles)); } catch (e) { /* 書き込み不可環境では無視 */ }
-  }, 800);
+// ---- 保存先 ------------------------------------------------------------
+// DATA_DIR に「再起動・再デプロイで消えないディスク」を指定してください。
+//   Render : Persistent Disk をマウント (例 /var/data) → DATA_DIR=/var/data
+//   Replit : Deployments なら Object Storage / 外部DB推奨 (ファイルは消える場合あり)
+//   Glitch : DATA_DIR=/app/.data (.data は再起動後も残る)
+//   VPS等  : DATA_DIR=/home/xxx/senobic-data など
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : __dirname;
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) { console.error('[ERROR] DATA_DIR を作成できません:', e.message); }
+const PROFILE_PATH = path.join(DATA_DIR, 'profiles.json');
+const PROFILE_TMP = PROFILE_PATH + '.tmp';
+const PROFILE_BAK = PROFILE_PATH + '.bak';
+if (!process.env.DATA_DIR) {
+  console.warn('[WARN] DATA_DIR が未設定です。保存先=' + DATA_DIR + ' (クラウド環境では再デプロイ/再起動でデータが消える可能性があります)');
+} else {
+  console.log('[INFO] プロフィール保存先: ' + PROFILE_PATH);
 }
+
+function readJsonSafe(file) {
+  try {
+    if (!fs.existsSync(file)) return null;
+    const o = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : null;
+  } catch (e) { console.error('[ERROR] 読み込み失敗:', file, e.message); return null; }
+}
+
+// 本体が壊れていた場合は直前のバックアップから復旧する
+let profiles = readJsonSafe(PROFILE_PATH) || readJsonSafe(PROFILE_BAK) || {};
+
+// 即時・同期・アトミック書き込み (tmp に書いて fsync → rename)。書き込み途中で落ちてもファイルが壊れない
+function saveProfiles() {
+  try {
+    const fd = fs.openSync(PROFILE_TMP, 'w');
+    try { fs.writeSync(fd, JSON.stringify(profiles)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    if (fs.existsSync(PROFILE_PATH)) fs.copyFileSync(PROFILE_PATH, PROFILE_BAK);
+    fs.renameSync(PROFILE_TMP, PROFILE_PATH);
+  } catch (e) {
+    console.error('[ERROR] プロフィール保存に失敗:', e.message);
+  }
+}
+['SIGTERM', 'SIGINT'].forEach(sig => process.on(sig, () => { saveProfiles(); process.exit(0); }));
 
 function newProfile() {
   return {
+    id: '', name: '',
     seg: START_SEG,
     ownedChars: FREE_CHARS.slice(),
     ownedSkins: {},
@@ -223,13 +252,255 @@ function newProfile() {
     emoteSlots: FREE_EMOTES.slice(),
     storyProgress: 0,
     storyCleared: false,
-    wins: 0
+    wins: 0,
+    friends: [],          // フレンドの公開ID一覧
+    friendRequests: [],   // 受信した保留中の申請 (相手の公開ID)
+    sentRequests: []      // 送信済みで保留中の申請 (相手の公開ID)
   };
 }
 
+/* ---------- 公開ID (フレンドコード) とプロフィールの正規化 ----------
+   token(=ログインの鍵)は絶対に他人へ見せない。他人に見せるのは公開ID(8文字)だけ。 */
+const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const MAX_FRIENDS = 50, MAX_PENDING = 50;
+const tokenById = {};
+
+function genFriendId() {
+  let id;
+  do {
+    id = '';
+    const b = crypto.randomBytes(8);
+    for (let i = 0; i < 8; i++) id += ID_ALPHABET[b[i] % ID_ALPHABET.length];
+  } while (tokenById[id]);
+  return id;
+}
+
+// 旧データ(friends等が無い)も読み込み時に自動で補完する。変更があれば true
+function normalizeProfile(token, pr) {
+  let changed = false;
+  if (typeof pr.id !== 'string' || !/^[A-Z0-9]{8}$/.test(pr.id) || (tokenById[pr.id] && tokenById[pr.id] !== token)) {
+    pr.id = genFriendId(); changed = true;
+  }
+  tokenById[pr.id] = token;
+  if (typeof pr.name !== 'string') { pr.name = ''; changed = true; }
+  ['friends', 'friendRequests', 'sentRequests'].forEach(k => {
+    if (!Array.isArray(pr[k])) { pr[k] = []; changed = true; }
+  });
+  return changed;
+}
+(function migrateProfiles() {
+  let dirty = false;
+  for (const t in profiles) { if (normalizeProfile(t, profiles[t])) dirty = true; }
+  if (dirty) saveProfiles();
+})();
+
+/* ---------- ソケットとトークンの対応 ---------- */
 const tokenBySocket = {};
+const socketsByToken = {};
 function profileOf(socketId) { const t = tokenBySocket[socketId]; return t ? profiles[t] : null; }
-function addSeg(pr, amount) { if (pr && amount > 0) { pr.seg += amount; saveProfiles(); } }
+function unbindSocket(socketId) {
+  const t = tokenBySocket[socketId];
+  if (t && socketsByToken[t]) { socketsByToken[t].delete(socketId); if (!socketsByToken[t].size) delete socketsByToken[t]; }
+  delete tokenBySocket[socketId];
+}
+function bindSocket(socketId, token) {
+  unbindSocket(socketId);
+  tokenBySocket[socketId] = token;
+  if (!socketsByToken[token]) socketsByToken[token] = new Set();
+  socketsByToken[token].add(socketId);
+}
+function isOnline(token) { return !!socketsByToken[token]; }
+function emitToToken(token, ev, payload) {
+  const set = socketsByToken[token];
+  if (set) set.forEach(id => io.to(id).emit(ev, payload));
+}
+
+// SEG加算 (保存は呼び出し側でまとめて saveProfiles する)
+function addSeg(pr, amount) { if (pr && amount > 0) pr.seg += amount; }
+
+/* =====================================================================
+   フレンド機能
+   ===================================================================== */
+const fail = (msg, code) => ({ ok: false, msg, code: code || 400 });
+const cleanStr = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, n);
+const normId = (v) => cleanStr(v, 8).toUpperCase();
+
+function profileById(id) { const t = tokenById[id]; return t ? { token: t, pr: profiles[t] } : null; }
+
+function pubSummary(id, full) {
+  const f = profileById(id);
+  if (!f || !f.pr) return null;
+  const p = f.pr;
+  const o = { id: p.id, name: p.name || 'Player', online: isOnline(f.token) };
+  if (full) {
+    o.seg = p.seg; o.wins = p.wins || 0;
+    o.storyProgress = p.storyProgress || 0; o.storyCleared = !!p.storyCleared;
+    o.ownedChars = (p.ownedChars || []).slice();
+  }
+  return o;
+}
+
+function relationOf(pr, id) {
+  if (pr.friends.includes(id)) return 'friend';
+  if (pr.sentRequests.includes(id)) return 'sent';
+  if (pr.friendRequests.includes(id)) return 'received';
+  return 'none';
+}
+
+function friendList(pr) {
+  const map = (arr, full) => arr.map(id => pubSummary(id, full)).filter(Boolean);
+  const friends = map(pr.friends, true).sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name, 'ja'));
+  return {
+    me: { id: pr.id, name: pr.name || 'Player' },
+    friends, requests: map(pr.friendRequests, false), sent: map(pr.sentRequests, false),
+    limits: { maxFriends: MAX_FRIENDS }
+  };
+}
+
+// 名前(部分一致) または ID(完全一致) で検索
+function friendSearch(pr, q) {
+  q = cleanStr(q, 20);
+  if (!q) return fail('検索ワードを入力してください');
+  const out = [], seen = new Set();
+  const push = (p) => {
+    if (p === pr || seen.has(p.id)) return;
+    seen.add(p.id);
+    out.push({ id: p.id, name: p.name || 'Player', online: isOnline(tokenById[p.id]), relation: relationOf(pr, p.id) });
+  };
+  const idq = q.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (idq === pr.id) return fail('それはあなた自身のIDです');
+  if (idq.length === 8 && tokenById[idq]) push(profiles[tokenById[idq]]);
+  const lq = q.toLowerCase();
+  for (const t in profiles) {
+    if (out.length >= 10) break;
+    const p = profiles[t];
+    if (p !== pr && p.name && p.name.toLowerCase().includes(lq)) push(p);
+  }
+  return { ok: true, results: out };
+}
+
+function friendRequest(pr, targetId) {
+  const f = profileById(normId(targetId));
+  if (!f || !f.pr) return fail('ユーザーが見つかりません');
+  const tp = f.pr;
+  if (tp === pr) return fail('自分自身には申請できません');
+  if (pr.friends.includes(tp.id)) return fail('すでにフレンドです');
+  if (pr.sentRequests.includes(tp.id)) return fail('すでに申請済みです');
+  if (pr.friendRequests.includes(tp.id)) return friendRespond(pr, tp.id, true); // 相手からも届いている→そのまま成立
+  if (pr.friends.length >= MAX_FRIENDS) return fail(`フレンドは最大${MAX_FRIENDS}人までです`);
+  if (tp.friendRequests.length >= MAX_PENDING) return fail('相手の申請待ちが上限に達しています');
+  tp.friendRequests.push(pr.id);
+  pr.sentRequests.push(tp.id);
+  saveProfiles();
+  return {
+    ok: true, msg: `${tp.name || 'Player'} にフレンド申請を送りました`,
+    touched: [f.token],
+    notices: [{ token: f.token, msg: `${pr.name || 'Player'} からフレンド申請が届きました` }]
+  };
+}
+
+function friendRespond(pr, fromId, accept) {
+  fromId = normId(fromId);
+  const idx = pr.friendRequests.indexOf(fromId);
+  if (idx < 0) return fail('その申請は見つかりません');
+  const f = profileById(fromId);
+  if (accept && f && f.pr && (pr.friends.length >= MAX_FRIENDS || f.pr.friends.length >= MAX_FRIENDS)) {
+    return fail(`フレンド数の上限(${MAX_FRIENDS}人)に達しています`);
+  }
+  pr.friendRequests.splice(idx, 1);
+  if (!f || !f.pr) { saveProfiles(); return fail('相手のデータが見つかりません'); }
+  const fp = f.pr;
+  fp.sentRequests = fp.sentRequests.filter(x => x !== pr.id);
+  if (!accept) {
+    saveProfiles();
+    return { ok: true, msg: '申請を拒否しました', touched: [f.token] };
+  }
+  if (!pr.friends.includes(fp.id)) pr.friends.push(fp.id);
+  if (!fp.friends.includes(pr.id)) fp.friends.push(pr.id);
+  pr.sentRequests = pr.sentRequests.filter(x => x !== fp.id);
+  fp.friendRequests = fp.friendRequests.filter(x => x !== pr.id);
+  saveProfiles();
+  return {
+    ok: true, msg: `${fp.name || 'Player'} とフレンドになりました！`,
+    touched: [f.token],
+    notices: [{ token: f.token, msg: `${pr.name || 'Player'} がフレンド申請を承認しました` }]
+  };
+}
+
+function friendCancel(pr, targetId) {
+  const id = normId(targetId);
+  if (!pr.sentRequests.includes(id)) return fail('その申請は見つかりません');
+  pr.sentRequests = pr.sentRequests.filter(x => x !== id);
+  const f = profileById(id);
+  if (f && f.pr) f.pr.friendRequests = f.pr.friendRequests.filter(x => x !== pr.id);
+  saveProfiles();
+  return { ok: true, msg: '申請を取り消しました', touched: f ? [f.token] : [] };
+}
+
+function friendRemove(pr, targetId) {
+  const id = normId(targetId);
+  if (!pr.friends.includes(id)) return fail('フレンドではありません');
+  pr.friends = pr.friends.filter(x => x !== id);
+  const f = profileById(id);
+  if (f && f.pr) f.pr.friends = f.pr.friends.filter(x => x !== pr.id);
+  saveProfiles();
+  return { ok: true, msg: 'フレンドを解除しました', touched: f ? [f.token] : [] };
+}
+
+/* ---------- 連打対策 ---------- */
+const rateLast = new Map();
+function rateOk(token, key, ms) {
+  const k = token + ':' + key, now = Date.now();
+  if (rateLast.has(k) && now - rateLast.get(k) < ms) return false;
+  rateLast.set(k, now);
+  return true;
+}
+setInterval(() => { const lim = Date.now() - 60000; for (const [k, v] of rateLast) if (v < lim) rateLast.delete(k); }, 60000).unref();
+
+function pushFriends(token) {
+  const pr = profiles[token];
+  if (pr) emitToToken(token, 'friendsUpdate', friendList(pr));
+}
+
+// Socket.io と REST の共通入口
+function runFriendAction(token, action, args) {
+  const pr = profiles[token];
+  if (!pr) return fail('ログインしていません', 401);
+  if (!rateOk(token, action, action === 'search' ? 400 : 150)) return fail('操作が早すぎます。少し待ってください', 429);
+  let res;
+  switch (action) {
+    case 'list':    res = Object.assign({ ok: true }, friendList(pr)); break;
+    case 'search':  res = friendSearch(pr, args.q); break;
+    case 'request': res = friendRequest(pr, args.targetId); break;
+    case 'respond': res = friendRespond(pr, args.fromId, !!args.accept); break;
+    case 'cancel':  res = friendCancel(pr, args.targetId); break;
+    case 'remove':  res = friendRemove(pr, args.targetId); break;
+    default:        res = fail('不明な操作です');
+  }
+  if (res.ok && action !== 'list' && action !== 'search') {
+    pushFriends(token);
+    (res.touched || []).forEach(pushFriends);
+    (res.notices || []).forEach(n => emitToToken(n.token, 'friendNotice', { msg: n.msg }));
+  }
+  const { touched, notices, ...pub } = res;
+  return pub;
+}
+
+/* ---------- REST API (Authorization: Bearer <sb_token>) ---------- */
+function restAuth(req, res, next) {
+  const h = req.get('authorization') || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7).trim() : (req.get('x-sb-token') || '');
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token) || !profiles[token]) return res.status(401).json({ ok: false, msg: '認証に失敗しました' });
+  req.token = token;
+  next();
+}
+const sendRes = (res, r) => res.status(r.ok ? 200 : (r.code || 400)).json(r);
+app.get('/api/friends',            restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'list', {})));
+app.get('/api/friends/search',     restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'search', { q: req.query.q })));
+app.post('/api/friends/request',   restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'request', req.body || {})));   // { targetId }
+app.post('/api/friends/respond',   restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'respond', req.body || {})));   // { fromId, accept }
+app.post('/api/friends/cancel',    restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'cancel', req.body || {})));    // { targetId }
+app.delete('/api/friends/:id',     restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'remove', { targetId: req.params.id })));
 
 /* =====================================================================
    ルーム・ユーティリティ
@@ -710,6 +981,7 @@ function endMatch(room, winner) {
     const s = io.sockets.sockets.get(h.id);
     if (s) s.emit('profileUpdate', { profile: pr });
   });
+  saveProfiles();
   io.to(room.code).emit('gameOver', {
     winnerName: winner ? winner.name : '-', winnerNum: winner ? winner.playerNum : 0,
     isCpuMode: room.isCpuMode, mode: room.mode, rewards
@@ -738,9 +1010,31 @@ io.on('connection', (socket) => {
   socket.on('auth', (data) => {
     let token = data && typeof data.token === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(data.token) ? data.token : null;
     if (!token) token = crypto.randomBytes(16).toString('hex');
-    if (!profiles[token]) { profiles[token] = newProfile(); saveProfiles(); }
-    tokenBySocket[socket.id] = token;
+    if (!profiles[token]) { profiles[token] = newProfile(); normalizeProfile(token, profiles[token]); saveProfiles(); }
+    else if (normalizeProfile(token, profiles[token])) saveProfiles();
+    bindSocket(socket.id, token);
     socket.emit('authOk', { token, profile: profiles[token], catalog: CATALOG });
+    socket.emit('friendsUpdate', friendList(profiles[token]));
+    // 自分がオンラインになったことをフレンドへ通知 (一覧のオンライン表示更新)
+    profiles[token].friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+  });
+
+  /* ----- プロフィール名 (フレンド検索用) ----- */
+  socket.on('setProfileName', (d) => {
+    const pr = profileOf(socket.id); if (!pr) return;
+    const nm = cleanStr(d && d.name, 10);
+    if (!nm || nm === pr.name) return;
+    pr.name = nm; saveProfiles();
+    pr.friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+  });
+
+  /* ----- フレンド (ack形式: socket.emit('friend:search', {q}, cb)) ----- */
+  ['list', 'search', 'request', 'respond', 'cancel', 'remove'].forEach(action => {
+    socket.on('friend:' + action, (data, cb) => {
+      const token = tokenBySocket[socket.id];
+      const res = token ? runFriendAction(token, action, data && typeof data === 'object' ? data : {}) : fail('ログインしていません', 401);
+      if (typeof cb === 'function') cb(res);
+    });
   });
 
   /* ----- ショップ ----- */
@@ -1045,7 +1339,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const room = getRoomBySocket(socket);
-    delete tokenBySocket[socket.id];
+    const discToken = tokenBySocket[socket.id];
+    unbindSocket(socket.id);
+    if (discToken && profiles[discToken] && !isOnline(discToken)) {
+      profiles[discToken].friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+    }
     if (room) {
       if (room.countdownTimer) clearInterval(room.countdownTimer);
       delete room.players[socket.id];
