@@ -83,7 +83,7 @@ const CHARACTERS = {
     look: { skin: '#e5e7eb', hair: '#f3f4f6', hairStyle: 'long', top: '#7f1d1d', top2: '#1f0a12', pants: '#111827', accent: '#dc2626', build: 0.56, extra: 'cape' }
   },
   thunder: {
-    name: 'ライジン', role: 'サンダーロード', hp: 120, atk: 14, speed: 7.0, jumpPower: 16, width: 55, height: 95,
+    name: 'ライジン', role: 'サンダーロード', hp: 150, atk: 25, speed: 7.0, jumpPower: 19, width: 55, height: 95,
     type: 'thunder', special: 'lightning', ability: '天雷召喚(敵の頭上に落雷)', cd: 12, price: 4500,
     look: { skin: '#fcd9b6', hair: '#fde047', hairStyle: 'spiky', top: '#eab308', top2: '#a16207', pants: '#1e3a8a', accent: '#38bdf8', build: 0.72, extra: 'drums' }
   }
@@ -120,7 +120,7 @@ const ENEMIES = {
               moves: ['shockwave', 'charge', 'volley'], volleyType: 'cannon', ai: { move: 0.8, atk: 0.05, jump: 0.006, block: 0.01 },
               look: { skin: '#94a3b8', hair: '#475569', hairStyle: 'none', top: '#475569', top2: '#1e293b', pants: '#334155', accent: '#f97316', build: 1.0, extra: 'golem' } },
   // 魔王
-  zenon:    { name: '魔王ゼノン', hp: 640, atk: 19, speed: 5.2, jumpPower: 16, width: 100, height: 138, type: 'enemy', boss: true, finalBoss: true, superArmor: true, reachMul: 1.6, cd: 20,
+  zenon:    { name: '魔王ゼノン', hp: 600, atk: 19, speed: 5.2, jumpPower: 16, width: 100, height: 138, type: 'enemy', boss: true, finalBoss: true, superArmor: true, reachMul: 1.6, cd: 20,
               moves: ['shockwave', 'charge', 'volley', 'bolts'], volleyType: 'dark', ai: { move: 0.9, atk: 0.055, jump: 0.012, block: 0.012 },
               look: { skin: '#7c3aed', hair: '#111111', hairStyle: 'oni', top: '#1e1b4b', top2: '#020617', pants: '#111827', accent: '#ef4444', build: 0.82, extra: 'demon' } }
 };
