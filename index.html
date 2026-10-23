@@ -59,7 +59,7 @@
     .btn-stage:hover { box-shadow: none; }
     .btn-stage.active { background: linear-gradient(180deg, #fbbf24, #e08a0b); color: #2a1600; border-color: #fde68a; box-shadow: 0 0 12px rgba(251,191,36,0.55); }
 
-    input[type="text"], input[type="number"] {
+    input[type="text"], input[type="number"], input[type="password"] {
       width: 180px; padding: 7px 10px; font-size: 15px; text-align: center; border-radius: 8px;
       border: 2px solid #4aa8ff; background: #10121c; color: #fff; outline: none; font-family: inherit;
     }
@@ -108,6 +108,13 @@
     }
     .settings-row { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: bold; }
     .settings-row input[type="range"] { width: 160px; cursor: pointer; }
+    .settings-card { width: 440px; max-height: 94%; overflow-y: auto; gap: 14px; padding: 20px 32px; }
+    .acct-box { border-top: 1px solid #2d3150; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+    .acct-box h3 { font-size: 15px; color: #fbbf24; }
+    .acct-box .note { font-size: 11px; color: #8a8fb0; line-height: 1.5; }
+    .acct-line { display: flex; gap: 6px; align-items: center; }
+    .acct-line input { flex: 1; width: auto; min-width: 0; text-align: left; font-family: monospace; font-size: 13px; }
+    .acct-line .btn { margin-top: 0; padding: 6px 12px; font-size: 12px; box-shadow: none; white-space: nowrap; }
 
     /* キャラ選択 */
     .char-list-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 10px 0; }
@@ -255,9 +262,13 @@
       <h1 style="font-size: 50px; margin-bottom: 4px; text-shadow: 0 4px 18px rgba(0,0,0,0.9); background: linear-gradient(to right, #4aa8ff, #34d399, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.6));">セノビックブラザーズ</h1>
       <p style="color: #c9cce6; font-size: 13px; margin-bottom: 18px; letter-spacing: 6px;">SENOBIC BROTHERS ─ 魔王討伐編</p>
 
-      <div style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-        <label style="font-size: 12px; color: #bbb;">プレイヤー名:</label>
-        <input type="text" id="player-name-input" value="Player 1" maxlength="10">
+      <div style="margin-bottom: 8px; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 12px; color: #bbb;">ユーザー名:</label>
+          <input type="text" id="player-name-input" value="" maxlength="10" placeholder="接続中...">
+          <button class="btn btn-gray" onclick="saveUsername()" style="margin-top:0; padding: 6px 14px; font-size: 13px; box-shadow: none;">変更</button>
+        </div>
+        <p id="name-msg" style="font-size: 11px; min-height: 14px; color: #8a8fb0;">2〜10文字 / 他の人と同じ名前は使えません</p>
       </div>
 
       <button class="btn btn-story" onclick="openStorySelect()" style="font-size: 20px; padding: 12px 52px; margin-bottom: 4px;">⚔️ ストーリーモード (魔王討伐編)</button>
@@ -367,7 +378,7 @@
           <div class="interactive" style="display: flex; gap: 8px; align-items: flex-end;">
             <div>
               <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 2px;">名前変更:</label>
-              <input type="text" id="lobby-name-input" value="Player 1" maxlength="10" onchange="changeLobbyName()">
+              <input type="text" id="lobby-name-input" value="" maxlength="10" onchange="changeLobbyName()">
             </div>
             <button class="btn btn-gray" onclick="openCharSelect()" style="margin-top:0; font-size: 13px; padding: 7px 12px;">キャラ変更</button>
             <button class="btn btn-shop" onclick="openShop()" style="margin-top:0; font-size: 13px; padding: 7px 12px;">🛒 ショップ</button>
@@ -423,7 +434,23 @@
           <span>🔊 効果音 (SE) 音量</span>
           <input type="range" id="se-volume-slider" min="0" max="100" value="70" oninput="updateAudioVolumes()">
         </div>
-        <button class="btn" onclick="closeSettingsModal()" style="margin-top: 10px;">閉じる</button>
+        <div class="acct-box">
+          <h3>🔑 アカウント / ログインキー</h3>
+          <div>ユーザー名: <b id="acct-name" style="color:#fff;">-</b></div>
+          <div class="note">ログインキーはアカウントの鍵です。別の端末やブラウザデータ削除後でも、このキーを入力すればSEG・キャラ・フレンドを引き継げます。<b style="color:#f87171;">他人には絶対に教えないでください。</b>メモなどに保存しておきましょう。</div>
+          <div class="acct-line">
+            <input type="password" id="acct-key" readonly value="">
+            <button class="btn btn-gray" id="acct-key-toggle" onclick="toggleKeyVisible()">表示</button>
+            <button class="btn btn-ready" onclick="copyLoginKey()">コピー</button>
+          </div>
+          <div style="margin-top: 6px;">別のアカウントを引き継ぐ (ログインキーを入力):</div>
+          <div class="acct-line">
+            <input type="text" id="acct-login-key" placeholder="保存したログインキー" maxlength="64" autocomplete="off" spellcheck="false">
+            <button class="btn btn-story" onclick="doKeyLogin()">ログイン</button>
+          </div>
+          <p id="acct-msg" class="note" style="min-height: 14px;"></p>
+        </div>
+        <button class="btn" onclick="closeSettingsModal()" style="margin-top: 4px;">閉じる</button>
       </div>
     </div>
 
@@ -465,7 +492,7 @@
       <div class="shop-tabs">
         <button class="shop-tab active" id="frtab-list" onclick="setFriendsTab('list')">🤝 フレンド</button>
         <button class="shop-tab" id="frtab-requests" onclick="setFriendsTab('requests')">📩 届いた申請<span id="fr-req-badge" class="fr-badge hidden">0</span></button>
-        <button class="shop-tab" id="frtab-search" onclick="setFriendsTab('search')">🔍 検索・申請</button>
+        <button class="shop-tab" id="frtab-add" onclick="setFriendsTab('add')">➕ ユーザー名で申請</button>
       </div>
       <div id="friends-body"></div>
       <div id="friends-toast" class="hidden"></div>
@@ -535,7 +562,7 @@
       bgmVol = $('bgm-volume-slider').value / 100;
       seVol = $('se-volume-slider').value / 100;
     }
-    function openSettingsModal() { settingsModal.classList.remove('hidden'); }
+    function openSettingsModal() { settingsModal.classList.remove('hidden'); refreshAccountUI(); }
     function closeSettingsModal() { settingsModal.classList.add('hidden'); }
     function openIngameMenu() { ingameMenuModal.classList.remove('hidden'); }
     function closeIngameMenu() { ingameMenuModal.classList.add('hidden'); }
@@ -655,9 +682,9 @@
       try { localStorage.setItem('sb_token', d.token); } catch (e) {}
       applyCatalog(d.catalog);
       profile = d.profile;
-      // フレンド検索用に名前をサーバーへ登録 (保存済みの名前があれば入力欄へ復元)
-      if (profile.name && playerNameInput.value === 'Player 1') playerNameInput.value = profile.name;
-      else if (playerNameInput.value.trim()) socket.emit('setProfileName', { name: playerNameInput.value.trim() });
+      myToken = d.token;
+      syncNameInputs(true);
+      refreshAccountUI();
       onCatalogReady();
       if (currentGameState === 'LOBBY') updateLobbyUI();
     });
@@ -954,7 +981,7 @@
       if (!guardCatalog()) return;
       errorMsg.textContent = ''; gameMode = 'online';
       if (!socket.connected) socket.connect();
-      socket.emit('createRoom', { playerName: playerNameInput.value.trim() || 'Player 1' });
+      socket.emit('createRoom', {});
       setTimeout(() => socket.emit('selectCharacter', { characterKey: myCharKey }), 150);
     }
     function joinOnlineRoom() {
@@ -963,7 +990,7 @@
       if (code.length !== 4) { errorMsg.textContent = '4桁の数字を入力してください。'; return; }
       errorMsg.textContent = ''; gameMode = 'online';
       if (!socket.connected) socket.connect();
-      socket.emit('joinRoom', { code, playerName: playerNameInput.value.trim() || 'Player' });
+      socket.emit('joinRoom', { code });
       setTimeout(() => socket.emit('selectCharacter', { characterKey: myCharKey }), 150);
     }
     function leaveLobby() { socket.disconnect(); socket.connect(); goToTitle(); }
@@ -986,7 +1013,7 @@
     function confirmStartCpuGame() {
       errorMsg.textContent = ''; gameMode = 'cpu';
       if (!socket.connected) socket.connect();
-      socket.emit('startCpuMode', { playerName: playerNameInput.value.trim() || 'Player 1', characterKey: myCharKey, stageId: cpuSelectedStage });
+      socket.emit('startCpuMode', { characterKey: myCharKey, stageId: cpuSelectedStage });
     }
 
     function openStorySelect() {
@@ -1018,10 +1045,10 @@
       if (!owns(myCharKey)) { showShopToast('このキャラはまだ解放されていません', false); return; }
       gameMode = 'story';
       if (!socket.connected) socket.connect();
-      socket.emit('startStory', { index: storySel, characterKey: myCharKey, playerName: playerNameInput.value.trim() || 'Player 1' });
+      socket.emit('startStory', { index: storySel, characterKey: myCharKey });
     }
 
-    function changeLobbyName() { socket.emit('updateName', { name: lobbyNameInput.value.trim() }); }
+    function changeLobbyName() { submitUsername(lobbyNameInput.value.trim()); }
     function goToTitle() {
       stopBGM(); if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
       currentGameState = 'TITLE'; gameMode = 'online'; isReady = false;
@@ -2203,13 +2230,66 @@
        ================================================================= */
     const friendsModal = $('friends-modal');
     let friendData = { me: null, friends: [], requests: [], sent: [] };
-    let friendsTab = 'list', friendSearchResults = null, friendSearchQuery = '', frToastTimer = null;
+    let friendsTab = 'list', friendSearchQuery = '', frToastTimer = null;
     $('game-container').appendChild($('friends-toast'));
 
-    playerNameInput.addEventListener('change', () => {
-      const v = playerNameInput.value.trim();
-      if (v) socket.emit('setProfileName', { name: v });
-    });
+    /* ----- ユーザー名 / ログインキー ----- */
+    let myToken = null;
+    function syncNameInputs(force) {
+      if (!profile) return;
+      if (force || document.activeElement !== playerNameInput) playerNameInput.value = profile.name || '';
+      if (force || document.activeElement !== lobbyNameInput) lobbyNameInput.value = profile.name || '';
+    }
+    // サーバー側で重複チェック。失敗したら元の名前に戻す
+    function submitUsername(v, done) {
+      socket.emit('setProfileName', { name: v }, (r) => {
+        r = r || { ok: false, msg: '通信エラー' };
+        if (r.ok && profile) profile.name = r.name;
+        syncNameInputs(true); refreshAccountUI();
+        showShopToast(r.msg, r.ok); playSE(r.ok ? 'buy' : 'error');
+        if (done) done(r);
+      });
+    }
+    function saveUsername() {
+      submitUsername(playerNameInput.value.trim(), (r) => {
+        const m = $('name-msg'); m.textContent = r.msg; m.style.color = r.ok ? '#34d399' : '#f87171';
+      });
+    }
+    playerNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveUsername(); });
+
+    function acctMsg(msg, ok) { const m = $('acct-msg'); m.textContent = msg || ''; m.style.color = ok ? '#34d399' : '#f87171'; }
+    function refreshAccountUI() {
+      $('acct-name').textContent = (profile && profile.name) || '-';
+      const k = $('acct-key'); k.value = myToken || ''; k.type = 'password';
+      $('acct-key-toggle').textContent = '表示';
+    }
+    function toggleKeyVisible() {
+      const k = $('acct-key'), show = k.type === 'password';
+      k.type = show ? 'text' : 'password';
+      $('acct-key-toggle').textContent = show ? '隠す' : '表示';
+    }
+    function copyLoginKey() {
+      if (!myToken) return;
+      const done = () => acctMsg('ログインキーをコピーしました。安全な場所に保存してください', true);
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(myToken).then(done, () => fallbackCopy(done));
+      else fallbackCopy(done);
+    }
+    function fallbackCopy(done) {
+      const k = $('acct-key'), prev = k.type; k.type = 'text'; k.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      k.type = prev; window.getSelection().removeAllRanges();
+      if (ok) done(); else acctMsg('コピーできませんでした。「表示」して手動でコピーしてください', false);
+    }
+    function doKeyLogin() {
+      const key = $('acct-login-key').value.trim();
+      if (!key) { acctMsg('ログインキーを入力してください', false); return; }
+      if (!confirm('このログインキーのアカウントに切り替えます。\n現在のアカウントのログインキーを保存していない場合は、先に保存してください。\n切り替えますか？')) return;
+      socket.emit('loginWithKey', { key }, (r) => {
+        r = r || { ok: false, msg: '通信エラー' };
+        acctMsg(r.msg, r.ok); playSE(r.ok ? 'buy' : 'error');
+        if (r.ok) { $('acct-login-key').value = ''; showShopToast(r.msg, true); setTimeout(closeSettingsModal, 600); }
+      });
+    }
 
     function frToast(msg, ok) {
       const t = $('friends-toast');
@@ -2247,15 +2327,11 @@
         if (after) after(r);
       });
     }
-    function doFriendSearch() {
-      const q = $('fr-q').value.trim();
-      friendSearchQuery = q;
-      if (!q) return;
-      friendAct('search', { q }, (r) => { friendSearchResults = r.ok ? r.results : []; renderFriends(); });
-    }
-    function refreshSearchRelation(id, relation) {
-      if (!friendSearchResults) return;
-      friendSearchResults.forEach(x => { if (x.id === id) x.relation = relation; });
+    function doFriendRequest() {
+      const v = $('fr-q').value.trim();
+      friendSearchQuery = v;
+      if (!v) { frToast('ユーザー名を入力してください', false); playSE('error'); return; }
+      friendAct('request', { name: v }, (r) => { if (r.ok) friendSearchQuery = ''; renderFriends(); });
     }
 
     function frRow(u, buttons, infoHtml) {
@@ -2263,7 +2339,6 @@
       const dot = document.createElement('span'); dot.className = 'dot' + (u.online ? ' on' : ''); row.appendChild(dot);
       const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = u.name; row.appendChild(nm);
       const info = document.createElement('div'); info.className = 'info';
-      const idEl = document.createElement('div'); idEl.className = 'id'; idEl.textContent = 'ID: ' + u.id; info.appendChild(idEl);
       if (infoHtml) { const x = document.createElement('div'); x.textContent = infoHtml; info.appendChild(x); }
       row.appendChild(info);
       buttons.forEach(b => row.appendChild(b));
@@ -2272,24 +2347,18 @@
     const frBtn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = fn; return b; };
 
     function renderFriends() {
-      ['list', 'requests', 'search'].forEach(t => $('frtab-' + t).classList.toggle('active', t === friendsTab));
+      ['list', 'requests', 'add'].forEach(t => $('frtab-' + t).classList.toggle('active', t === friendsTab));
       const body = $('friends-body'); body.innerHTML = '';
       const me = friendData.me;
       if (me) {
         const box = document.createElement('div'); box.className = 'fr-me';
-        box.innerHTML = '<span>あなたのフレンドID:</span><b></b><span style="margin-left:auto;font-size:11px;">相手にこのIDを伝えると申請してもらえます</span>';
-        box.querySelector('b').textContent = me.id;
-        const cp = frBtn('コピー', 'btn-gray', () => {
-          if (navigator.clipboard) navigator.clipboard.writeText(me.id).then(() => frToast('IDをコピーしました', true), () => frToast(me.id, true));
-          else frToast(me.id, true);
-        });
-        cp.style.marginTop = '0'; cp.style.padding = '4px 12px'; cp.style.fontSize = '12px';
-        box.insertBefore(cp, box.querySelector('span:last-child'));
+        box.innerHTML = '<span>あなたのユーザー名:</span><b></b><span style="margin-left:auto;font-size:11px;">相手にこの名前を伝えると申請してもらえます</span>';
+        box.querySelector('b').textContent = me.name; box.querySelector('b').style.letterSpacing = '1px';
         body.appendChild(box);
       }
 
       if (friendsTab === 'list') {
-        if (!friendData.friends.length) { body.insertAdjacentHTML('beforeend', '<div class="fr-empty">まだフレンドがいません。「検索・申請」からフレンドを探しましょう！</div>'); return; }
+        if (!friendData.friends.length) { body.insertAdjacentHTML('beforeend', '<div class="fr-empty">まだフレンドがいません。「ユーザー名で申請」からフレンドを追加しましょう！</div>'); return; }
         friendData.friends.forEach(u => {
           const names = (u.ownedChars || []).map(k => (characters[k] && characters[k].name) || k).join('・');
           const info = `💰 ${u.seg.toLocaleString()} SEG ／ 🏆 ${u.wins}勝 ／ ⚔️ ストーリー ${u.storyProgress}/${storyData.length || 10}${u.storyCleared ? ' (クリア済)' : ''} ／ 所持キャラ ${(u.ownedChars || []).length}体: ${names}`;
@@ -2310,23 +2379,13 @@
         }
       } else {
         const bar = document.createElement('div'); bar.className = 'fr-search';
-        bar.innerHTML = '<input type="text" id="fr-q" maxlength="20" placeholder="ユーザー名 または フレンドID(8文字)"><button class="btn" id="fr-go">検索</button>';
+        bar.innerHTML = '<input type="text" id="fr-q" maxlength="10" placeholder="フレンドにしたい人のユーザー名" autocomplete="off"><button class="btn btn-story" id="fr-go">申請を送る</button>';
         body.appendChild(bar);
         const inp = bar.querySelector('#fr-q'); inp.value = friendSearchQuery;
-        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doFriendSearch(); });
-        bar.querySelector('#fr-go').onclick = doFriendSearch;
-        if (friendSearchResults) {
-          if (!friendSearchResults.length) body.insertAdjacentHTML('beforeend', '<div class="fr-empty">見つかりませんでした</div>');
-          friendSearchResults.forEach(u => {
-            let btn;
-            if (u.relation === 'friend') { btn = frBtn('フレンド', 'btn-gray', () => {}); btn.disabled = true; }
-            else if (u.relation === 'sent') { btn = frBtn('申請済み', 'btn-gray', () => {}); btn.disabled = true; }
-            else if (u.relation === 'received') btn = frBtn('承認する', 'btn-ready', () => friendAct('respond', { fromId: u.id, accept: true }, (r) => { if (r.ok) refreshSearchRelation(u.id, 'friend'); renderFriends(); }));
-            else btn = frBtn('申請', 'btn-story', () => friendAct('request', { targetId: u.id }, (r) => { if (r.ok) refreshSearchRelation(u.id, /なりました/.test(r.msg) ? 'friend' : 'sent'); renderFriends(); }));
-            body.appendChild(frRow(u, [btn]));
-          });
-        }
-        setTimeout(() => { const i = $('fr-q'); if (i && !friendSearchResults) i.focus(); }, 0);
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doFriendRequest(); });
+        bar.querySelector('#fr-go').onclick = doFriendRequest;
+        body.insertAdjacentHTML('beforeend', '<div class="fr-empty">相手のユーザー名を正確に入力してください (大文字・小文字は区別されません)</div>');
+        setTimeout(() => { const i = $('fr-q'); if (i) i.focus(); }, 0);
       }
     }
 
