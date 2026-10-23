@@ -96,7 +96,7 @@
       text-shadow: 0 0 30px rgba(247,201,72,0.9), 0 0 10px #000; pointer-events: none; z-index: 15;
     }
 
-    #select-modal, #settings-modal, #code-zoom-modal, #ingame-menu-modal, #shop-modal {
+    #select-modal, #settings-modal, #code-zoom-modal, #ingame-menu-modal, #shop-modal, #friends-modal {
       position: absolute; inset: 0; background: rgba(8,9,16,0.95);
       display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30; padding: 15px;
     }
@@ -181,11 +181,30 @@
     .slot-panel { display: flex; align-items: center; gap: 10px; background: #14172a; border: 1px solid #2d3150; border-radius: 10px; padding: 6px 12px; margin-bottom: 10px; font-size: 12px; color: #aab; }
     .slot-panel .slot { width: 40px; height: 40px; border-radius: 10px; border: 2px dashed #4a4f72; display: flex; align-items: center; justify-content: center; font-size: 22px; position: relative; background: #0d0f1b; }
     .slot-panel .slot small { position: absolute; top: -8px; left: -4px; background: #4aa8ff; color: #04152b; font-size: 9px; border-radius: 6px; padding: 0 4px; font-weight: 900; }
-    #shop-toast {
+    /* フレンド */
+    #friends-modal { z-index: 41; justify-content: flex-start; padding: 14px 24px; background: radial-gradient(circle at 50% 0%, rgba(30,40,62,0.98), rgba(8,8,16,0.98)); }
+    #friends-body { width: 100%; flex: 1; overflow-y: auto; padding: 4px 4px 12px; min-height: 0; }
+    #friends-body::-webkit-scrollbar { width: 8px; }
+    #friends-body::-webkit-scrollbar-thumb { background: #3b4160; border-radius: 4px; }
+    .fr-me { display: flex; align-items: center; gap: 10px; background: #14172a; border: 1px solid #2d3150; border-radius: 10px; padding: 8px 14px; margin-bottom: 10px; font-size: 13px; color: #c9cce6; }
+    .fr-me b { color: #fbbf24; font-size: 18px; letter-spacing: 3px; font-family: monospace; }
+    .fr-row { display: flex; align-items: center; gap: 12px; background: #181b30; border: 1px solid #2d3150; border-radius: 10px; padding: 8px 14px; margin-bottom: 8px; }
+    .fr-row .dot { width: 10px; height: 10px; border-radius: 50%; background: #555a7a; flex: none; }
+    .fr-row .dot.on { background: #34d399; box-shadow: 0 0 8px #34d399; }
+    .fr-row .nm { font-weight: 900; font-size: 15px; min-width: 110px; }
+    .fr-row .id { font-family: monospace; font-size: 11px; color: #8a8fb0; }
+    .fr-row .info { flex: 1; font-size: 11.5px; color: #aab; line-height: 1.5; }
+    .fr-row .btn { margin-top: 0; padding: 5px 14px; font-size: 12px; box-shadow: none; }
+    .fr-empty { color: #8a8fb0; font-size: 13px; text-align: center; padding: 22px 0; }
+    .fr-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: #ef4444; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+    .fr-search { display: flex; gap: 8px; margin-bottom: 10px; }
+    .fr-search input { flex: 1; width: auto; text-align: left; }
+    .fr-search .btn { margin-top: 0; padding: 6px 18px; }
+    #shop-toast, #friends-toast {
       position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); background: rgba(52,211,153,0.95); color: #04261a; font-weight: 900;
       padding: 8px 20px; border-radius: 20px; font-size: 14px; z-index: 50; pointer-events: none; transition: opacity 0.3s;
     }
-    #shop-toast.err { background: rgba(248,113,113,0.96); color: #2a0707; }
+    #shop-toast.err, #friends-toast.err { background: rgba(248,113,113,0.96); color: #2a0707; }
 
     /* ストーリー */
     .story-title { font-size: 30px; font-weight: 900; letter-spacing: 3px; margin-bottom: 4px; background: linear-gradient(90deg, #fbbf24, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -247,6 +266,7 @@
         <button class="btn btn-cpu" onclick="openCpuSetup()">1人でCPU対戦</button>
         <button class="btn" onclick="createOnlineRoom()">部屋を作る</button>
         <button class="btn btn-shop" onclick="openShop()">🛒 ショップ</button>
+        <button class="btn btn-ready" onclick="openFriends()">👥 フレンド<span id="fr-badge" class="fr-badge hidden">0</span></button>
       </div>
 
       <div style="margin-top: 16px; display: flex; flex-direction: column; align-items: center;">
@@ -435,6 +455,21 @@
       <div id="shop-body"></div>
       <div id="shop-toast" class="hidden"></div>
     </div>
+
+    <!-- 10. フレンド -->
+    <div id="friends-modal" class="hidden">
+      <div class="shop-head">
+        <h2 style="background: linear-gradient(90deg, #34d399, #4aa8ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">👥 FRIENDS</h2>
+        <button class="btn btn-gray" onclick="closeFriends()" style="margin-top:0; padding: 8px 22px;">閉じる ✕</button>
+      </div>
+      <div class="shop-tabs">
+        <button class="shop-tab active" id="frtab-list" onclick="setFriendsTab('list')">🤝 フレンド</button>
+        <button class="shop-tab" id="frtab-requests" onclick="setFriendsTab('requests')">📩 届いた申請<span id="fr-req-badge" class="fr-badge hidden">0</span></button>
+        <button class="shop-tab" id="frtab-search" onclick="setFriendsTab('search')">🔍 検索・申請</button>
+      </div>
+      <div id="friends-body"></div>
+      <div id="friends-toast" class="hidden"></div>
+    </div>
   </div>
 
   <div id="controls-guide">
@@ -620,6 +655,9 @@
       try { localStorage.setItem('sb_token', d.token); } catch (e) {}
       applyCatalog(d.catalog);
       profile = d.profile;
+      // フレンド検索用に名前をサーバーへ登録 (保存済みの名前があれば入力欄へ復元)
+      if (profile.name && playerNameInput.value === 'Player 1') playerNameInput.value = profile.name;
+      else if (playerNameInput.value.trim()) socket.emit('setProfileName', { name: playerNameInput.value.trim() });
       onCatalogReady();
       if (currentGameState === 'LOBBY') updateLobbyUI();
     });
@@ -2159,6 +2197,138 @@
       } catch (e) { if (T % 120 === 0) console.error(e); }
     }
     requestAnimationFrame(frame);
+
+    /* =================================================================
+       フレンド
+       ================================================================= */
+    const friendsModal = $('friends-modal');
+    let friendData = { me: null, friends: [], requests: [], sent: [] };
+    let friendsTab = 'list', friendSearchResults = null, friendSearchQuery = '', frToastTimer = null;
+    $('game-container').appendChild($('friends-toast'));
+
+    playerNameInput.addEventListener('change', () => {
+      const v = playerNameInput.value.trim();
+      if (v) socket.emit('setProfileName', { name: v });
+    });
+
+    function frToast(msg, ok) {
+      const t = $('friends-toast');
+      t.textContent = msg; t.classList.toggle('err', ok === false); t.classList.remove('hidden');
+      if (frToastTimer) clearTimeout(frToastTimer);
+      frToastTimer = setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+    function updateFriendBadges() {
+      const n = friendData.requests.length;
+      [['fr-badge'], ['fr-req-badge']].forEach(([id]) => { const e = $(id); e.textContent = n; e.classList.toggle('hidden', n === 0); });
+    }
+    socket.on('friendsUpdate', (d) => {
+      friendData = d; updateFriendBadges();
+      if (!friendsModal.classList.contains('hidden')) renderFriends();
+    });
+    socket.on('friendNotice', (d) => {
+      playSE('buy');
+      if (!friendsModal.classList.contains('hidden')) frToast(d.msg, true); else showShopToast(d.msg, true);
+    });
+
+    function openFriends() {
+      friendsModal.classList.remove('hidden');
+      socket.emit('friend:list', {}, (r) => { if (r && r.ok) { friendData = r; updateFriendBadges(); } renderFriends(); });
+      renderFriends();
+    }
+    function closeFriends() { friendsModal.classList.add('hidden'); }
+    function setFriendsTab(t) { friendsTab = t; renderFriends(); }
+
+    // 共通: 結果をトーストに出し、検索結果の表示も更新
+    function friendAct(action, data, after) {
+      socket.emit('friend:' + action, data, (r) => {
+        r = r || { ok: false, msg: '通信エラー' };
+        if (r.msg) frToast(r.msg, r.ok);
+        playSE(r.ok ? 'buy' : 'error');
+        if (after) after(r);
+      });
+    }
+    function doFriendSearch() {
+      const q = $('fr-q').value.trim();
+      friendSearchQuery = q;
+      if (!q) return;
+      friendAct('search', { q }, (r) => { friendSearchResults = r.ok ? r.results : []; renderFriends(); });
+    }
+    function refreshSearchRelation(id, relation) {
+      if (!friendSearchResults) return;
+      friendSearchResults.forEach(x => { if (x.id === id) x.relation = relation; });
+    }
+
+    function frRow(u, buttons, infoHtml) {
+      const row = document.createElement('div'); row.className = 'fr-row';
+      const dot = document.createElement('span'); dot.className = 'dot' + (u.online ? ' on' : ''); row.appendChild(dot);
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = u.name; row.appendChild(nm);
+      const info = document.createElement('div'); info.className = 'info';
+      const idEl = document.createElement('div'); idEl.className = 'id'; idEl.textContent = 'ID: ' + u.id; info.appendChild(idEl);
+      if (infoHtml) { const x = document.createElement('div'); x.textContent = infoHtml; info.appendChild(x); }
+      row.appendChild(info);
+      buttons.forEach(b => row.appendChild(b));
+      return row;
+    }
+    const frBtn = (label, cls, fn) => { const b = document.createElement('button'); b.className = 'btn ' + cls; b.textContent = label; b.onclick = fn; return b; };
+
+    function renderFriends() {
+      ['list', 'requests', 'search'].forEach(t => $('frtab-' + t).classList.toggle('active', t === friendsTab));
+      const body = $('friends-body'); body.innerHTML = '';
+      const me = friendData.me;
+      if (me) {
+        const box = document.createElement('div'); box.className = 'fr-me';
+        box.innerHTML = '<span>あなたのフレンドID:</span><b></b><span style="margin-left:auto;font-size:11px;">相手にこのIDを伝えると申請してもらえます</span>';
+        box.querySelector('b').textContent = me.id;
+        const cp = frBtn('コピー', 'btn-gray', () => {
+          if (navigator.clipboard) navigator.clipboard.writeText(me.id).then(() => frToast('IDをコピーしました', true), () => frToast(me.id, true));
+          else frToast(me.id, true);
+        });
+        cp.style.marginTop = '0'; cp.style.padding = '4px 12px'; cp.style.fontSize = '12px';
+        box.insertBefore(cp, box.querySelector('span:last-child'));
+        body.appendChild(box);
+      }
+
+      if (friendsTab === 'list') {
+        if (!friendData.friends.length) { body.insertAdjacentHTML('beforeend', '<div class="fr-empty">まだフレンドがいません。「検索・申請」からフレンドを探しましょう！</div>'); return; }
+        friendData.friends.forEach(u => {
+          const names = (u.ownedChars || []).map(k => (characters[k] && characters[k].name) || k).join('・');
+          const info = `💰 ${u.seg.toLocaleString()} SEG ／ 🏆 ${u.wins}勝 ／ ⚔️ ストーリー ${u.storyProgress}/${storyData.length || 10}${u.storyCleared ? ' (クリア済)' : ''} ／ 所持キャラ ${(u.ownedChars || []).length}体: ${names}`;
+          body.appendChild(frRow(u, [frBtn('解除', 'btn-cancel', () => {
+            if (confirm(`${u.name} をフレンドから外しますか？`)) friendAct('remove', { targetId: u.id });
+          })], info));
+        });
+      } else if (friendsTab === 'requests') {
+        if (!friendData.requests.length) body.insertAdjacentHTML('beforeend', '<div class="fr-empty">届いている申請はありません</div>');
+        friendData.requests.forEach(u => body.appendChild(frRow(u, [
+          frBtn('承認', 'btn-ready', () => friendAct('respond', { fromId: u.id, accept: true })),
+          frBtn('拒否', 'btn-cancel', () => friendAct('respond', { fromId: u.id, accept: false }))
+        ], 'からフレンド申請が届いています')));
+        if (friendData.sent.length) {
+          const h = document.createElement('div'); h.style.cssText = 'margin:14px 0 6px;font-size:12px;color:#8a8fb0;'; h.textContent = '送信済みの申請 (相手の返事待ち)';
+          body.appendChild(h);
+          friendData.sent.forEach(u => body.appendChild(frRow(u, [frBtn('取消', 'btn-gray', () => friendAct('cancel', { targetId: u.id }))])));
+        }
+      } else {
+        const bar = document.createElement('div'); bar.className = 'fr-search';
+        bar.innerHTML = '<input type="text" id="fr-q" maxlength="20" placeholder="ユーザー名 または フレンドID(8文字)"><button class="btn" id="fr-go">検索</button>';
+        body.appendChild(bar);
+        const inp = bar.querySelector('#fr-q'); inp.value = friendSearchQuery;
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') doFriendSearch(); });
+        bar.querySelector('#fr-go').onclick = doFriendSearch;
+        if (friendSearchResults) {
+          if (!friendSearchResults.length) body.insertAdjacentHTML('beforeend', '<div class="fr-empty">見つかりませんでした</div>');
+          friendSearchResults.forEach(u => {
+            let btn;
+            if (u.relation === 'friend') { btn = frBtn('フレンド', 'btn-gray', () => {}); btn.disabled = true; }
+            else if (u.relation === 'sent') { btn = frBtn('申請済み', 'btn-gray', () => {}); btn.disabled = true; }
+            else if (u.relation === 'received') btn = frBtn('承認する', 'btn-ready', () => friendAct('respond', { fromId: u.id, accept: true }, (r) => { if (r.ok) refreshSearchRelation(u.id, 'friend'); renderFriends(); }));
+            else btn = frBtn('申請', 'btn-story', () => friendAct('request', { targetId: u.id }, (r) => { if (r.ok) refreshSearchRelation(u.id, /なりました/.test(r.msg) ? 'friend' : 'sent'); renderFriends(); }));
+            body.appendChild(frRow(u, [btn]));
+          });
+        }
+        setTimeout(() => { const i = $('fr-q'); if (i && !friendSearchResults) i.focus(); }, 0);
+      }
+    }
 
     /* =================================================================
        ショップ (キャラクター / スキン / エモート)
