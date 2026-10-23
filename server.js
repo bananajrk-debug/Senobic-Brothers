@@ -6,6 +6,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const app = express();
+app.set('trust proxy', 1); // Render等のプロキシ配下でも req.ip を正しく取るため
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
@@ -264,6 +265,47 @@ function newProfile() {
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_FRIENDS = 50, MAX_PENDING = 50;
 const tokenById = {};
+const TOKEN_RE = /^[A-Za-z0-9_-]{16,64}$/;
+
+/* ---------- ユーザー名 (サーバー全体で一意) ----------
+   大文字小文字・全角半角の違い (Ａｂｃ と abc など) は同じ名前とみなす */
+const nameIndex = {};   // 正規化した名前 -> token
+const NAME_MIN = 2, NAME_MAX = 10;
+const RESERVED_NAMES = ['cpu', 'admin', 'system', 'gm', '運営', '管理人', 'player'];
+const nameKey = (n) => String(n).normalize('NFKC').toLowerCase();
+
+function validateName(raw) {
+  const n = String(raw == null ? '' : raw).replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  const len = Array.from(n).length;
+  if (len < NAME_MIN) return { ok: false, msg: `ユーザー名は${NAME_MIN}文字以上で入力してください` };
+  if (len > NAME_MAX) return { ok: false, msg: `ユーザー名は${NAME_MAX}文字以内で入力してください` };
+  if (/\s/.test(n)) return { ok: false, msg: 'ユーザー名に空白は使えません' };
+  if (/[<>&"'`]/.test(n)) return { ok: false, msg: 'ユーザー名に < > & " \' ` は使えません' };
+  if (/[\u200b-\u200f\u202a-\u202e\u2060\ufeff]/.test(n)) return { ok: false, msg: 'ユーザー名に使えない文字が含まれています' };
+  if (RESERVED_NAMES.includes(nameKey(n))) return { ok: false, msg: 'その名前は使用できません' };
+  return { ok: true, name: n };
+}
+
+// Player_8392 のようなランダムで未使用の名前
+function randomName() {
+  for (let i = 0; i < 80; i++) {
+    const digits = i < 50 ? 4 : 6;
+    const name = 'Player_' + String(Math.floor(Math.random() * Math.pow(10, digits))).padStart(digits, '0');
+    if (!nameIndex[nameKey(name)]) return name;
+  }
+  return 'Player_' + crypto.randomBytes(5).toString('hex');
+}
+
+function setName(token, pr, raw) {
+  const v = validateName(raw);
+  if (!v.ok) return fail(v.msg);
+  const key = nameKey(v.name);
+  if (nameIndex[key] && nameIndex[key] !== token) return fail(`「${v.name}」はすでに使われています。別の名前を入力してください`);
+  if (pr.name) { const old = nameKey(pr.name); if (nameIndex[old] === token) delete nameIndex[old]; }
+  pr.name = v.name; nameIndex[key] = token;
+  saveProfiles();
+  return { ok: true, name: pr.name, msg: `ユーザー名を「${pr.name}」にしました` };
+}
 
 function genFriendId() {
   let id;
@@ -282,7 +324,14 @@ function normalizeProfile(token, pr) {
     pr.id = genFriendId(); changed = true;
   }
   tokenById[pr.id] = token;
-  if (typeof pr.name !== 'string') { pr.name = ''; changed = true; }
+  // ユーザー名: 空・旧デフォルト(Player 1等)・不正・重複のものは一意なランダム名に置き換える
+  if (typeof pr.name !== 'string') pr.name = '';
+  const nv = pr.name ? validateName(pr.name) : { ok: false };
+  const nk = nv.ok ? nameKey(nv.name) : null;
+  if (!nk || /^Player( 1)?$/i.test(pr.name) || (nameIndex[nk] && nameIndex[nk] !== token)) { pr.name = randomName(); changed = true; }
+  else if (pr.name !== nv.name) { pr.name = nv.name; changed = true; }
+  nameIndex[nameKey(pr.name)] = token;
+  if (typeof pr.lastSeen !== 'number') { pr.lastSeen = Date.now(); changed = true; }
   ['friends', 'friendRequests', 'sentRequests'].forEach(k => {
     if (!Array.isArray(pr[k])) { pr[k] = []; changed = true; }
   });
@@ -340,13 +389,6 @@ function pubSummary(id, full) {
   return o;
 }
 
-function relationOf(pr, id) {
-  if (pr.friends.includes(id)) return 'friend';
-  if (pr.sentRequests.includes(id)) return 'sent';
-  if (pr.friendRequests.includes(id)) return 'received';
-  return 'none';
-}
-
 function friendList(pr) {
   const map = (arr, full) => arr.map(id => pubSummary(id, full)).filter(Boolean);
   const friends = map(pr.friends, true).sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name, 'ja'));
@@ -357,31 +399,13 @@ function friendList(pr) {
   };
 }
 
-// 名前(部分一致) または ID(完全一致) で検索
-function friendSearch(pr, q) {
-  q = cleanStr(q, 20);
-  if (!q) return fail('検索ワードを入力してください');
-  const out = [], seen = new Set();
-  const push = (p) => {
-    if (p === pr || seen.has(p.id)) return;
-    seen.add(p.id);
-    out.push({ id: p.id, name: p.name || 'Player', online: isOnline(tokenById[p.id]), relation: relationOf(pr, p.id) });
-  };
-  const idq = q.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (idq === pr.id) return fail('それはあなた自身のIDです');
-  if (idq.length === 8 && tokenById[idq]) push(profiles[tokenById[idq]]);
-  const lq = q.toLowerCase();
-  for (const t in profiles) {
-    if (out.length >= 10) break;
-    const p = profiles[t];
-    if (p !== pr && p.name && p.name.toLowerCase().includes(lq)) push(p);
-  }
-  return { ok: true, results: out };
-}
-
-function friendRequest(pr, targetId) {
-  const f = profileById(normId(targetId));
-  if (!f || !f.pr) return fail('ユーザーが見つかりません');
+// ユーザー名(完全一致・大文字小文字無視)で相手を探して申請する
+function friendRequest(pr, name) {
+  const input = String(name == null ? '' : name).trim();
+  if (!input) return fail('ユーザー名を入力してください');
+  const t = nameIndex[nameKey(input)];
+  if (!t || !profiles[t]) return fail(`「${cleanStr(input, 10)}」というユーザーは存在しません`);
+  const f = { token: t, pr: profiles[t] };
   const tp = f.pr;
   if (tp === pr) return fail('自分自身には申請できません');
   if (pr.friends.includes(tp.id)) return fail('すでにフレンドです');
@@ -466,24 +490,91 @@ function pushFriends(token) {
 function runFriendAction(token, action, args) {
   const pr = profiles[token];
   if (!pr) return fail('ログインしていません', 401);
-  if (!rateOk(token, action, action === 'search' ? 400 : 150)) return fail('操作が早すぎます。少し待ってください', 429);
+  if (!rateOk(token, action, action === 'request' ? 400 : 150)) return fail('操作が早すぎます。少し待ってください', 429);
   let res;
   switch (action) {
     case 'list':    res = Object.assign({ ok: true }, friendList(pr)); break;
-    case 'search':  res = friendSearch(pr, args.q); break;
-    case 'request': res = friendRequest(pr, args.targetId); break;
+    case 'request': res = friendRequest(pr, args.name); break;
     case 'respond': res = friendRespond(pr, args.fromId, !!args.accept); break;
     case 'cancel':  res = friendCancel(pr, args.targetId); break;
     case 'remove':  res = friendRemove(pr, args.targetId); break;
     default:        res = fail('不明な操作です');
   }
-  if (res.ok && action !== 'list' && action !== 'search') {
+  if (res.ok && action !== 'list') {
     pushFriends(token);
     (res.touched || []).forEach(pushFriends);
     (res.notices || []).forEach(n => emitToToken(n.token, 'friendNotice', { msg: n.msg }));
   }
   const { touched, notices, ...pub } = res;
   return pub;
+}
+
+/* ---------- ユーザー名の変更 (Socket / REST 共通) ---------- */
+function applyRename(token, raw) {
+  const pr = profiles[token];
+  if (!pr) return fail('ログインしていません', 401);
+  if (!rateOk(token, 'rename', 1000)) return fail('操作が早すぎます。少し待ってください', 429);
+  const r = setName(token, pr, raw);
+  if (r.ok) {
+    // 参加中の部屋の表示名も更新
+    (socketsByToken[token] || new Set()).forEach(sid => {
+      for (const code in rooms) {
+        const p = rooms[code].players[sid];
+        if (p) { p.name = pr.name; io.to(code).emit('characterUpdated', { players: rooms[code].players }); }
+      }
+    });
+    pr.friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+    pushFriends(token);
+  }
+  return r;
+}
+const roomName = (socket) => { const pr = profileOf(socket.id); return (pr && pr.name) || 'Player'; };
+
+/* ---------- アカウント作成・ログインキーでの切り替え ----------
+   ログインキー = アカウントのトークン。128bitの乱数なので推測は事実上不可能。
+   クライアントが勝手に決めた文字列は受け付けず、未知のトークンなら新規アカウントを発行する。 */
+function createAccount() {
+  const token = crypto.randomBytes(16).toString('hex');
+  profiles[token] = newProfile();
+  normalizeProfile(token, profiles[token]);
+  saveProfiles();
+  return token;
+}
+
+// 何も触っていない自動命名アカウントか (切り替え時に捨ててよいか)
+function isPristine(pr) {
+  return pr.seg === START_SEG && !pr.wins && !pr.storyProgress && !pr.storyCleared &&
+    pr.ownedChars.length === FREE_CHARS.length && Object.keys(pr.ownedSkins || {}).length === 0 &&
+    pr.ownedEmotes.length === FREE_EMOTES.length &&
+    !pr.friends.length && !pr.friendRequests.length && !pr.sentRequests.length && /^Player_\w+$/.test(pr.name);
+}
+function deleteAccount(token) {
+  const pr = profiles[token]; if (!pr) return;
+  if (tokenById[pr.id] === token) delete tokenById[pr.id];
+  if (nameIndex[nameKey(pr.name)] === token) delete nameIndex[nameKey(pr.name)];
+  delete profiles[token];
+  saveProfiles();
+}
+// 30日以上ログインのない未使用アカウントを掃除 (bot等でゴミが溜まらないように)
+function pruneStaleAccounts() {
+  const lim = Date.now() - 30 * 24 * 3600 * 1000;
+  for (const t in profiles) { if (!isOnline(t) && isPristine(profiles[t]) && (profiles[t].lastSeen || 0) < lim) deleteAccount(t); }
+}
+pruneStaleAccounts();
+setInterval(pruneStaleAccounts, 6 * 3600 * 1000).unref();
+
+function attachSocket(socket, token) {
+  const prev = tokenBySocket[socket.id];
+  bindSocket(socket.id, token);
+  const pr = profiles[token];
+  pr.lastSeen = Date.now();
+  socket.emit('authOk', { token, profile: pr, catalog: CATALOG });
+  socket.emit('friendsUpdate', friendList(pr));
+  pr.friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+  if (prev && prev !== token && profiles[prev] && !isOnline(prev)) {
+    if (isPristine(profiles[prev])) deleteAccount(prev);
+    else profiles[prev].friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+  }
 }
 
 /* ---------- REST API (Authorization: Bearer <sb_token>) ---------- */
@@ -494,10 +585,19 @@ function restAuth(req, res, next) {
   req.token = token;
   next();
 }
+// ログインキーの検証 (キーを持っていればそのアカウントの基本情報を返す)
+app.post('/api/login', (req, res) => {
+  if (!rateOk('ip:' + req.ip, 'login', 1000)) return res.status(429).json(fail('試行が早すぎます。少し待ってください', 429));
+  const key = req.body && typeof req.body.key === 'string' ? req.body.key.trim() : '';
+  if (!TOKEN_RE.test(key) || !profiles[key]) return res.status(401).json(fail('ログインキーが正しくありません', 401));
+  const pr = profiles[key];
+  res.json({ ok: true, token: key, id: pr.id, name: pr.name });
+});
+app.get('/api/me', restAuth, (req, res) => { const pr = profiles[req.token]; res.json({ ok: true, id: pr.id, name: pr.name, seg: pr.seg }); });
+app.post('/api/me/name', restAuth, (req, res) => sendRes(res, applyRename(req.token, req.body && req.body.name)));   // { name }
 const sendRes = (res, r) => res.status(r.ok ? 200 : (r.code || 400)).json(r);
 app.get('/api/friends',            restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'list', {})));
-app.get('/api/friends/search',     restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'search', { q: req.query.q })));
-app.post('/api/friends/request',   restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'request', req.body || {})));   // { targetId }
+app.post('/api/friends/request',   restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'request', req.body || {})));   // { name }
 app.post('/api/friends/respond',   restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'respond', req.body || {})));   // { fromId, accept }
 app.post('/api/friends/cancel',    restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'cancel', req.body || {})));    // { targetId }
 app.delete('/api/friends/:id',     restAuth, (req, res) => sendRes(res, runFriendAction(req.token, 'remove', { targetId: req.params.id })));
@@ -1008,28 +1108,32 @@ function refreshPlayerSkin(socket) {
 
 io.on('connection', (socket) => {
   socket.on('auth', (data) => {
-    let token = data && typeof data.token === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(data.token) ? data.token : null;
-    if (!token) token = crypto.randomBytes(16).toString('hex');
-    if (!profiles[token]) { profiles[token] = newProfile(); normalizeProfile(token, profiles[token]); saveProfiles(); }
-    else if (normalizeProfile(token, profiles[token])) saveProfiles();
-    bindSocket(socket.id, token);
-    socket.emit('authOk', { token, profile: profiles[token], catalog: CATALOG });
-    socket.emit('friendsUpdate', friendList(profiles[token]));
-    // 自分がオンラインになったことをフレンドへ通知 (一覧のオンライン表示更新)
-    profiles[token].friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+    const t = data && typeof data.token === 'string' ? data.token : '';
+    attachSocket(socket, TOKEN_RE.test(t) && profiles[t] ? t : createAccount());
   });
 
-  /* ----- プロフィール名 (フレンド検索用) ----- */
-  socket.on('setProfileName', (d) => {
-    const pr = profileOf(socket.id); if (!pr) return;
-    const nm = cleanStr(d && d.name, 10);
-    if (!nm || nm === pr.name) return;
-    pr.name = nm; saveProfiles();
-    pr.friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
+  /* ----- ログインキーでアカウント復帰 (ack: { ok, msg }) ----- */
+  socket.on('loginWithKey', (d, cb) => {
+    const reply = (r) => { if (typeof cb === 'function') cb(r); };
+    if (!rateOk('sock:' + socket.id, 'login', 1000)) return reply(fail('試行が早すぎます。少し待ってください', 429));
+    const key = d && typeof d.key === 'string' ? d.key.trim() : '';
+    if (!TOKEN_RE.test(key) || !profiles[key]) return reply(fail('ログインキーが正しくありません'));
+    if (getRoomBySocket(socket)) return reply(fail('部屋・対戦中はアカウントを切り替えられません。タイトル画面に戻ってからお試しください'));
+    if (tokenBySocket[socket.id] === key) return reply({ ok: true, msg: 'すでにこのアカウントでログインしています' });
+    attachSocket(socket, key);
+    reply({ ok: true, msg: `「${profiles[key].name}」としてログインしました` });
   });
+
+  /* ----- ユーザー名の変更 (ack: { ok, name, msg }) ----- */
+  const renameHandler = (d, cb) => {
+    const r = applyRename(tokenBySocket[socket.id], d && d.name);
+    if (typeof cb === 'function') cb(r);
+  };
+  socket.on('setProfileName', renameHandler);
+  socket.on('updateName', renameHandler);
 
   /* ----- フレンド (ack形式: socket.emit('friend:search', {q}, cb)) ----- */
-  ['list', 'search', 'request', 'respond', 'cancel', 'remove'].forEach(action => {
+  ['list', 'request', 'respond', 'cancel', 'remove'].forEach(action => {
     socket.on('friend:' + action, (data, cb) => {
       const token = tokenBySocket[socket.id];
       const res = token ? runFriendAction(token, action, data && typeof data === 'object' ? data : {}) : fail('ログインしていません', 401);
@@ -1099,7 +1203,7 @@ io.on('connection', (socket) => {
     const code = generateRoomCode();
     rooms[code] = createRoom(code);
     const room = rooms[code];
-    room.players[socket.id] = createPlayerData(socket.id, 1, (data && data.playerName) || 'Player 1');
+    room.players[socket.id] = createPlayerData(socket.id, 1, roomName(socket));
     socket.join(code);
     socket.emit('roomCreated', { code, playerNum: 1 });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code, selectedStage: room.selectedStage });
@@ -1114,7 +1218,7 @@ io.on('connection', (socket) => {
     }
     const used = Object.values(room.players).map(p => p.playerNum);
     let num = 1; while (used.includes(num)) num++;
-    room.players[socket.id] = createPlayerData(socket.id, num, (data && data.playerName) || `Player ${num}`);
+    room.players[socket.id] = createPlayerData(socket.id, num, roomName(socket));
     socket.join(code);
     socket.emit('roomJoined', { code, playerNum: num });
     io.to(code).emit('gameState', { state: room.gameState, players: room.players, isCpuMode: false, code, selectedStage: room.selectedStage });
@@ -1129,7 +1233,7 @@ io.on('connection', (socket) => {
     const stageId = STAGES[data && data.stageId] ? data.stageId : 1;
     room.selectedStage = stageId;
 
-    const me = createPlayerData(socket.id, 1, (data && data.playerName) || 'Player 1');
+    const me = createPlayerData(socket.id, 1, roomName(socket));
     let key = data && data.characterKey;
     if (!CHARACTERS[key] || (pr && !pr.ownedChars.includes(key))) key = 'futsuo';
     me.characterKey = key;
@@ -1160,7 +1264,7 @@ io.on('connection', (socket) => {
     idx = Math.max(0, Math.min(idx, Math.min(pr.storyProgress, STORY.length - 1)));
     room.storyIndex = idx;
 
-    const me = createPlayerData(socket.id, 1, (data && data.playerName) || 'Player 1');
+    const me = createPlayerData(socket.id, 1, roomName(socket));
     let key = data && data.characterKey;
     if (!CHARACTERS[key] || !pr.ownedChars.includes(key)) key = 'futsuo';
     me.characterKey = key;
@@ -1198,15 +1302,6 @@ io.on('connection', (socket) => {
     if (room && room.players[socket.id] && room.players[socket.id].playerNum === 1 && STAGES[data.stageId] && room.mode === 'online') {
       room.selectedStage = data.stageId;
       io.to(room.code).emit('stageUpdated', { selectedStage: room.selectedStage });
-    }
-  });
-
-  socket.on('updateName', (data) => {
-    const room = getRoomBySocket(socket);
-    if (room && room.players[socket.id]) {
-      const nm = String((data && data.name) || '').slice(0, 10);
-      room.players[socket.id].name = nm || `Player ${room.players[socket.id].playerNum}`;
-      io.to(room.code).emit('characterUpdated', { players: room.players });
     }
   });
 
@@ -1340,6 +1435,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const room = getRoomBySocket(socket);
     const discToken = tokenBySocket[socket.id];
+    if (discToken && profiles[discToken]) profiles[discToken].lastSeen = Date.now();
     unbindSocket(socket.id);
     if (discToken && profiles[discToken] && !isOnline(discToken)) {
       profiles[discToken].friends.forEach(id => { const f = profileById(id); if (f) pushFriends(f.token); });
